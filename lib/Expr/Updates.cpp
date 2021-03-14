@@ -40,6 +40,11 @@ unsigned UpdateNode::computeHash() {
   hashValue = index->hash() ^ value->hash();
   if (!next.isNull())
     hashValue ^= next->hash();
+
+  shapeHashValue = index->shapeHash() ^ value->shapeHash();
+  if (!next.isNull())
+    shapeHashValue ^= next->shapeHash();
+
   return hashValue;
 }
 
@@ -90,5 +95,15 @@ unsigned UpdateList::hash() const {
     res = (res * Expr::MAGIC_HASH_CONSTANT) + root->name[i];
   if (head.get())
     res ^= head->hash();
+  return res;
+}
+
+unsigned UpdateList::shapeHash() const {
+  unsigned res = 0;
+  for (unsigned i = 0, e = root->name.size(); i != e; ++i) {
+    res = (res * Expr::MAGIC_HASH_CONSTANT) + root->name[i];
+  }
+  if (head.get())
+    res ^= head->shapeHash();
   return res;
 }

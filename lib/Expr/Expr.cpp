@@ -178,14 +178,18 @@ void Expr::printKind(llvm::raw_ostream &os, Kind k) {
 
 unsigned Expr::computeHash() {
   unsigned res = getKind() * Expr::MAGIC_HASH_CONSTANT;
+  unsigned shapeRes = getKind() * Expr::MAGIC_HASH_CONSTANT;
 
   int n = getNumKids();
   for (int i = 0; i < n; i++) {
     res <<= 1;
     res ^= getKid(i)->hash() * Expr::MAGIC_HASH_CONSTANT;
+    shapeRes <<= 1;
+    shapeRes ^= getKid(i)->shapeHash() * Expr::MAGIC_HASH_CONSTANT;
   }
   
   hashValue = res;
+  shapeHashValue = shapeRes;
   return hashValue;
 }
 
@@ -196,12 +200,17 @@ unsigned ConstantExpr::computeHash() {
   else
     hashValue = hash_value(value) ^ (w * MAGIC_HASH_CONSTANT);
 
+  /* TODO: define? */
+  shapeHashValue = Expr::MAGIC_SHAPE_HASH_CONSTANT;
+
   return hashValue;
 }
 
 unsigned CastExpr::computeHash() {
   unsigned res = getWidth() * Expr::MAGIC_HASH_CONSTANT;
   hashValue = res ^ src->hash() * Expr::MAGIC_HASH_CONSTANT;
+  unsigned shapeRes = getWidth() * Expr::MAGIC_HASH_CONSTANT;
+  shapeHashValue = shapeRes ^ src->shapeHash() * Expr::MAGIC_HASH_CONSTANT;
   return hashValue;
 }
 
@@ -209,6 +218,9 @@ unsigned ExtractExpr::computeHash() {
   unsigned res = offset * Expr::MAGIC_HASH_CONSTANT;
   res ^= getWidth() * Expr::MAGIC_HASH_CONSTANT;
   hashValue = res ^ expr->hash() * Expr::MAGIC_HASH_CONSTANT;
+  unsigned shapeRes = offset * Expr::MAGIC_HASH_CONSTANT;
+  shapeRes ^= getWidth() * Expr::MAGIC_HASH_CONSTANT;
+  shapeHashValue = shapeRes ^ expr->shapeHash() * Expr::MAGIC_HASH_CONSTANT;
   return hashValue;
 }
 
@@ -216,11 +228,18 @@ unsigned ReadExpr::computeHash() {
   unsigned res = index->hash() * Expr::MAGIC_HASH_CONSTANT;
   res ^= updates.hash();
   hashValue = res;
+
+  /* ignore index */
+  unsigned shapeRes = index->shapeHash() * Expr::MAGIC_HASH_CONSTANT;
+  shapeRes ^= updates.shapeHash();
+  shapeHashValue = shapeRes;
+
   return hashValue;
 }
 
 unsigned NotExpr::computeHash() {
   hashValue = expr->hash() * Expr::MAGIC_HASH_CONSTANT * Expr::Not;
+  shapeHashValue = expr->shapeHash() * Expr::MAGIC_HASH_CONSTANT * Expr::Not;
   return hashValue;
 }
 
@@ -526,6 +545,14 @@ unsigned Array::computeHash() {
     res = (res * Expr::MAGIC_HASH_CONSTANT) + name[i];
   res = (res * Expr::MAGIC_HASH_CONSTANT) + size;
   hashValue = res;
+
+  unsigned shapeRes = 0;
+  for (unsigned i = 0, e = name.size(); i != e; ++i) {
+    shapeRes = (shapeRes * Expr::MAGIC_HASH_CONSTANT) + name[i];
+  }
+  shapeRes = (shapeRes * Expr::MAGIC_HASH_CONSTANT) + size;
+  shapeHashValue = shapeRes;
+
   return hashValue; 
 }
 /***/

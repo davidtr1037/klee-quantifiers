@@ -92,6 +92,7 @@ class Expr {
 public:
   static unsigned count;
   static const unsigned MAGIC_HASH_CONSTANT = 39;
+  static const unsigned MAGIC_SHAPE_HASH_CONSTANT = 40;
 
   /// The type of an expression is simply its width, in bits. 
   typedef unsigned Width; 
@@ -178,6 +179,7 @@ public:
 
 protected:  
   unsigned hashValue;
+  unsigned shapeHashValue;
 
   /// Compares `b` to `this` Expr and determines how they are ordered
   /// (ignoring their kid expressions - i.e. those returned by `getKid()`).
@@ -220,6 +222,8 @@ public:
 
   /// Returns the pre-computed hash of the current expression
   virtual unsigned hash() const { return hashValue; }
+
+  virtual unsigned shapeHash() const { return shapeHashValue; }
 
   /// (Re)computes the hash of the current expression.
   /// Returns the hash value. 
@@ -462,6 +466,7 @@ class UpdateNode {
 
   // cache instead of recalc
   unsigned hashValue;
+  unsigned shapeHashValue;
 
 public:
   const ref<UpdateNode> next;
@@ -482,6 +487,7 @@ public:
 
   int compare(const UpdateNode &b) const;  
   unsigned hash() const { return hashValue; }
+  unsigned shapeHash() const { return shapeHashValue; }
 
   UpdateNode() = delete;
   ~UpdateNode() = default;
@@ -508,6 +514,7 @@ public:
 
 private:
   unsigned hashValue;
+  unsigned shapeHashValue;
 
   // FIXME: Make =delete when we switch to C++11
   Array(const Array& array);
@@ -541,6 +548,7 @@ public:
   /// ComputeHash must take into account the name, the size, the domain, and the range
   unsigned computeHash();
   unsigned hash() const { return hashValue; }
+  unsigned shapeHash() const { return shapeHashValue; }
   friend class ArrayCache;
 };
 
@@ -570,6 +578,7 @@ public:
 
   int compare(const UpdateList &b) const;
   unsigned hash() const;
+  unsigned shapeHash() const;
 };
 
 /// Class representing a one byte read from an array. 
