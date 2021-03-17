@@ -66,6 +66,7 @@ void ExecTree::dumpGML(llvm::raw_ostream &os, std::set<uint32_t> &ids) {
     os << "digraph G {\n";
     os << "\tsize=\"10,7.5\";\n";
     os << "\tratio=fill;\n";
+    os << "\tdpi=600;\n";
     os << "\tcenter = \"true\";\n";
     os << "\tnode [style=\"filled\",width=1,height=1,fontname=\"Terminus\"]\n";
     os << "\tedge [arrowsize=.3]\n";
@@ -76,11 +77,11 @@ void ExecTree::dumpGML(llvm::raw_ostream &os, std::set<uint32_t> &ids) {
         ExecTreeNode *n = worklist.back();
         worklist.pop_back();
 
+        os << "\tn" << n << " [";
         if (n->e.isNull()) {
-            os << "\tn" << n << " [label=\"\"";
+            os << "label=\"\"";
         } else {
-            os << "\tn" << n << " [label=\"";
-            os << *n->e;
+            os << "label=\"" << n->e->shapeHash();
             os << "\",shape=square";
         }
         if (n->isLeaf() && ids.find(n->stateID) != ids.end()) {
