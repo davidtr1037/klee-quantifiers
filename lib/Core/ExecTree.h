@@ -12,7 +12,7 @@ class ExecTreeNode {
 public:
 
   ExecTreeNode(std::uint32_t stateID, ref<Expr> e) :
-    stateID(stateID), e(e), left(nullptr), right(nullptr) {
+    stateID(stateID), e(e), left(nullptr), right(nullptr), subTreeHash(0) {
 
   }
 
@@ -24,6 +24,7 @@ public:
   ref<Expr> e;
   ExecTreeNode *left;
   ExecTreeNode *right;
+  unsigned subTreeHash;
 };
 
 class ExecTree {
@@ -39,6 +40,10 @@ public:
               ref<Expr> condition,
               std::uint32_t leftID,
               std::uint32_t rightID);
+
+  void computeHashes();
+
+  void computeNodeHashes(ExecTreeNode *n);
 
   void dump();
 

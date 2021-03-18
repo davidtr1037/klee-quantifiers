@@ -44,6 +44,20 @@ void ExecTree::extend(uint32_t stateID,
   assert(false);
 }
 
+void ExecTree::computeHashes() {
+  computeNodeHashes(root);
+}
+
+void ExecTree::computeNodeHashes(ExecTreeNode *n) {
+  if (n->isLeaf()) {
+    n->subTreeHash = n->e->shapeHash();
+  } else {
+    computeNodeHashes(n->left);
+    computeNodeHashes(n->right);
+    n->subTreeHash = n->e->shapeHash() + n->left->subTreeHash + n->right->subTreeHash;
+  }
+}
+
 void ExecTree::dump() {
   std::vector<ExecTreeNode *> worklist;
   worklist.push_back(root);
