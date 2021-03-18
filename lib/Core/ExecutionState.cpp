@@ -79,6 +79,11 @@ cl::opt<bool> klee::OptimizeArrayITEUsingExecTree(
     cl::desc(""),
     cl::cat(MergeCat));
 
+cl::opt<bool> DumpExecutionTree(
+    "dump-exec-tree", cl::init(false),
+    cl::desc(""),
+    cl::cat(MergeCat));
+
 /***/
 
 std::uint32_t ExecutionState::nextID = 1;
@@ -568,6 +573,15 @@ ExecutionState *ExecutionState::mergeStatesOptimized(std::vector<ExecutionState 
   for (ref<Expr> e : loopHandler->initialConstraints) {
     /* add without the manager? (the prefix is already optimized) */
     m.addConstraint(e);
+  }
+
+  if (DumpExecutionTree) {
+    std::set<uint32_t> ids;
+    for (ExecutionState *es : states) {
+      ids.insert(es->getID());
+    }
+    std::string fname = loopHandler->loop->getHeader()->getParent()->getName();
+    loopHandler->tree.dumpGMLToFile(ids, fname);
   }
 
   if (!isComplete) {
