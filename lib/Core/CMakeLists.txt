@@ -22,6 +22,8 @@ klee_add_component(kleeCore
   Memory.cpp
   MemoryManager.cpp
   MergeUtils.cpp
+  Pattern.cpp
+  PatternExtraction.cpp
   PTree.cpp
   Searcher.cpp
   SeedInfo.cpp
