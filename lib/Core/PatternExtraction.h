@@ -16,7 +16,7 @@ struct PatternMatch {
   std::vector<StateMatch> matches;
 };
 
-void extractPatterns(ExecTree &t, PatternMatch &matches);
+void extractPatterns(ExecTree &t, std::vector<PatternMatch> &matches);
 
 }
 
