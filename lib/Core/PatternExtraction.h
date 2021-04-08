@@ -16,7 +16,6 @@ struct StateMatch {
   unsigned count;
 };
 
-/* TODO: add constructor? */
 struct PatternMatch {
 
   PatternMatch(const PatternInstance &pi) {
