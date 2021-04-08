@@ -18,7 +18,16 @@ struct StateMatch {
 
 /* TODO: add constructor? */
 struct PatternMatch {
+
+  PatternMatch(const PatternInstance &pi) {
+    pattern = Pattern(pi.prefix, pi.core, pi.suffix);
+    if (pi.hasCore()) {
+      matches.push_back(StateMatch(pi.count));
+    }
+  }
+
   Pattern pattern;
+  /* TODO: use a set? */
   std::vector<StateMatch> matches;
 };
 

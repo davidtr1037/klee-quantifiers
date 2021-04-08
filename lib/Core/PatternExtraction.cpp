@@ -2,6 +2,43 @@
 
 
 using namespace llvm;
+using namespace klee;
+
+static bool addPatttern(std::vector<PatternMatch> &matches,
+                        PatternInstance &pi) {
+  for (PatternMatch &pm : matches) {
+    unsigned count;
+    if (pi.isInstanceOf(pm.pattern, count)) {
+      pm.matches.push_back(StateMatch(count));
+      return true;
+    }
+  }
+
+  PatternMatch pm(pi);
+  matches.push_back(pm);
+  return false;
+}
+
+static void handleLeaf(PatternInstance &pi, std::vector<PatternMatch> &matches) {
+  addPatttern(matches, pi);
+}
+
+static void unifyMatches(std::vector<PatternMatch> &matches,
+                         std::vector<PatternMatch> &result) {
+  for (PatternMatch &pm : matches) {
+    if (pm.pattern.hasCore()) {
+      result.push_back(pm);
+    }
+  }
+
+  for (PatternMatch &pm : matches) {
+    if (!pm.pattern.hasCore()) {
+      /* no repetitions, only prefix */
+      PatternInstance pi(pm.pattern.prefix);
+      addPatttern(result, pi);
+    }
+  }
+}
 
 void klee::extractPatterns(ExecTree &t, std::vector<PatternMatch> &result) {
   std::vector<PatternMatch> matches;
@@ -23,47 +60,12 @@ void klee::extractPatterns(ExecTree &t, std::vector<PatternMatch> &result) {
       worklist.push_back(std::make_pair(n->left, pi));
       worklist.push_back(std::make_pair(n->right, pi));
     } else {
-      bool found = false;
-      for (PatternMatch &pm : matches) {
-        unsigned count;
-        if (pi.isInstanceOf(pm.pattern, count)) {
-          pm.matches.push_back(StateMatch(count));
-          break;
-        }
-      }
-
-      if (!found) {
-        PatternMatch pm;
-        pm.pattern = Pattern(pi.prefix, pi.core, pi.suffix);
-        pm.matches.push_back(StateMatch(pi.count));
-        matches.push_back(pm);
-      }
+      handleLeaf(pi, matches);
     }
   }
 
   /* try to match the non-repetitive patterns */
-  for (PatternMatch &pm : matches) {
-    if (pm.pattern.hasCore()) {
-      result.push_back(pm);
-    } else {
-      /* no repetitions, only prefix */
-      PatternInstance pi(pm.pattern.prefix);
-
-      bool found = false;
-      for (PatternMatch &other : matches) {
-        unsigned count;
-        if (pi.isInstanceOf(other.pattern, count)) {
-          other.matches.push_back(StateMatch(count));
-          found = true;
-          break;
-        }
-      }
-
-      if (!found) {
-        result.push_back(pm);
-      }
-    }
-  }
+  unifyMatches(matches, result);
 
   for (PatternMatch &pm : result) {
     errs() << "pattern:\n";
