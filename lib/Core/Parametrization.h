@@ -22,11 +22,11 @@ struct SMTEquation {
 
 void extractEquationsForCore(ExecTree &t,
                              PatternMatch &pm,
-                             SMTEquation &eqs);
+                             std::vector<SMTEquation> &eqs);
 
 void extractEquationsForSuffix(ExecTree &t,
                                PatternMatch &pm,
-                               SMTEquation &eqs);
+                               std::vector<SMTEquation> &eqs);
 
 }
 
