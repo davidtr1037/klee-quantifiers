@@ -3,9 +3,10 @@
 
 #include <klee/Expr/Expr.h>
 
+#include "llvm/Support/raw_ostream.h"
+
 #include <stdint.h>
 #include <vector>
-#include <iostream>
 
 namespace klee {
 
@@ -48,7 +49,10 @@ public:
 
   size_t size() const;
 
-  void append(Symbol &s);
+  void append(const Symbol &s);
+
+  /* TODO: add operator+= */
+  friend Word operator+(Word lhs, const Word &rhs);
 
   void clear();
 
@@ -60,7 +64,16 @@ public:
 class Pattern {
 public:
 
-  Pattern() { }
+  Pattern(const Word &prefix, const Word &core, const Word &suffix) :
+    prefix(prefix), core(core), suffix(suffix) {
+
+  }
+
+  Pattern() {
+
+  }
+
+  bool hasCore() const;
 
   void dump() const;
 
@@ -73,21 +86,23 @@ public:
 class PatternInstance : public Pattern {
 public:
 
-  PatternInstance(unsigned count) : count(count) {
+  PatternInstance() : count(0) {
 
   }
 
-  PatternInstance() {
+  PatternInstance(Word &prefix) : Pattern(prefix, Word(), Word()), count(0) {
 
   }
 
   void addSymbol(Symbol &s);
 
-private:
-
-  bool findRepitition(Word &input, Word &prefix, Word &core);
+  bool isInstanceOf(Pattern &p, unsigned &repetitions);
 
   unsigned count;
+
+private:
+
+  bool findRepetition(Word &input, Word &prefix, Word &core);
 };
 
 }

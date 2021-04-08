@@ -6,13 +6,19 @@
 
 namespace klee {
 
+/* TODO: add state? */
 struct StateMatch {
-  /* TODO: add state? */
+
+  StateMatch(unsigned count) : count(count) {
+
+  }
+
   unsigned count;
 };
 
+/* TODO: add constructor? */
 struct PatternMatch {
-  Pattern p;
+  Pattern pattern;
   std::vector<StateMatch> matches;
 };
 

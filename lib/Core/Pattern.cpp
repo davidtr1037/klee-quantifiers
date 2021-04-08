@@ -41,8 +41,16 @@ size_t Word::size() const {
   return symbols.size();
 }
 
-void Word::append(Symbol &s) {
+void Word::append(const Symbol &s) {
   symbols.push_back(s);
+}
+
+Word operator+(Word lhs, const Word &rhs) {
+  Word sum = lhs;
+  for (const Symbol &s : rhs.symbols) {
+    sum.append(s);
+  }
+  return sum;
 }
 
 void Word::clear() {
@@ -54,6 +62,10 @@ raw_ostream &operator<<(raw_ostream &os, const Word &w) {
     os << s;
   }
   return os;
+}
+
+bool Pattern::hasCore() const {
+  return !core.isEmpty();
 }
 
 void Pattern::dump() const {
@@ -68,7 +80,7 @@ void PatternInstance::addSymbol(Symbol &s) {
     prefix.append(s);
 
     Word foundPrefix, foundCore;
-    if (findRepitition(prefix, foundPrefix, foundCore)) {
+    if (findRepetition(prefix, foundPrefix, foundCore)) {
       prefix = foundPrefix;
       core = foundCore;
       count = 2;
@@ -82,7 +94,42 @@ void PatternInstance::addSymbol(Symbol &s) {
   }
 }
 
-bool PatternInstance::findRepitition(Word &input, Word &prefix, Word &core) {
+bool PatternInstance::isInstanceOf(Pattern &p, unsigned &repetitions) {
+  if (!p.hasCore()) {
+    return false;
+  }
+
+  if (count == 0) {
+    /* if the instance has no core, then everything is in the prefix */
+    assert(core.isEmpty());
+    assert(suffix.isEmpty());
+
+    /* try zero or one repetitions */
+    for (unsigned i = 0; i < 2; i++) {
+      /* generate */
+      Word w = p.prefix;
+      for (unsigned j = 0; j < i; j++) {
+        w = w + p.core;
+      }
+      w = w + p.suffix;
+
+      if (prefix == w) {
+        repetitions = i;
+        return true;
+      }
+    }
+    return false;
+  } else {
+    if (prefix == p.prefix && core == p.core && suffix == p.suffix) {
+      repetitions = count;
+      return true;
+    } else {
+      return false;
+    }
+  }
+}
+
+bool PatternInstance::findRepetition(Word &input, Word &prefix, Word &core) {
   for (unsigned i = 0; i < input.size(); i++) {
     Word current_prefix, current_core;
 
