@@ -9,8 +9,8 @@ namespace klee {
 class ExecTreeIterator {
 public:
 
-  ExecTreeIterator(ExecTree &t) {
-    current = t.root;
+  ExecTreeIterator(ExecTree &t) : t(t) {
+    current = nullptr;
   }
 
   /* TODO: just pass the hash value? */
@@ -18,10 +18,12 @@ public:
 
   bool hasNext() const;
 
-  inline ExecTreeNode *getCurrent() const;
+  /* TODO: inline? */
+  ExecTreeNode *getCurrent() const;
 
 private:
 
+  ExecTree &t;
   ExecTreeNode *current;
 };
 
