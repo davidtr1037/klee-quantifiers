@@ -222,11 +222,11 @@ static bool solveLinearEquation(TimingSolver &solver,
     );
     all = AndExpr::create(all, eq);
   }
-  all->dump();
 
   ConstraintSet s({all});
 
   std::vector<const Array *> objects;
+  /* TODO: don't create twice */
   objects.push_back(cache.CreateArray("a", 8));
   objects.push_back(cache.CreateArray("b", 8));
 
@@ -235,6 +235,7 @@ static bool solveLinearEquation(TimingSolver &solver,
   bool success = solver.getInitialValues(s, objects, result, metaData);
   assert(success);
 
+  /* TODO: remove */
   for (auto v : result) {
     for (unsigned i = 0; i < v.size(); i++) {
       errs() << "[" << (unsigned int)(v[i]) << "]";
