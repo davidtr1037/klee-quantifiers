@@ -7,6 +7,8 @@ using namespace klee;
 void klee::extractEquationsForCore(ExecTree &t,
                                    PatternMatch &pm,
                                    std::vector<SMTEquationSystem> &result) {
+  std::vector<SMTEquationSystem> systems(pm.pattern.core.size());
+
   /* find max k */
   unsigned max_k = 0;
   for (StateMatch &sm : pm.matches) {
@@ -16,6 +18,7 @@ void klee::extractEquationsForCore(ExecTree &t,
   }
 
   ExecTreeIterator iter(t);
+
   /* traverse prefix */
   for (unsigned i = 0; i < pm.pattern.prefix.size(); i++) {
     assert(iter.hasNext());
@@ -27,15 +30,26 @@ void klee::extractEquationsForCore(ExecTree &t,
     for (unsigned i = 0; i < pm.pattern.core.size(); i++) {
       assert(iter.hasNext());
       iter.next(pm.pattern.core[i]);
+
+      ref<Expr> e = iter.getCurrent()->e;
+      systems[i].push_back(SMTEquation(e, k));
     }
+  }
+
+  /* TODO: avoid copy */
+  for (SMTEquationSystem &es : systems) {
+    result.push_back(es);
   }
 }
 
 void klee::extractEquationsForSuffix(ExecTree &t,
                                      PatternMatch &pm,
                                      std::vector<SMTEquationSystem> &result) {
+  std::vector<SMTEquationSystem> systems(pm.pattern.suffix.size());
+
   for (StateMatch &sm : pm.matches) {
     ExecTreeIterator iter(t);
+
     /* traverse prefix */
     for (unsigned i = 0; i < pm.pattern.prefix.size(); i++) {
       assert(iter.hasNext());
@@ -54,6 +68,14 @@ void klee::extractEquationsForSuffix(ExecTree &t,
     for (unsigned i = 0; i < pm.pattern.suffix.size(); i++) {
       assert(iter.hasNext());
       iter.next(pm.pattern.suffix[i]);
+
+      ref<Expr> e = iter.getCurrent()->e;
+      systems[i].push_back(SMTEquation(e, sm.count));
     }
+  }
+
+  /* TODO: avoid copy */
+  for (SMTEquationSystem &es : systems) {
+    result.push_back(es);
   }
 }
