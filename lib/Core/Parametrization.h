@@ -3,6 +3,7 @@
 
 #include "PatternExtraction.h"
 #include "ExecTree.h"
+#include "TimingSolver.h"
 
 #include <klee/Expr/Expr.h>
 
@@ -22,6 +23,11 @@ struct SMTEquation {
 
 typedef std::vector<SMTEquation> SMTEquationSystem;
 
+struct ParametrizedExpr {
+  ref<Expr> e;
+  ref<Expr> m;
+};
+
 void extractEquationsForCore(ExecTree &t,
                              PatternMatch &pm,
                              std::vector<SMTEquationSystem> &result);
@@ -29,6 +35,10 @@ void extractEquationsForCore(ExecTree &t,
 void extractEquationsForSuffix(ExecTree &t,
                                PatternMatch &pm,
                                std::vector<SMTEquationSystem> &result);
+
+bool solveEquationSystem(SMTEquationSystem &system,
+                         TimingSolver &solver,
+                         ParametrizedExpr &solution);
 
 }
 
