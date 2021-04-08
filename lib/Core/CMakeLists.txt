@@ -22,6 +22,7 @@ klee_add_component(kleeCore
   Memory.cpp
   MemoryManager.cpp
   MergeUtils.cpp
+  Parametrization.cpp
   Pattern.cpp
   PatternExtraction.cpp
   PTree.cpp
