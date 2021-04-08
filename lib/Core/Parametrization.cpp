@@ -1,8 +1,12 @@
 #include "Parametrization.h"
 #include "ExecTreeIterator.h"
 
+#include <klee/Expr/ArrayCache.h>
+
 using namespace llvm;
 using namespace klee;
+
+static ArrayCache cache;
 
 void klee::extractEquationsForCore(ExecTree &t,
                                    PatternMatch &pm,
@@ -183,6 +187,64 @@ static bool findDistinctTerms(ref<Expr> e1,
   return false;
 }
 
+static ref<Expr> getCoefficient(const std::string &name, unsigned size) {
+  const Array *array = cache.CreateArray(name, 8);
+  ref<Expr> r = nullptr;
+  for (unsigned i = 0; i < size; i++) {
+    ref<Expr> b = ReadExpr::create(UpdateList(array, 0),
+                                   ConstantExpr::alloc(i, Expr::Int32));
+    if (r.isNull()) {
+      r = b;
+    } else {
+      r = ConcatExpr::create(b, r);
+    }
+  }
+  return r;
+}
+
+static bool solveLinearEquation(TimingSolver &solver,
+                                const SMTEquationSystem &system,
+                                const std::vector<ref<Expr>> &constants) {
+  ref<Expr> a = getCoefficient("a", constants[0]->getWidth() / 8);
+  ref<Expr> b = getCoefficient("b", constants[0]->getWidth() / 8);
+
+  ref<Expr> all = ConstantExpr::create(1, Expr::Bool);
+  for (unsigned i = 0; i < system.size(); i++) {
+    ref<Expr> eq = EqExpr::create(
+      constants[i],
+      AddExpr::create(
+        MulExpr::create(
+          a,
+          ConstantExpr::create(system[i].k, a->getWidth())
+        ),
+        b
+      )
+    );
+    all = AndExpr::create(all, eq);
+  }
+  all->dump();
+
+  ConstraintSet s({all});
+
+  std::vector<const Array *> objects;
+  objects.push_back(cache.CreateArray("a", 8));
+  objects.push_back(cache.CreateArray("b", 8));
+
+  std::vector<std::vector<unsigned char>> result;
+  SolverQueryMetaData metaData;
+  bool success = solver.getInitialValues(s, objects, result, metaData);
+  assert(success);
+
+  for (auto v : result) {
+    for (unsigned i = 0; i < v.size(); i++) {
+      errs() << "[" << (unsigned int)(v[i]) << "]";
+    }
+    errs() << "\n";
+  }
+
+  return true;
+}
+
 bool klee::solveEquationSystem(SMTEquationSystem &system,
                                TimingSolver &solver,
                                ParametrizedExpr &solution) {
@@ -196,6 +258,8 @@ bool klee::solveEquationSystem(SMTEquationSystem &system,
   if (!findDistinctTerms(eq1.e, eq2.e, r1, r2)) {
     assert(0);
   }
+
+  solveLinearEquation(solver, {eq1, eq2}, {r1, r2});
 
   return true;
 }
