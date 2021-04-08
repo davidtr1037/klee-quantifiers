@@ -6,7 +6,7 @@ using namespace klee;
 
 void klee::extractEquationsForCore(ExecTree &t,
                                    PatternMatch &pm,
-                                   std::vector<SMTEquation> &eqs) {
+                                   std::vector<SMTEquationSystem> &result) {
   /* find max k */
   unsigned max_k = 0;
   for (StateMatch &sm : pm.matches) {
@@ -33,7 +33,7 @@ void klee::extractEquationsForCore(ExecTree &t,
 
 void klee::extractEquationsForSuffix(ExecTree &t,
                                      PatternMatch &pm,
-                                     std::vector<SMTEquation> &eqs) {
+                                     std::vector<SMTEquationSystem> &result) {
   for (StateMatch &sm : pm.matches) {
     ExecTreeIterator iter(t);
     /* traverse prefix */

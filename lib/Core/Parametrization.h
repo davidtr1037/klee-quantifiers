@@ -20,13 +20,15 @@ struct SMTEquation {
   unsigned k;
 };
 
+typedef std::vector<SMTEquation> SMTEquationSystem;
+
 void extractEquationsForCore(ExecTree &t,
                              PatternMatch &pm,
-                             std::vector<SMTEquation> &eqs);
+                             std::vector<SMTEquationSystem> &result);
 
 void extractEquationsForSuffix(ExecTree &t,
                                PatternMatch &pm,
-                               std::vector<SMTEquation> &eqs);
+                               std::vector<SMTEquationSystem> &result);
 
 }
 
