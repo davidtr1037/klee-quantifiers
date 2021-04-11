@@ -187,8 +187,23 @@ static bool findDistinctTerms(ref<Expr> e1,
   return false;
 }
 
-static ref<Expr> getCoefficient(const std::string &name, unsigned size) {
-  const Array *array = cache.CreateArray(name, 8);
+bool checkWidthConsistency(const std::vector<ref<Expr>> &constants,
+                           Expr::Width &w) {
+  w = 0;
+  for (const ref<Expr> &e : constants) {
+    if (w == 0) {
+      w = e->getWidth();
+    } else {
+      if (e->getWidth() != w) {
+        return false;
+      }
+    }
+  }
+
+  return true;
+}
+
+static ref<Expr> getSymbolicValue(const Array *array, unsigned size) {
   ref<Expr> r = nullptr;
   for (unsigned i = 0; i < size; i++) {
     ref<Expr> b = ReadExpr::create(UpdateList(array, 0),
@@ -202,11 +217,39 @@ static ref<Expr> getCoefficient(const std::string &name, unsigned size) {
   return r;
 }
 
+static ref<Expr> getConstantExpr(std::vector<unsigned char> &v) {
+  ref<Expr> r = nullptr;
+  uint64_t n = 0;
+  for (unsigned i = 0; i < v.size(); i++) {
+    n |= ((uint64_t)(v[i]) << (i * 8));
+  }
+
+  if (v.size() == 4) {
+    return ConstantExpr::create(n, Expr::Int32);
+  }
+  else if (v.size() == 8) {
+    return ConstantExpr::create(n, Expr::Int64);
+  } else {
+    assert(0);
+    return nullptr;
+  }
+}
+
 static bool solveLinearEquation(TimingSolver &solver,
                                 const SMTEquationSystem &system,
                                 const std::vector<ref<Expr>> &constants) {
-  ref<Expr> a = getCoefficient("a", constants[0]->getWidth() / 8);
-  ref<Expr> b = getCoefficient("b", constants[0]->getWidth() / 8);
+  /* check width consistency */
+  Expr::Width width;
+  if (!checkWidthConsistency(constants, width)) {
+    assert(0);
+  }
+
+  /* TODO: use pointer width */
+  const Array *array_a = cache.CreateArray("a", width / 8);
+  const Array *array_b = cache.CreateArray("b", width / 8);
+
+  ref<Expr> a = getSymbolicValue(array_a, width / 8);
+  ref<Expr> b = getSymbolicValue(array_b, width / 8);
 
   ref<Expr> all = ConstantExpr::create(1, Expr::Bool);
   for (unsigned i = 0; i < system.size(); i++) {
@@ -224,24 +267,15 @@ static bool solveLinearEquation(TimingSolver &solver,
   }
 
   ConstraintSet s({all});
-
-  std::vector<const Array *> objects;
-  /* TODO: don't create twice */
-  objects.push_back(cache.CreateArray("a", 8));
-  objects.push_back(cache.CreateArray("b", 8));
-
+  std::vector<const Array *> objects = {array_a, array_b};
   std::vector<std::vector<unsigned char>> result;
   SolverQueryMetaData metaData;
   bool success = solver.getInitialValues(s, objects, result, metaData);
   assert(success);
 
   /* TODO: remove */
-  for (auto v : result) {
-    for (unsigned i = 0; i < v.size(); i++) {
-      errs() << "[" << (unsigned int)(v[i]) << "]";
-    }
-    errs() << "\n";
-  }
+  ref<Expr> coefficient_a = getConstantExpr(result[0]);
+  ref<Expr> coefficient_b = getConstantExpr(result[1]);
 
   return true;
 }
