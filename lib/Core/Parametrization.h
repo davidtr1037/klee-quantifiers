@@ -23,9 +23,10 @@ struct SMTEquation {
 
 typedef std::vector<SMTEquation> SMTEquationSystem;
 
+/* TODO: rename? */
 struct ParametrizedExpr {
   ref<Expr> e;
-  ref<Expr> m;
+  ref<Expr> parameter;
 };
 
 void extractEquationsForCore(ExecTree &t,

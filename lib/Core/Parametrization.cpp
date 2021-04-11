@@ -237,7 +237,8 @@ static ref<Expr> getConstantExpr(std::vector<unsigned char> &v) {
 
 static bool solveLinearEquation(TimingSolver &solver,
                                 const SMTEquationSystem &system,
-                                const std::vector<ref<Expr>> &constants) {
+                                const std::vector<ref<Expr>> &constants,
+                                ParametrizedExpr &pe) {
   /* check width consistency */
   Expr::Width width;
   if (!checkWidthConsistency(constants, width)) {
@@ -246,9 +247,11 @@ static bool solveLinearEquation(TimingSolver &solver,
 
   const Array *array_a = cache.CreateArray("a", width / 8);
   const Array *array_b = cache.CreateArray("b", width / 8);
+  const Array *array_m = cache.CreateArray("m", width / 8);
 
   ref<Expr> a = getSymbolicValue(array_a, width / 8);
   ref<Expr> b = getSymbolicValue(array_b, width / 8);
+  ref<Expr> m = getSymbolicValue(array_m, width / 8);
 
   ref<Expr> all = ConstantExpr::create(1, Expr::Bool);
   for (unsigned i = 0; i < system.size(); i++) {
@@ -266,15 +269,34 @@ static bool solveLinearEquation(TimingSolver &solver,
   }
 
   ConstraintSet s({all});
+
+  /* first check is satisfiable */
+  bool mayBeTrue;
+  SolverQueryMetaData metaData;
+  assert(solver.mayBeTrue(s, all, mayBeTrue, metaData));
+
+  /* get assignment */
   std::vector<const Array *> objects = {array_a, array_b};
   std::vector<std::vector<unsigned char>> result;
-  SolverQueryMetaData metaData;
-  bool success = solver.getInitialValues(s, objects, result, metaData);
-  assert(success);
+  assert(solver.getInitialValues(s, objects, result, metaData));
 
   ref<Expr> coefficient_a = getConstantExpr(result[0]);
   ref<Expr> coefficient_b = getConstantExpr(result[1]);
 
+  pe.e = AddExpr::create(
+    MulExpr::create(
+      coefficient_a,
+      m
+    ),
+    coefficient_b
+  );
+  pe.parameter = m;
+
+  return true;
+}
+
+static bool validateSolution(const SMTEquationSystem &system,
+                             ParametrizedExpr &pe) {
   return true;
 }
 
@@ -292,7 +314,9 @@ bool klee::solveEquationSystem(SMTEquationSystem &system,
     assert(0);
   }
 
-  solveLinearEquation(solver, {eq1, eq2}, {r1, r2});
+  ParametrizedExpr pe;
+  solveLinearEquation(solver, {eq1, eq2}, {r1, r2}, pe);
+  validateSolution(system, pe);
 
   return true;
 }
