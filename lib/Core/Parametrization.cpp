@@ -244,7 +244,6 @@ static bool solveLinearEquation(TimingSolver &solver,
     assert(0);
   }
 
-  /* TODO: use pointer width */
   const Array *array_a = cache.CreateArray("a", width / 8);
   const Array *array_b = cache.CreateArray("b", width / 8);
 
@@ -273,7 +272,6 @@ static bool solveLinearEquation(TimingSolver &solver,
   bool success = solver.getInitialValues(s, objects, result, metaData);
   assert(success);
 
-  /* TODO: remove */
   ref<Expr> coefficient_a = getConstantExpr(result[0]);
   ref<Expr> coefficient_b = getConstantExpr(result[1]);
 
