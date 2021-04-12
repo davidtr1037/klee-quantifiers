@@ -48,7 +48,7 @@ void extractEquationsForSuffix(ExecTree &t,
 
 bool solveEquationSystem(SMTEquationSystem &system,
                          TimingSolver &solver,
-                         ParametrizedExpr &solution);
+                         ParametrizedExpr &result);
 
 }
 

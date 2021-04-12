@@ -2,6 +2,7 @@
 #include "ExecTreeIterator.h"
 
 #include <klee/Expr/ArrayCache.h>
+#include <klee/Expr/ExprUtil.h>
 
 using namespace llvm;
 using namespace klee;
@@ -260,12 +261,22 @@ static bool solveLinearEquation(TimingSolver &solver,
 
 static bool validateSolution(const SMTEquationSystem &system,
                              const ParametrizedExpr &pe) {
+  for (const SMTEquation &eq : system) {
+    ref<Expr> from = pe.parameter;
+    ref<ConstantExpr> to = ConstantExpr::create(eq.k, pe.parameter->getWidth());
+    ExprReplaceVisitor visitor(from, to);
+    ref<Expr> substituted = visitor.visit(pe.e);
+    if (*substituted != *eq.e) {
+      return false;
+    }
+  }
+
   return true;
 }
 
 bool klee::solveEquationSystem(SMTEquationSystem &system,
                                TimingSolver &solver,
-                               ParametrizedExpr &solution) {
+                               ParametrizedExpr &result) {
   assert(system.size() >= 2);
 
   /* TODO: ... */
@@ -283,7 +294,10 @@ bool klee::solveEquationSystem(SMTEquationSystem &system,
 
   ref<Expr> e = replaceDistinctTerms(eq1.e, eq2.e, templateExpr.e);
   ParametrizedExpr parametricExpr(e, templateExpr.parameter);
-  validateSolution(system, parametricExpr);
-
-  return true;
+  if (validateSolution(system, parametricExpr)) {
+    result = parametricExpr;
+    return true;
+  } else {
+    return false;
+  }
 }
