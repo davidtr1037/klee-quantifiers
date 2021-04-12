@@ -25,6 +25,15 @@ typedef std::vector<SMTEquation> SMTEquationSystem;
 
 /* TODO: rename? */
 struct ParametrizedExpr {
+  ParametrizedExpr() : e(nullptr), parameter(nullptr) {
+
+  }
+
+  ParametrizedExpr(ref<Expr> e, ref<Expr> parameter) :
+    e(e), parameter(parameter) {
+
+  }
+
   ref<Expr> e;
   ref<Expr> parameter;
 };

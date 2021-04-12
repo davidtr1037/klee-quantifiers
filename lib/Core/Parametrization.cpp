@@ -102,89 +102,52 @@ static bool findDistinctTerms(ref<Expr> e1,
     return true;
   }
 
-  if (isa<BinaryExpr>(e1)) {
-    ref<BinaryExpr> t1 = dyn_cast<BinaryExpr>(e1);
-    ref<BinaryExpr> t2 = dyn_cast<BinaryExpr>(e2);
-
-    if (*t1->left != *t2->left) {
-      return findDistinctTerms(t1->left, t2->left, r1, r2);
+  /* TODO: if we have a read expression, make sure it has a constant array */
+  for (unsigned i = 0; i < e1->getNumKids(); i++) {
+    ref<Expr> k1 = e1->getKid(i);
+    ref<Expr> k2 = e2->getKid(i);
+    if (*k1 != *k2) {
+      return findDistinctTerms(k1, k2, r1, r2);
     }
-    if (*t1->right != *t2->right) {
-      return findDistinctTerms(t1->right, t2->right, r1, r2);
-    }
-  }
-  else if (isa<NotOptimizedExpr>(e1)) {
-    ref<NotOptimizedExpr> t1 = dyn_cast<NotOptimizedExpr>(e1);
-    ref<NotOptimizedExpr> t2 = dyn_cast<NotOptimizedExpr>(e2);
-
-    if (*t1->src != *t2->src) {
-      return findDistinctTerms(t1->src, t2->src, r1, r2);
-    }
-  }
-  else if (isa<ReadExpr>(e1)) {
-    ref<ReadExpr> t1 = dyn_cast<ReadExpr>(e1);
-    ref<ReadExpr> t2 = dyn_cast<ReadExpr>(e2);
-
-    if (*t1->index != *t2->index) {
-      return findDistinctTerms(t1->index, t2->index, r1, r2);
-    }
-
-    assert(t1->updates.root->isConstantArray());
-    /* TODO: handle updates */
-  }
-  else if (isa<SelectExpr>(e1)) {
-    ref<SelectExpr> t1 = dyn_cast<SelectExpr>(e1);
-    ref<SelectExpr> t2 = dyn_cast<SelectExpr>(e2);
-
-    if (*t1->cond != *t2->cond) {
-      return findDistinctTerms(t1->cond, t2->cond, r1, r2);
-    }
-    if (*t1->trueExpr != *t2->trueExpr) {
-      return findDistinctTerms(t1->trueExpr, t2->trueExpr, r1, r2);
-    }
-    if (*t1->falseExpr != *t2->falseExpr) {
-      return findDistinctTerms(t1->falseExpr, t2->falseExpr, r1, r2);
-    }
-  }
-  else if (isa<ConcatExpr>(e1)) {
-    ref<ConcatExpr> t1 = dyn_cast<ConcatExpr>(e1);
-    ref<ConcatExpr> t2 = dyn_cast<ConcatExpr>(e2);
-
-    if (*t1->getLeft() != *t2->getLeft()) {
-      return findDistinctTerms(t1->getLeft(), t2->getLeft(), r1, r2);
-    }
-    if (*t1->getRight() != *t2->getRight()) {
-      return findDistinctTerms(t1->getRight(), t2->getRight(), r1, r2);
-    }
-  }
-  else if (isa<ExtractExpr>(e1)) {
-    ref<ExtractExpr> t1 = dyn_cast<ExtractExpr>(e1);
-    ref<ExtractExpr> t2 = dyn_cast<ExtractExpr>(e2);
-
-    if (*t1->expr != *t2->expr) {
-      return findDistinctTerms(t1->expr, t2->expr, r1, r2);
-    }
-  }
-  else if (isa<NotExpr>(e1)) {
-    ref<NotExpr> t1 = dyn_cast<NotExpr>(e1);
-    ref<NotExpr> t2 = dyn_cast<NotExpr>(e2);
-
-    if (*t1->expr != *t2->expr) {
-      return findDistinctTerms(t1->expr, t2->expr, r1, r2);
-    }
-  }
-  else if (isa<CastExpr>(e1)) {
-    ref<CastExpr> t1 = dyn_cast<CastExpr>(e1);
-    ref<CastExpr> t2 = dyn_cast<CastExpr>(e2);
-
-    if (*t1->src != *t2->src) {
-      return findDistinctTerms(t1->src, t2->src, r1, r2);
-    }
-  } else {
-    assert(0);
   }
 
   return false;
+}
+
+static ref<Expr> replaceDistinctTerms(ref<Expr> e1,
+                                      ref<Expr> e2,
+                                      ref<Expr> placeHolder) {
+  if (*e1 == *e2) {
+    assert(false);
+  }
+
+  if (e1->getKind() != e2->getKind()) {
+    assert(false);
+  }
+
+  if (isa<ConstantExpr>(e1)) {
+    assert(placeHolder->getWidth() == e1->getWidth());
+    return placeHolder;
+  }
+
+  bool replaced = false;
+  ref<Expr> kids[8];
+  for (unsigned i = 0; i < e1->getNumKids(); i++) {
+    ref<Expr> k1 = e1->getKid(i);
+    ref<Expr> k2 = e2->getKid(i);
+    if (*k1 == *k2) {
+      kids[i] = k1;
+    } else {
+      if (replaced) {
+        assert(false);
+      }
+
+      kids[i] = replaceDistinctTerms(k1, k2, placeHolder);
+      replaced = true;
+    }
+  }
+
+  return e1->rebuild(kids);
 }
 
 bool checkWidthConsistency(const std::vector<ref<Expr>> &constants,
@@ -238,7 +201,7 @@ static ref<Expr> getConstantExpr(std::vector<unsigned char> &v) {
 static bool solveLinearEquation(TimingSolver &solver,
                                 const SMTEquationSystem &system,
                                 const std::vector<ref<Expr>> &constants,
-                                ParametrizedExpr &pe) {
+                                ParametrizedExpr &templateExpr) {
   /* check width consistency */
   Expr::Width width;
   if (!checkWidthConsistency(constants, width)) {
@@ -283,20 +246,20 @@ static bool solveLinearEquation(TimingSolver &solver,
   ref<Expr> coefficient_a = getConstantExpr(result[0]);
   ref<Expr> coefficient_b = getConstantExpr(result[1]);
 
-  pe.e = AddExpr::create(
+  templateExpr.e = AddExpr::create(
     MulExpr::create(
       coefficient_a,
       m
     ),
     coefficient_b
   );
-  pe.parameter = m;
+  templateExpr.parameter = m;
 
   return true;
 }
 
 static bool validateSolution(const SMTEquationSystem &system,
-                             ParametrizedExpr &pe) {
+                             const ParametrizedExpr &pe) {
   return true;
 }
 
@@ -314,9 +277,13 @@ bool klee::solveEquationSystem(SMTEquationSystem &system,
     assert(0);
   }
 
-  ParametrizedExpr pe;
-  solveLinearEquation(solver, {eq1, eq2}, {r1, r2}, pe);
-  validateSolution(system, pe);
+  ParametrizedExpr templateExpr;
+  solveLinearEquation(solver, {eq1, eq2}, {r1, r2}, templateExpr);
+  templateExpr.e->dump();
+
+  ref<Expr> e = replaceDistinctTerms(eq1.e, eq2.e, templateExpr.e);
+  ParametrizedExpr parametricExpr(e, templateExpr.parameter);
+  validateSolution(system, parametricExpr);
 
   return true;
 }
