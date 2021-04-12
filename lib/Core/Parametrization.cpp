@@ -9,6 +9,22 @@ using namespace klee;
 
 static ArrayCache cache;
 
+ref<Expr> klee::extractPrefixConstraint(ExecTree &t,
+                                        PatternMatch &pm) {
+  ExecTreeIterator iter(t);
+
+  ref<Expr> prefix = ConstantExpr::create(1, Expr::Bool);
+
+  /* traverse prefix */
+  for (unsigned i = 0; i < pm.pattern.prefix.size(); i++) {
+    assert(iter.hasNext());
+    iter.next(pm.pattern.prefix[i]);
+    prefix = AndExpr::create(prefix, iter.getCurrent()->e);
+  }
+
+  return prefix;
+}
+
 void klee::extractEquationsForCore(ExecTree &t,
                                    PatternMatch &pm,
                                    std::vector<SMTEquationSystem> &result) {

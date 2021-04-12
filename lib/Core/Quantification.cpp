@@ -49,6 +49,8 @@ void klee::generateQuantifiedConstraint(PatternMatch &pm,
   std::vector<SMTEquationSystem> coreSystems, suffixSystems;
   std::vector<ParametrizedExpr> coreSolutions, suffixSolutions;
 
+  ref<Expr> prefix = extractPrefixConstraint(tree, pm);
+
   extractEquationsForCore(tree, pm, coreSystems);
   if (!getParametricExpressions(coreSystems, solver, coreSolutions)) {
     return;
@@ -64,6 +66,8 @@ void klee::generateQuantifiedConstraint(PatternMatch &pm,
   ref<Expr> parameter = coreSolutions[0].parameter;
   ref<Expr> rangeExpr = generateRangeConstraint(pm, parameter);
 
+  errs() << "prefix:\n";
+  prefix->dump();
   errs() << "core:\n";
   for (const ParametrizedExpr &pe : coreSolutions) {
     pe.e->dump();

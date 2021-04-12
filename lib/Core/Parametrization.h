@@ -38,6 +38,9 @@ struct ParametrizedExpr {
   ref<Expr> parameter;
 };
 
+ref<Expr> extractPrefixConstraint(ExecTree &t,
+                                  PatternMatch &pm);
+
 void extractEquationsForCore(ExecTree &t,
                              PatternMatch &pm,
                              std::vector<SMTEquationSystem> &result);
