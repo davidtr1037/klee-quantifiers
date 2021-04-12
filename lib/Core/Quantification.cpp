@@ -43,9 +43,9 @@ ref<Expr> generateRangeConstraint(PatternMatch &pm, ref<Expr> parameter) {
   );
 }
 
-void klee::generateQuantifiedConstraint(PatternMatch &pm,
-                                        ExecTree &tree,
-                                        TimingSolver &solver) {
+ref<Expr> klee::generateQuantifiedConstraint(PatternMatch &pm,
+                                             ExecTree &tree,
+                                             TimingSolver &solver) {
   std::vector<SMTEquationSystem> coreSystems, suffixSystems;
   std::vector<ParametrizedExpr> coreSolutions, suffixSolutions;
 
@@ -53,12 +53,22 @@ void klee::generateQuantifiedConstraint(PatternMatch &pm,
 
   extractEquationsForCore(tree, pm, coreSystems);
   if (!getParametricExpressions(coreSystems, solver, coreSolutions)) {
-    return;
+    return nullptr;
   }
 
   extractEquationsForSuffix(tree, pm, suffixSystems);
   if (!getParametricExpressions(suffixSystems, solver, suffixSolutions)) {
-    return;
+    return nullptr;
+  }
+
+  ref<Expr> coreExpr = ConstantExpr::create(1, Expr::Bool);
+  for (const ParametrizedExpr &pe : coreSolutions) {
+    coreExpr = AndExpr::create(coreExpr, pe.e);
+  }
+
+  ref<Expr> suffixExpr = ConstantExpr::create(1, Expr::Bool);
+  for (const ParametrizedExpr &pe : suffixSolutions) {
+    suffixExpr = AndExpr::create(suffixExpr, pe.e);
   }
 
   /* TODO: check parameter consistency */
@@ -78,4 +88,18 @@ void klee::generateQuantifiedConstraint(PatternMatch &pm,
   }
   errs() << "range:\n";
   rangeExpr->dump();
+
+  return AndExpr::create(
+    prefix,
+    AndExpr::create(
+      ForallExpr::create(
+        parameter,
+        OrExpr::create(
+          Expr::createIsZero(rangeExpr),
+          coreExpr
+        )
+      ),
+      suffixExpr
+    )
+  );
 }

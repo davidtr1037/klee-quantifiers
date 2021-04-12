@@ -164,6 +164,8 @@ void Expr::printKind(llvm::raw_ostream &os, Kind k) {
     X(Sle);
     X(Sgt);
     X(Sge);
+    X(Forall);
+    X(Exists);
 #undef X
   default:
     assert(0 && "invalid kind");

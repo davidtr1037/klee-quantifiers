@@ -7,9 +7,9 @@
 
 namespace klee {
 
-void generateQuantifiedConstraint(PatternMatch &pm,
-                                  ExecTree &tree,
-                                  TimingSolver &solver);
+ref<Expr> generateQuantifiedConstraint(PatternMatch &pm,
+                                       ExecTree &tree,
+                                       TimingSolver &solver);
 
 }
 
