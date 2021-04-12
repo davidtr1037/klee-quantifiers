@@ -59,7 +59,7 @@ void klee::generateQuantifiedConstraint(PatternMatch &pm,
     return;
   }
 
-  /* TODO: check parameter consisency */
+  /* TODO: check parameter consistency */
   assert(!coreSolutions.empty());
   ref<Expr> parameter = coreSolutions[0].parameter;
   ref<Expr> rangeExpr = generateRangeConstraint(pm, parameter);
