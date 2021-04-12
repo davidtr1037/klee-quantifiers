@@ -27,6 +27,7 @@ klee_add_component(kleeCore
   Pattern.cpp
   PatternExtraction.cpp
   PTree.cpp
+  Quantification.cpp
   Searcher.cpp
   SeedInfo.cpp
   SpecialFunctionHandler.cpp
