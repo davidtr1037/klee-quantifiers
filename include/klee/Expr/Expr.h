@@ -164,7 +164,10 @@ public:
     Sgt, ///< Not used in canonical form
     Sge, ///< Not used in canonical form
 
-    LastKind=Sge,
+    Forall,
+    Exists,
+
+    LastKind=Exists,
 
     CastKindFirst=ZExt,
     CastKindLast=SExt,
@@ -385,7 +388,7 @@ public:
       return right;
     return 0;
   }
- 
+
 protected:
   BinaryExpr(const ref<Expr> &l, const ref<Expr> &r) : left(l), right(r) {
     isTainted = l->isTainted || r->isTainted;
@@ -1192,6 +1195,120 @@ public:
 
   ref<ConstantExpr> Neg();
   ref<ConstantExpr> Not();
+};
+
+class QuantifiedExpr : public NonConstantExpr {
+
+public:
+
+  ref<Expr> bound, body;
+
+public:
+
+  unsigned getNumKids() const { return 2; }
+  ref<Expr> getKid(unsigned i) const {
+    if(i == 0)
+      return bound;
+    if(i == 1)
+      return body;
+    return nullptr;
+  }
+
+  Width getWidth() const {
+    /* TODO: correct? */
+    return Bool;
+  }
+
+protected:
+
+  QuantifiedExpr(const ref<Expr> &bound, const ref<Expr> &body) :
+    bound(bound), body(body) {
+    isTainted = bound->isTainted || body->isTainted;
+    size = bound->size + body->size + 1;
+  }
+
+  virtual int compareContents(const Expr &b) const {
+    return 0;
+  }
+
+public:
+
+  static bool classof(const Expr *e) {
+    return e->getKind() == Expr::Forall || e->getKind() == Expr::Exists;
+  }
+
+  static bool classof(const QuantifiedExpr *) { return true; }
+};
+
+class ForallExpr : public QuantifiedExpr {
+
+public:
+
+  ForallExpr(const ref<Expr> &bound, const ref<Expr> &body) :
+    QuantifiedExpr(bound, body) {
+
+  }
+
+  static ref<Expr> alloc(const ref<Expr> &bound, const ref<Expr> &body) {
+      ref<Expr> res(new ForallExpr(bound, body));
+      res->computeHash();
+      return res;
+  }
+
+  static ref<Expr> create(const ref<Expr> &bound, const ref<Expr> &body) {
+    return ForallExpr::alloc(bound, body);
+  }
+
+  virtual ref<Expr> rebuild(ref<Expr> kids[]) const {
+    return create(kids[0], kids[1]);
+  }
+
+  Kind getKind() const {
+    return Expr::Forall;
+  }
+
+  static bool classof(const Expr *e) {
+    return e->getKind() == Expr::Forall;
+  }
+
+  static bool classof(const ForallExpr *) { return true; }
+
+protected:
+  /* TODO: add compareContents? */
+};
+
+class ExistsExpr : public QuantifiedExpr {
+
+public:
+
+  ExistsExpr(const ref<Expr> &bound, const ref<Expr> &body) :
+    QuantifiedExpr(bound, body) {
+
+  }
+
+  static ref<Expr> alloc(const ref<Expr> &bound, const ref<Expr> &body) {
+      ref<Expr> res(new ExistsExpr(bound, body));
+      res->computeHash();
+      return res;
+  }
+
+  static ref<Expr> create(const ref<Expr> &bound, const ref<Expr> &body) {
+    return ExistsExpr::alloc(bound, body);
+  }
+
+  virtual ref<Expr> rebuild(ref<Expr> kids[]) const {
+    return create(kids[0], kids[1]);
+  }
+
+  Kind getKind() const {
+    return Expr::Exists;
+  }
+
+  static bool classof(const Expr *e) {
+    return e->getKind() == Expr::Exists;
+  }
+
+  static bool classof(const ExistsExpr *) { return true; }
 };
 
 // Implementations
