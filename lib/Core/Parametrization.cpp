@@ -290,7 +290,6 @@ bool klee::solveEquationSystem(SMTEquationSystem &system,
 
   ParametrizedExpr templateExpr;
   solveLinearEquation(solver, {eq1, eq2}, {r1, r2}, templateExpr);
-  templateExpr.e->dump();
 
   ref<Expr> e = replaceDistinctTerms(eq1.e, eq2.e, templateExpr.e);
   ParametrizedExpr parametricExpr(e, templateExpr.parameter);
