@@ -40,7 +40,9 @@ static void unifyMatches(std::vector<PatternMatch> &matches,
   }
 }
 
-void klee::extractPatterns(ExecTree &t, std::vector<PatternMatch> &result) {
+void klee::extractPatterns(ExecTree &t,
+                           std::set<uint32_t> &ids,
+                           std::vector<PatternMatch> &result) {
   std::vector<PatternMatch> matches;
   std::vector<std::pair<ExecTreeNode *, PatternInstance>> worklist;
 
@@ -60,7 +62,9 @@ void klee::extractPatterns(ExecTree &t, std::vector<PatternMatch> &result) {
       worklist.push_back(std::make_pair(n->left, pi));
       worklist.push_back(std::make_pair(n->right, pi));
     } else {
-      handleLeaf(pi, matches);
+      if (ids.find(n->stateID) != ids.end()) {
+        handleLeaf(pi, matches);
+      }
     }
   }
 

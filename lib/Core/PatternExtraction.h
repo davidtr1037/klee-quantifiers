@@ -4,6 +4,9 @@
 #include "ExecTree.h"
 #include "Pattern.h"
 
+#include <vector>
+#include <set>
+
 namespace klee {
 
 /* TODO: add state? */
@@ -30,7 +33,9 @@ struct PatternMatch {
   std::vector<StateMatch> matches;
 };
 
-void extractPatterns(ExecTree &t, std::vector<PatternMatch> &matches);
+void extractPatterns(ExecTree &t,
+                     std::set<uint32_t> &ids,
+                     std::vector<PatternMatch> &matches);
 
 }
 
