@@ -9,6 +9,10 @@ using namespace klee;
 
 static ArrayCache cache;
 
+const Array *klee::getArray(const std::string &name, uint64_t size) {
+  return cache.CreateArray(name, size);
+}
+
 ref<Expr> klee::extractPrefixConstraint(ExecTree &t,
                                         PatternMatch &pm) {
   ExecTreeIterator iter(t);
@@ -197,19 +201,22 @@ static ref<Expr> getSymbolicValue(const Array *array, unsigned size) {
   return r;
 }
 
-static ref<Expr> getConstantExpr(std::vector<unsigned char> &v) {
+static ref<Expr> getConstantExpr(std::vector<unsigned char> &v,
+                                 unsigned size) {
+  assert(v.size() >= size);
+
   ref<Expr> r = nullptr;
   uint64_t n = 0;
-  for (unsigned i = 0; i < v.size(); i++) {
+  for (unsigned i = 0; i < size; i++) {
     n |= ((uint64_t)(v[i]) << (i * 8));
   }
 
-  if (v.size() == 4) {
+  switch (size) {
+  case 4:
     return ConstantExpr::create(n, Expr::Int32);
-  }
-  else if (v.size() == 8) {
+  case 8:
     return ConstantExpr::create(n, Expr::Int64);
-  } else {
+  default:
     assert(0);
     return nullptr;
   }
@@ -225,13 +232,15 @@ static bool solveLinearEquation(TimingSolver &solver,
     assert(0);
   }
 
-  const Array *array_a = cache.CreateArray("a", width / 8);
-  const Array *array_b = cache.CreateArray("b", width / 8);
-  const Array *array_m = cache.CreateArray("m", width / 8);
+  /* TODO: use pointer width */
+  unsigned size = width / 8;
+  const Array *array_a = getArray("a", 8);
+  const Array *array_b = getArray("b", 8);
+  const Array *array_m = getArray("m", 8);
 
-  ref<Expr> a = getSymbolicValue(array_a, width / 8);
-  ref<Expr> b = getSymbolicValue(array_b, width / 8);
-  ref<Expr> m = getSymbolicValue(array_m, width / 8);
+  ref<Expr> a = getSymbolicValue(array_a, size);
+  ref<Expr> b = getSymbolicValue(array_b, size);
+  ref<Expr> m = getSymbolicValue(array_m, size);
 
   ref<Expr> all = ConstantExpr::create(1, Expr::Bool);
   for (unsigned i = 0; i < system.size(); i++) {
@@ -260,8 +269,8 @@ static bool solveLinearEquation(TimingSolver &solver,
   std::vector<std::vector<unsigned char>> result;
   assert(solver.getInitialValues(s, objects, result, metaData));
 
-  ref<Expr> coefficient_a = getConstantExpr(result[0]);
-  ref<Expr> coefficient_b = getConstantExpr(result[1]);
+  ref<Expr> coefficient_a = getConstantExpr(result[0], size);
+  ref<Expr> coefficient_b = getConstantExpr(result[1], size);
 
   templateExpr.e = AddExpr::create(
     MulExpr::create(

@@ -6,6 +6,7 @@
 #include "TimingSolver.h"
 
 #include <klee/Expr/Expr.h>
+#include <klee/Expr/ArrayCache.h>
 
 #include <vector>
 
@@ -37,6 +38,8 @@ struct ParametrizedExpr {
   ref<Expr> e;
   ref<Expr> parameter;
 };
+
+const Array *getArray(const std::string &name, uint64_t size);
 
 ref<Expr> extractPrefixConstraint(ExecTree &t,
                                   PatternMatch &pm);
