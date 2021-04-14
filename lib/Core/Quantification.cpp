@@ -1,4 +1,5 @@
 #include "Quantification.h"
+#include "klee/Expr/ExprUtil.h"
 
 using namespace klee;
 using namespace llvm;
@@ -16,6 +17,13 @@ bool getParametricExpressions(std::vector<SMTEquationSystem> systems,
   }
 
   return true;
+}
+
+ref<Expr> generateForallPremise(ref<Expr> bound, ref<Expr> parameter) {
+  return AndExpr::create(
+    UleExpr::create(ConstantExpr::create(1, parameter->getWidth()), bound),
+    UleExpr::create(bound, parameter)
+  );
 }
 
 ref<Expr> generateRangeConstraint(PatternMatch &pm, ref<Expr> parameter) {
@@ -61,9 +69,14 @@ ref<Expr> klee::generateQuantifiedConstraint(PatternMatch &pm,
     return nullptr;
   }
 
+  const Array *array_i = getArray("__i", 8);
+
   ref<Expr> coreExpr = ConstantExpr::create(1, Expr::Bool);
   for (const ParametrizedExpr &pe : coreSolutions) {
-    coreExpr = AndExpr::create(coreExpr, pe.e);
+    ref<Expr> i = getSymbolicValue(array_i, pe.parameter->getWidth() / 8);
+    ExprReplaceVisitor visitor(pe.parameter, i);
+    ref<Expr> substituted = visitor.visit(pe.e);
+    coreExpr = AndExpr::create(coreExpr, substituted);
   }
 
   ref<Expr> suffixExpr = ConstantExpr::create(1, Expr::Bool);
@@ -74,10 +87,14 @@ ref<Expr> klee::generateQuantifiedConstraint(PatternMatch &pm,
   /* TODO: check parameter consistency */
   assert(!coreSolutions.empty());
   ref<Expr> parameter = coreSolutions[0].parameter;
+  ref<Expr> bound = getSymbolicValue(array_i, parameter->getWidth() / 8);
+  ref<Expr> premise = generateForallPremise(bound, parameter);
   ref<Expr> rangeExpr = generateRangeConstraint(pm, parameter);
 
   errs() << "prefix:\n";
   prefix->dump();
+  errs() << "core premise:\n";
+  premise->dump();
   errs() << "core:\n";
   for (const ParametrizedExpr &pe : coreSolutions) {
     pe.e->dump();
@@ -92,14 +109,17 @@ ref<Expr> klee::generateQuantifiedConstraint(PatternMatch &pm,
   return AndExpr::create(
     prefix,
     AndExpr::create(
-      ForallExpr::create(
-        parameter,
-        OrExpr::create(
-          Expr::createIsZero(rangeExpr),
-          coreExpr
-        )
-      ),
-      suffixExpr
+      rangeExpr,
+      AndExpr::create(
+        ForallExpr::create(
+          bound,
+          OrExpr::create(
+            Expr::createIsZero(premise),
+            coreExpr
+          )
+        ),
+        suffixExpr
+      )
     )
   );
 }

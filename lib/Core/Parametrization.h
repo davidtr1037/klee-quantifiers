@@ -41,6 +41,8 @@ struct ParametrizedExpr {
 
 const Array *getArray(const std::string &name, uint64_t size);
 
+ref<Expr> getSymbolicValue(const Array *array, unsigned size);
+
 ref<Expr> extractPrefixConstraint(ExecTree &t,
                                   PatternMatch &pm);
 
