@@ -1202,6 +1202,7 @@ class QuantifiedExpr : public NonConstantExpr {
 public:
 
   ref<Expr> bound, body;
+  const Array *array;
 
 public:
 
@@ -1225,6 +1226,14 @@ protected:
     bound(bound), body(body) {
     isTainted = bound->isTainted || body->isTainted;
     size = bound->size + body->size + 1;
+
+    ref<ConcatExpr> ce = dyn_cast<ConcatExpr>(bound);
+    if (!ce.isNull()) {
+      ref<ReadExpr> re = dyn_cast<ReadExpr>(ce->getLeft());
+      if (!re.isNull()) {
+        array = re->updates.root;
+      }
+    }
   }
 
   virtual int compareContents(const Expr &b) const {
