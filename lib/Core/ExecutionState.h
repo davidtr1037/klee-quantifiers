@@ -13,6 +13,7 @@
 #include "AddressSpace.h"
 #include "MergeHandler.h"
 #include "LoopHandler.h"
+#include "PatternExtraction.h"
 
 #include "klee/ADT/TreeStream.h"
 #include "klee/Expr/Constraints.h"
@@ -240,6 +241,7 @@ public:
   static ExecutionState *mergeStatesOptimized(std::vector<ExecutionState *> &states,
                                               bool isComplete,
                                               ref<Expr> mergedConstraint,
+                                              std::vector<PatternMatch> &matches,
                                               LoopHandler *loopHandler);
 
   static bool canMerge(std::vector<ExecutionState *> &states,

@@ -11,6 +11,8 @@
 #include "Memory.h"
 #include "MergeUtils.h"
 #include "CoreStats.h"
+#include "PatternExtraction.h"
+#include "Quantification.h"
 
 #include "klee/Expr/Expr.h"
 #include "klee/Expr/ExprVisitor.h"
@@ -81,6 +83,11 @@ cl::opt<bool> klee::OptimizeArrayITEUsingExecTree(
 
 cl::opt<bool> DumpExecutionTree(
     "dump-exec-tree", cl::init(false),
+    cl::desc(""),
+    cl::cat(MergeCat));
+
+cl::opt<bool> OptimizeUsingQuantifiers(
+    "optimize-using-quantifiers", cl::init(false),
     cl::desc(""),
     cl::cat(MergeCat));
 
@@ -541,6 +548,7 @@ ExecutionState *ExecutionState::mergeStates(std::vector<ExecutionState *> &state
 ExecutionState *ExecutionState::mergeStatesOptimized(std::vector<ExecutionState *> &states,
                                                      bool isComplete,
                                                      ref<Expr> mergedConstraint,
+                                                     std::vector<PatternMatch> &matches,
                                                      LoopHandler *loopHandler) {
   TimerStatIncrementer timer(stats::mergeTime);
 
@@ -586,15 +594,31 @@ ExecutionState *ExecutionState::mergeStatesOptimized(std::vector<ExecutionState 
 
   if (!isComplete) {
     ref<Expr> orExpr;
-    if (mergedConstraint.isNull()) {
-      if (OptimizeITEUsingExecTree && loopHandler->canUseExecTree) {
-        orExpr = buildMergedConstraintWithExecTree(loopHandler, states);
-      } else {
-        orExpr = buildMergedConstraint(states);
+    if (OptimizeUsingQuantifiers && matches.size() == 1) {
+      for (PatternMatch &pm : matches) {
+        ref<Expr> qe = generateQuantifiedConstraint(pm,
+                                                    loopHandler->tree,
+                                                    *loopHandler->solver);
+        SolverQueryMetaData metaData;
+        bool mayBeTrue;
+        assert(loopHandler->solver->mayBeTrue(merged->constraints,
+                                              qe,
+                                              mayBeTrue,
+                                              metaData));
+        assert(0);
       }
     } else {
-      orExpr = mergedConstraint;
+      if (mergedConstraint.isNull()) {
+        if (OptimizeITEUsingExecTree && loopHandler->canUseExecTree) {
+          orExpr = buildMergedConstraintWithExecTree(loopHandler, states);
+        } else {
+          orExpr = buildMergedConstraint(states);
+        }
+      } else {
+        orExpr = mergedConstraint;
+      }
     }
+
     /* TODO: used ExecutionState's addConstraint? */
     m.addConstraint(orExpr);
     stats::mergedConstraintsSize += orExpr->size;

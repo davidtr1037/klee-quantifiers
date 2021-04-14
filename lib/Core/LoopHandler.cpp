@@ -4,6 +4,7 @@
 #include "ExecutionState.h"
 #include "Executor.h"
 #include "Searcher.h"
+#include "PatternExtraction.h"
 
 using namespace std;
 using namespace llvm;
@@ -125,7 +126,15 @@ void LoopHandler::releaseStates() {
             }
           }
         }
-        merged = ExecutionState::mergeStatesOptimized(states, isComplete, e, this);
+
+        std::vector<PatternMatch> matches;
+        extractPatterns(tree, matches);
+
+        merged = ExecutionState::mergeStatesOptimized(states,
+                                                      isComplete,
+                                                      e,
+                                                      matches,
+                                                      this);
       } else {
         merged = ExecutionState::mergeStates(states);
       }
