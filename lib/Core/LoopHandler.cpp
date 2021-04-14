@@ -82,7 +82,7 @@ void LoopHandler::addClosedState(ExecutionState *es,
 void LoopHandler::releaseStates() {
   std::vector<ref<Expr>> toAdd;
   unsigned largestGroup = 0;
-  if (mergeGroups.size() == 2) {
+  if (OptimizeGroupMerge && mergeGroups.size() == 2) {
     unsigned groupId = 0;
     size_t maxCount = 0;
     for (auto &i : mergeGroups) {
