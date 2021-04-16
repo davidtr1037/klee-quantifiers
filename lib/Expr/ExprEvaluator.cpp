@@ -106,3 +106,9 @@ ExprVisitor::Action ExprEvaluator::visitExprPost(const Expr& e) {
   }
   return Action::skipChildren();
 }
+
+/* TODO: fix */
+ExprVisitor::Action ExprEvaluator::visitForall(const ForallExpr &e) {
+  assert(0);
+  return Action::changeTo(ConstantExpr::create(1, Expr::Bool));
+}

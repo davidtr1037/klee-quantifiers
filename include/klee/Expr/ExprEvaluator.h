@@ -26,6 +26,7 @@ namespace klee {
     Action visitURem(const URemExpr &e);
     Action visitSRem(const SRemExpr &e);
     Action visitExprPost(const Expr& e);
+    Action visitForall(const ForallExpr &e);
       
   public:
     ExprEvaluator() {}
