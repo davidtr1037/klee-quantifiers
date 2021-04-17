@@ -840,6 +840,33 @@ Z3ASTHandle Z3Builder::constructActual(ref<Expr> e, int *width_out) {
     return sbvLeExpr(left, right);
   }
 
+  case Expr::Forall: {
+    ForallExpr *fe = cast<ForallExpr>(e);
+    Z3ASTHandle bound = construct(fe->bound);
+    Z3ASTHandle body = construct(fe->body);
+
+    Z3ASTHandle array_ast = getInitialArray(fe->array);
+    Z3_app array_app = Z3_to_app(ctx, array_ast);
+    Z3_func_decl array_decl = Z3_get_app_decl(ctx, array_app);
+    Z3_symbol array_symbol = Z3_get_decl_name(ctx, array_decl);
+
+    Z3_sort bound_sort = Z3_get_sort(ctx, array_ast);
+    Z3_symbol bound_name = array_symbol;
+
+    Z3_sort types[] = {bound_sort};
+    Z3_symbol names[] = {bound_name};
+    Z3_ast forall = Z3_mk_forall(ctx,
+                                0,
+                                0,
+                                nullptr,
+                                1,
+                                types,
+                                names,
+                                body);
+
+    Z3ASTHandle result = Z3ASTHandle(forall, ctx);
+    return result;
+  }
 // unused due to canonicalization
 #if 0
   case Expr::Ne:
