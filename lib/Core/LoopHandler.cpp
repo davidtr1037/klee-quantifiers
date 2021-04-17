@@ -127,12 +127,14 @@ void LoopHandler::releaseStates() {
           }
         }
 
-        std::set<uint32_t> ids;
-        for (ExecutionState *es : states) {
-          ids.insert(es->getID());
-        }
         std::vector<PatternMatch> matches;
-        extractPatterns(tree, ids, matches);
+        if (OptimizeUsingQuantifiers) {
+          std::set<uint32_t> ids;
+          for (ExecutionState *es : states) {
+            ids.insert(es->getID());
+          }
+          extractPatterns(tree, ids, matches);
+        }
 
         merged = ExecutionState::mergeStatesOptimized(states,
                                                       isComplete,

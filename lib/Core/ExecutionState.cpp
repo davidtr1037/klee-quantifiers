@@ -86,7 +86,7 @@ cl::opt<bool> DumpExecutionTree(
     cl::desc(""),
     cl::cat(MergeCat));
 
-cl::opt<bool> OptimizeUsingQuantifiers(
+cl::opt<bool> klee::OptimizeUsingQuantifiers(
     "optimize-using-quantifiers", cl::init(false),
     cl::desc(""),
     cl::cat(MergeCat));
