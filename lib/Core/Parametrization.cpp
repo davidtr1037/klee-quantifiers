@@ -57,7 +57,7 @@ void klee::extractEquationsForCore(ExecTree &t,
       iter.next(pm.pattern.core[i]);
 
       ref<Expr> e = iter.getCurrent()->e;
-      systems[i].push_back(SMTEquation(e, k));
+      systems[i].push_back(SMTEquation(e, k + 1));
     }
   }
 
