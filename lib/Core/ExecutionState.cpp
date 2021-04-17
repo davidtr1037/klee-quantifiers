@@ -557,8 +557,6 @@ ExecutionState *ExecutionState::mergeStatesOptimized(std::vector<ExecutionState 
     return nullptr;
   }
 
-  ExecutionState *merged = states[0];
-
   /* compute suffix for each state */
   std::vector<ref<Expr>> suffixes;
   for (unsigned i = 0; i < states.size(); i++) {
@@ -569,6 +567,8 @@ ExecutionState *ExecutionState::mergeStatesOptimized(std::vector<ExecutionState 
     }
     suffixes.push_back(all);
   }
+
+  ExecutionState *merged = states[0];
 
   /* local vars */
   mergeLocalVars(merged, states, suffixes, loopHandler, isComplete);
