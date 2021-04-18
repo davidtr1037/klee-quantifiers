@@ -136,6 +136,7 @@ Z3ASTHandle Z3Builder::buildBV(const char *name, unsigned width) {
   return Z3ASTHandle(Z3_mk_const(ctx, s, sort), ctx);
 }
 
+/* TODO: make more general by using the size of the array? */
 Z3ASTHandle Z3Builder::buildBVFromArray(const Array *root) {
   Z3ASTHandle bv_expr;
   bool hashed = _arr_hash.lookupArrayExpr(root, bv_expr);
