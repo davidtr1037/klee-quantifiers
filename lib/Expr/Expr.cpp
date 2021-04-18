@@ -525,7 +525,7 @@ Array::Array(const std::string &_name, uint64_t _size,
              const ref<ConstantExpr> *constantValuesEnd, Expr::Width _domain,
              Expr::Width _range)
     : name(_name), size(_size), domain(_domain), range(_range),
-      constantValues(constantValuesBegin, constantValuesEnd) {
+      constantValues(constantValuesBegin, constantValuesEnd), modelAsBV(false) {
 
   assert((isSymbolicArray() || constantValues.size() == size) &&
          "Invalid size for constant array!");
