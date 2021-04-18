@@ -69,7 +69,7 @@ ref<Expr> klee::generateQuantifiedConstraint(PatternMatch &pm,
     return nullptr;
   }
 
-  const Array *array_i = getArray("__i", 8);
+  const Array *array_i = getArray("__i", 8, true);
 
   ref<Expr> coreExpr = ConstantExpr::create(1, Expr::Bool);
   for (const ParametrizedExpr &pe : coreSolutions) {

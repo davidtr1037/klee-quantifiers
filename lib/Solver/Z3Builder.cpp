@@ -130,6 +130,24 @@ Z3ASTHandle Z3Builder::buildArray(const char *name, unsigned indexWidth,
   return Z3ASTHandle(Z3_mk_const(ctx, s, t), ctx);
 }
 
+Z3ASTHandle Z3Builder::bvValue(const char *name, unsigned width) {
+  Z3SortHandle sort = getBvSort(width);
+  Z3_symbol s = Z3_mk_string_symbol(ctx, const_cast<char *>(name));
+  return Z3ASTHandle(Z3_mk_const(ctx, s, sort), ctx);
+}
+
+Z3ASTHandle Z3Builder::buildBvConst(const Array *root) {
+  Z3ASTHandle bv_expr;
+  bool hashed = _arr_hash.lookupArrayExpr(root, bv_expr);
+  if (!hashed) {
+    std::string unique_id = llvm::utostr(_arr_hash._array_hash.size());
+    std::string unique_name = root->name + unique_id;
+    bv_expr = bvValue(unique_name.c_str(), 64);
+    _arr_hash.hashArrayExpr(root, bv_expr);
+  }
+  return Z3ASTHandle(bv_expr, ctx);
+}
+
 Z3ASTHandle Z3Builder::getTrue() { return Z3ASTHandle(Z3_mk_true(ctx), ctx); }
 
 Z3ASTHandle Z3Builder::getFalse() { return Z3ASTHandle(Z3_mk_false(ctx), ctx); }
@@ -399,6 +417,7 @@ Z3ASTHandle Z3Builder::getInitialArray(const Array *root) {
                             root->getRange());
 
     if (root->isConstantArray() && constant_array_assertions.count(root) == 0) {
+      assert(!root->modelAsBV);
       std::vector<Z3ASTHandle> array_assertions;
       for (unsigned i = 0, e = root->size; i != e; ++i) {
         // construct(= (select i root) root->value[i]) to be asserted in
@@ -422,7 +441,12 @@ Z3ASTHandle Z3Builder::getInitialArray(const Array *root) {
 }
 
 Z3ASTHandle Z3Builder::getInitialRead(const Array *root, unsigned index) {
-  return readExpr(getInitialArray(root), bvConst32(32, index));
+  if (root->modelAsBV) {
+    Z3ASTHandle bv_expr = buildBvConst(root);
+    return bvExtract(bv_expr, index * 8 + 7,  index * 8);
+  } else {
+    return readExpr(getInitialArray(root), bvConst32(32, index));
+  }
 }
 
 Z3ASTHandle Z3Builder::getArrayForUpdate(const Array *root,
@@ -514,12 +538,20 @@ Z3ASTHandle Z3Builder::constructActual(ref<Expr> e, int *width_out) {
     return construct(noe->src, width_out);
   }
 
+  /* TODO: check if modelAsBV */
   case Expr::Read: {
     ReadExpr *re = cast<ReadExpr>(e);
     assert(re && re->updates.root);
     *width_out = re->updates.root->getRange();
-    return readExpr(getArrayForUpdate(re->updates.root, re->updates.head.get()),
-                    construct(re->index, 0));
+    if (re->updates.root->modelAsBV) {
+      Z3ASTHandle bv_expr = buildBvConst(re->updates.root);
+      assert(isa<ConstantExpr>(re->index));
+      unsigned index = dyn_cast<ConstantExpr>(re->index)->getZExtValue();
+      return bvExtract(bv_expr, index * 8 + 7, index * 8);
+    } else {
+      return readExpr(getArrayForUpdate(re->updates.root, re->updates.head.get()),
+                      construct(re->index, 0));
+    }
   }
 
   case Expr::Select: {
@@ -842,30 +874,27 @@ Z3ASTHandle Z3Builder::constructActual(ref<Expr> e, int *width_out) {
 
   case Expr::Forall: {
     ForallExpr *fe = cast<ForallExpr>(e);
-    Z3ASTHandle bound = construct(fe->bound);
     Z3ASTHandle body = construct(fe->body);
 
-    Z3ASTHandle array_ast = getInitialArray(fe->array);
-    Z3_app array_app = Z3_to_app(ctx, array_ast);
-    Z3_func_decl array_decl = Z3_get_app_decl(ctx, array_app);
-    Z3_symbol array_symbol = Z3_get_decl_name(ctx, array_decl);
+    Z3ASTHandle bv_expr;
+    bool hashed = _arr_hash.lookupArrayExpr(fe->array, bv_expr);
+    assert(hashed);
 
-    Z3_sort bound_sort = Z3_get_sort(ctx, array_ast);
-    Z3_symbol bound_name = array_symbol;
+    Z3_app vars[] = {(Z3_app)((Z3_ast)(bv_expr))};
 
-    Z3_sort types[] = {bound_sort};
-    Z3_symbol names[] = {bound_name};
-    Z3_ast forall = Z3_mk_forall(ctx,
-                                0,
-                                0,
-                                nullptr,
-                                1,
-                                types,
-                                names,
-                                body);
-
-    Z3ASTHandle result = Z3ASTHandle(forall, ctx);
-    return result;
+    Z3ASTHandle forall = Z3ASTHandle(
+      Z3_mk_forall_const(
+        ctx,
+        0,
+        1,
+        vars,
+        0,
+        0,
+        body
+      ),
+      ctx
+    );
+    return forall;
   }
 // unused due to canonicalization
 #if 0

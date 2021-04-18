@@ -39,7 +39,7 @@ struct ParametrizedExpr {
   ref<Expr> parameter;
 };
 
-const Array *getArray(const std::string &name, uint64_t size);
+const Array *getArray(const std::string &name, uint64_t size, bool modelAsBV = false);
 
 ref<Expr> getSymbolicValue(const Array *array, unsigned size);
 
