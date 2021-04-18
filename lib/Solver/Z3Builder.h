@@ -164,9 +164,9 @@ private:
   Z3ASTHandle buildArray(const char *name, unsigned indexWidth,
                          unsigned valueWidth);
 
-  Z3ASTHandle bvValue(const char *name, unsigned width);
+  Z3ASTHandle buildBV(const char *name, unsigned width);
 
-  Z3ASTHandle buildBvConst(const Array *root);
+  Z3ASTHandle buildBVFromArray(const Array *root);
 
   Z3SortHandle getBvSort(unsigned width);
   Z3SortHandle getArraySort(Z3SortHandle domainSort, Z3SortHandle rangeSort);
