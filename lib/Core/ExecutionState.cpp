@@ -605,7 +605,8 @@ ExecutionState *ExecutionState::mergeStatesOptimized(std::vector<ExecutionState 
                                               qe,
                                               mayBeTrue,
                                               metaData));
-        assert(0);
+        orExpr = qe;
+        break;
       }
     } else {
       if (mergedConstraint.isNull()) {
