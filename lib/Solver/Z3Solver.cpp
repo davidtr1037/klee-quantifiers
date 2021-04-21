@@ -69,6 +69,8 @@ private:
                          bool &hasSolution);
   bool validateZ3Model(::Z3_solver &theSolver, ::Z3_model &theModel);
 
+  Z3_lbool sanityTest(Z3_string input);
+
 public:
   Z3SolverImpl();
   ~Z3SolverImpl();
@@ -455,6 +457,29 @@ bool Z3SolverImpl::validateZ3Model(::Z3_solver &theSolver, ::Z3_model &theModel)
 
   Z3_ast_vector_dec_ref(builder->ctx, constraints);
   return success;
+}
+
+Z3_lbool Z3SolverImpl::sanityTest(Z3_string input) {
+  Z3_context ctx = builder->ctx;
+
+  Z3_solver solver = Z3_mk_solver(ctx);
+  Z3_solver_inc_ref(ctx, solver);
+
+  Z3_ast_vector exprs = Z3_parse_smtlib2_string(ctx, input, 0, 0, 0, 0, 0, 0);
+  Z3_ast_vector_inc_ref(ctx, exprs);
+
+  unsigned size = Z3_ast_vector_size(ctx, exprs);
+  for (unsigned i = 0; i < size; i++) {
+    Z3_ast e = Z3_ast_vector_get(ctx, exprs, i);
+    Z3_solver_assert(ctx, solver, e);
+  }
+
+  Z3_lbool r = Z3_solver_check(ctx, solver);
+
+  Z3_ast_vector_dec_ref(ctx, exprs);
+  Z3_solver_dec_ref(ctx, solver);
+
+  return r;
 }
 
 SolverImpl::SolverRunStatus Z3SolverImpl::getOperationStatusCode() {
