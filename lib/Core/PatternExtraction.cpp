@@ -4,23 +4,40 @@
 using namespace llvm;
 using namespace klee;
 
+PatternMatch::PatternMatch(const PatternInstance &pi) {
+  pattern = Pattern(pi.prefix, pi.core, pi.suffix);
+}
+
+void PatternMatch::addStateMatch(const StateMatch &sm) {
+  if (!pattern.hasCore()) {
+    /* if has no core, only one match is possible */
+    assert(matches.empty());
+  }
+
+  matches.push_back(sm);
+}
+
 static bool addPatttern(std::vector<PatternMatch> &matches,
-                        PatternInstance &pi) {
+                        PatternInstance &pi,
+                        uint32_t stateID) {
   for (PatternMatch &pm : matches) {
     unsigned count;
     if (pi.isInstanceOf(pm.pattern, count)) {
-      pm.matches.push_back(StateMatch(count));
+      pm.matches.push_back(StateMatch(stateID, count));
       return true;
     }
   }
 
   PatternMatch pm(pi);
+  pm.addStateMatch(StateMatch(stateID, pi.count));
   matches.push_back(pm);
   return false;
 }
 
-static void handleLeaf(PatternInstance &pi, std::vector<PatternMatch> &matches) {
-  addPatttern(matches, pi);
+static void handleLeaf(ExecTreeNode *n,
+                       PatternInstance &pi,
+                       std::vector<PatternMatch> &matches) {
+  addPatttern(matches, pi, n->stateID);
 }
 
 static void unifyMatches(std::vector<PatternMatch> &matches,
@@ -35,7 +52,10 @@ static void unifyMatches(std::vector<PatternMatch> &matches,
     if (!pm.pattern.hasCore()) {
       /* no repetitions, only prefix */
       PatternInstance pi(pm.pattern.prefix);
-      addPatttern(result, pi);
+
+      /* get state id */
+      assert(pm.matches.size() == 1);
+      addPatttern(result, pi, pm.matches[0].stateID);
     }
   }
 }
@@ -63,7 +83,7 @@ void klee::extractPatterns(ExecTree &t,
       worklist.push_back(std::make_pair(n->right, pi));
     } else {
       if (ids.find(n->stateID) != ids.end()) {
-        handleLeaf(pi, matches);
+        handleLeaf(n, pi, matches);
       }
     }
   }

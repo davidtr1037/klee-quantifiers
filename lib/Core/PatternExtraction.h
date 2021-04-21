@@ -9,24 +9,21 @@
 
 namespace klee {
 
-/* TODO: add state? */
 struct StateMatch {
 
-  StateMatch(unsigned count) : count(count) {
+  StateMatch(uint32_t stateID, unsigned count) : stateID(stateID), count(count) {
 
   }
 
+  uint32_t stateID;
   unsigned count;
 };
 
 struct PatternMatch {
 
-  PatternMatch(const PatternInstance &pi) {
-    pattern = Pattern(pi.prefix, pi.core, pi.suffix);
-    if (pi.hasCore()) {
-      matches.push_back(StateMatch(pi.count));
-    }
-  }
+  PatternMatch(const PatternInstance &pi);
+
+  void addStateMatch(const StateMatch &sm);
 
   Pattern pattern;
   /* TODO: use a set? */
