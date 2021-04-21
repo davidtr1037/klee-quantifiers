@@ -60,9 +60,9 @@ void LoopHandler::addClosedState(ExecutionState *es,
   ++closedStateCount;
   removeOpenState(es);
 
-  auto i = mergeGroups.find(mp);
-  if (i == mergeGroups.end()) {
-    mergeGroups[mp].push_back(es);
+  auto i = mergeGroupsByExit.find(mp);
+  if (i == mergeGroupsByExit.end()) {
+    mergeGroupsByExit[mp].push_back(es);
   } else {
     MergeGroup &group = i->second;
     group.push_back(es);
@@ -87,7 +87,7 @@ void LoopHandler::removeOpenState(ExecutionState *es) {
 
 void LoopHandler::splitStates(std::vector<MergeGroup> &result) {
   if (SplitByPattern) {
-    for (auto &i: mergeGroups) {
+    for (auto &i: mergeGroupsByExit) {
       MergeGroup &states = i.second;
 
       std::set<uint32_t> ids;
@@ -111,7 +111,7 @@ void LoopHandler::splitStates(std::vector<MergeGroup> &result) {
       }
     }
   } else {
-    for (auto &i: mergeGroups) {
+    for (auto &i: mergeGroupsByExit) {
       MergeGroup &states = i.second;
       result.push_back(states);
     }
@@ -238,7 +238,7 @@ void LoopHandler::releaseStates() {
 
     groupId++;
   }
-  mergeGroups.clear();
+  mergeGroupsByExit.clear();
 }
 
 void LoopHandler::markEarlyTerminated(ExecutionState &state) {
@@ -276,7 +276,7 @@ LoopHandler::~LoopHandler() {
     return;
   }
 
-  for (auto &i: mergeGroups) {
+  for (auto &i: mergeGroupsByExit) {
     vector<ExecutionState *> &states = i.second;
     assert(states.empty());
   }
