@@ -6,10 +6,11 @@ using namespace llvm;
 
 bool getParametricExpressions(std::vector<SMTEquationSystem> systems,
                               TimingSolver &solver,
+                              uint32_t id,
                               std::vector<ParametrizedExpr> &result) {
   for (SMTEquationSystem &system : systems) {
     ParametrizedExpr solution;
-    if (!solveEquationSystem(system, solver, solution)) {
+    if (!solveEquationSystem(system, solver, id, solution)) {
       return false;
     }
 
@@ -53,6 +54,7 @@ ref<Expr> generateRangeConstraint(PatternMatch &pm, ref<Expr> parameter) {
 
 ref<Expr> klee::generateQuantifiedConstraint(PatternMatch &pm,
                                              ExecTree &tree,
+                                             uint32_t id,
                                              TimingSolver &solver) {
   std::vector<SMTEquationSystem> coreSystems, suffixSystems;
   std::vector<ParametrizedExpr> coreSolutions, suffixSolutions;
@@ -60,12 +62,12 @@ ref<Expr> klee::generateQuantifiedConstraint(PatternMatch &pm,
   ref<Expr> prefix = extractPrefixConstraint(tree, pm);
 
   extractEquationsForCore(tree, pm, coreSystems);
-  if (!getParametricExpressions(coreSystems, solver, coreSolutions)) {
+  if (!getParametricExpressions(coreSystems, solver, id, coreSolutions)) {
     return nullptr;
   }
 
   extractEquationsForSuffix(tree, pm, suffixSystems);
-  if (!getParametricExpressions(suffixSystems, solver, suffixSolutions)) {
+  if (!getParametricExpressions(suffixSystems, solver, id, suffixSolutions)) {
     return nullptr;
   }
 

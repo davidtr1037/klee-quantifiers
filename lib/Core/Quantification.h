@@ -9,6 +9,7 @@ namespace klee {
 
 ref<Expr> generateQuantifiedConstraint(PatternMatch &pm,
                                        ExecTree &tree,
+                                       uint32_t id,
                                        TimingSolver &solver);
 
 }

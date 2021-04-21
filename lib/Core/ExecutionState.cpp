@@ -94,6 +94,7 @@ cl::opt<bool> klee::OptimizeUsingQuantifiers(
 /***/
 
 std::uint32_t ExecutionState::nextID = 1;
+std::uint32_t ExecutionState::mergeID = 1;
 
 /***/
 
@@ -595,19 +596,10 @@ ExecutionState *ExecutionState::mergeStatesOptimized(std::vector<ExecutionState 
   if (!isComplete) {
     ref<Expr> orExpr;
     if (OptimizeUsingQuantifiers && matches.size() == 1) {
-      for (PatternMatch &pm : matches) {
-        ref<Expr> qe = generateQuantifiedConstraint(pm,
-                                                    loopHandler->tree,
-                                                    *loopHandler->solver);
-        SolverQueryMetaData metaData;
-        bool mayBeTrue;
-        assert(loopHandler->solver->mayBeTrue(merged->constraints,
-                                              qe,
-                                              mayBeTrue,
-                                              metaData));
-        orExpr = qe;
-        break;
-      }
+      orExpr = generateQuantifiedConstraint(matches[0],
+                                            loopHandler->tree,
+                                            mergeID,
+                                            *loopHandler->solver);
     } else {
       if (mergedConstraint.isNull()) {
         if (OptimizeITEUsingExecTree && loopHandler->canUseExecTree) {
@@ -630,6 +622,7 @@ ExecutionState *ExecutionState::mergeStatesOptimized(std::vector<ExecutionState 
     merged->optimizeArrayValues(mutated, loopHandler->solver);
   }
 
+  mergeID++;
   return merged;
 }
 

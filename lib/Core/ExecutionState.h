@@ -307,6 +307,8 @@ public:
   bool extractSizeConstraint(ref<Expr> condition,
                              ref<Expr> &size,
                              ref<ConstantExpr> &bound);
+
+  static std::uint32_t mergeID;
 };
 
 struct ExecutionStateIDCompare {

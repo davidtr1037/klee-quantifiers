@@ -4,6 +4,8 @@
 #include <klee/Expr/ArrayCache.h>
 #include <klee/Expr/ExprUtil.h>
 
+#include "llvm/ADT/StringExtras.h"
+
 using namespace llvm;
 using namespace klee;
 
@@ -229,6 +231,7 @@ static ref<Expr> getConstantExpr(std::vector<unsigned char> &v,
 static bool solveLinearEquation(TimingSolver &solver,
                                 const SMTEquationSystem &system,
                                 const std::vector<ref<Expr>> &constants,
+                                uint32_t id,
                                 ParametrizedExpr &templateExpr) {
   /* check width consistency */
   Expr::Width width;
@@ -240,7 +243,8 @@ static bool solveLinearEquation(TimingSolver &solver,
   unsigned size = width / 8;
   const Array *array_a = getArray("a", 8);
   const Array *array_b = getArray("b", 8);
-  const Array *array_m = getArray("m", 8);
+  std::string name = "m_" + llvm::utostr(id);
+  const Array *array_m = getArray(name, 8);
 
   ref<Expr> a = getSymbolicValue(array_a, size);
   ref<Expr> b = getSymbolicValue(array_b, size);
@@ -305,6 +309,7 @@ static bool validateSolution(const SMTEquationSystem &system,
 
 bool klee::solveEquationSystem(SMTEquationSystem &system,
                                TimingSolver &solver,
+                               uint32_t id,
                                ParametrizedExpr &result) {
   assert(system.size() >= 2);
 
@@ -318,7 +323,7 @@ bool klee::solveEquationSystem(SMTEquationSystem &system,
   }
 
   ParametrizedExpr templateExpr;
-  solveLinearEquation(solver, {eq1, eq2}, {r1, r2}, templateExpr);
+  solveLinearEquation(solver, {eq1, eq2}, {r1, r2}, id, templateExpr);
 
   ref<Expr> e = replaceDistinctTerms(eq1.e, eq2.e, templateExpr.e);
   ParametrizedExpr parametricExpr(e, templateExpr.parameter);
