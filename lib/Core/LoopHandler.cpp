@@ -45,6 +45,11 @@ cl::opt<unsigned> MaxStatesToMerge(
     cl::desc(""),
     cl::cat(klee::LoopCat));
 
+cl::opt<bool> SplitByPattern(
+    "split-by-pattern", cl::init(false),
+    cl::desc(""),
+    cl::cat(klee::LoopCat));
+
 void LoopHandler::addOpenState(ExecutionState *es){
   openStates.push_back(es);
   activeStates++;
@@ -59,8 +64,8 @@ void LoopHandler::addClosedState(ExecutionState *es,
   if (i == mergeGroups.end()) {
     mergeGroups[mp].push_back(es);
   } else {
-    std::vector<ExecutionState *> &states = i->second;
-    states.push_back(es);
+    MergeGroup &group = i->second;
+    group.push_back(es);
   }
 
   executor->mergingSearcher->pauseState(*es);
@@ -80,13 +85,48 @@ void LoopHandler::removeOpenState(ExecutionState *es) {
   openStates.pop_back();
 }
 
+void LoopHandler::splitStatesByPattern(MergeGroups &result) {
+  for (auto &i: mergeGroups) {
+    MergeGroup &states = i.second;
+
+    std::set<uint32_t> ids;
+    /* TODO: add this mapping to LoopHandler */
+    std::map<uint32_t, ExecutionState *> m;
+    for (ExecutionState *es : states) {
+        ids.insert(es->getID());
+        m[es->getID()] = es;
+    }
+
+    std::vector<PatternMatch> matches;
+    extractPatterns(tree, ids, matches);
+    for (PatternMatch &pm : matches) {
+      MergeGroup group;
+      for (StateMatch &sm : pm.matches) {
+        auto i = m.find(sm.stateID);
+        assert(i != m.end());
+        group.push_back(i->second);
+      }
+      /* TODO: add group */
+    }
+  }
+}
+
 void LoopHandler::releaseStates() {
   std::vector<ref<Expr>> toAdd;
   unsigned largestGroup = 0;
-  if (OptimizeGroupMerge && mergeGroups.size() == 2) {
+
+  MergeGroups groups;
+  if (SplitByPattern) {
+    assert(0);
+  } else {
+    /* TODO: avoid copy? */
+    groups = mergeGroups;
+  }
+
+  if (OptimizeGroupMerge && groups.size() == 2) {
     unsigned groupId = 0;
     size_t maxCount = 0;
-    for (auto &i : mergeGroups) {
+    for (auto &i : groups) {
       vector<ExecutionState *> &states = i.second;
       ref<Expr> e = ExecutionState::buildMergedConstraint(states);
       toAdd.push_back(e);
@@ -99,7 +139,7 @@ void LoopHandler::releaseStates() {
   }
 
   unsigned groupId = 0;
-  for (auto &i: mergeGroups) {
+  for (auto &i: groups) {
     vector<ExecutionState *> &states = i.second;
     vector<ExecutionState *> snapshots;
     if (ValidateMerge) {
@@ -110,7 +150,7 @@ void LoopHandler::releaseStates() {
     }
 
     ExecutionState *merged = nullptr;
-    bool isComplete = (mergeGroups.size() == 1) && (earlyTerminated == 0);
+    bool isComplete = (groups.size() == 1) && (earlyTerminated == 0);
     /* TODO: pc or prevPC? */
     klee_message("merging at %s:%u",
                  states[0]->pc->info->file.data(),
@@ -119,7 +159,7 @@ void LoopHandler::releaseStates() {
     if (MaxStatesToMerge == 0 || states.size() < MaxStatesToMerge) {
       if (UseOptimizedMerge) {
         ref<Expr> e = nullptr;
-        if (OptimizeGroupMerge && mergeGroups.size() > 1 && groupId == largestGroup) {
+        if (OptimizeGroupMerge && groups.size() > 1 && groupId == largestGroup) {
           e = ConstantExpr::create(1, Expr::Bool);
           for (unsigned k = 0; k < toAdd.size(); k++) {
             if (k != largestGroup) {
@@ -175,7 +215,7 @@ void LoopHandler::releaseStates() {
 
     executor->mergingSearcher->continueState(*merged);
     executor->collectMergeStats(*merged);
-    if (mergeGroups.size() == 1) {
+    if (groups.size() == 1) {
       klee_message("merged %lu states (complete = %u)", states.size(), isComplete);
     } else {
       klee_message("merged %lu states (complete = %u, group = %u)",

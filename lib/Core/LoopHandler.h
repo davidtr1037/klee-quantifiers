@@ -38,7 +38,8 @@ private:
 
   std::vector<ExecutionState *> openStates;
 
-  std::map<llvm::Instruction *, std::vector<ExecutionState *>> mergeGroups;
+  /* TODO: rename (mergeGroupByExit) */
+  MergeGroups mergeGroups;
 
   unsigned activeStates;
 
@@ -55,6 +56,8 @@ public:
   void addClosedState(ExecutionState *es, llvm::Instruction *mp);
 
   void removeOpenState(ExecutionState *es);
+
+  void splitStatesByPattern(MergeGroups &result);
 
   void releaseStates();
 
