@@ -29,6 +29,7 @@ cl::opt<bool> UseOptimizedMerge(
     cl::desc(""),
     cl::cat(klee::LoopCat));
 
+/* TODO: remove? */
 cl::opt<bool> OptimizeGroupMerge(
     "optimize-group-merge", cl::init(false),
     cl::desc(""),
@@ -47,13 +48,6 @@ cl::opt<unsigned> MaxStatesToMerge(
 void LoopHandler::addOpenState(ExecutionState *es){
   openStates.push_back(es);
   activeStates++;
-}
-
-void LoopHandler::removeOpenState(ExecutionState *es){
-  auto it = std::find(openStates.begin(), openStates.end(), es);
-  assert(it != openStates.end());
-  std::swap(*it, openStates.back());
-  openStates.pop_back();
 }
 
 void LoopHandler::addClosedState(ExecutionState *es,
@@ -77,6 +71,13 @@ void LoopHandler::addClosedState(ExecutionState *es,
   if (activeStates == 0) {
     releaseStates();
   }
+}
+
+void LoopHandler::removeOpenState(ExecutionState *es) {
+  auto it = std::find(openStates.begin(), openStates.end(), es);
+  assert(it != openStates.end());
+  std::swap(*it, openStates.back());
+  openStates.pop_back();
 }
 
 void LoopHandler::releaseStates() {
