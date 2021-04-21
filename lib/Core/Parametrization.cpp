@@ -243,8 +243,7 @@ static bool solveLinearEquation(TimingSolver &solver,
   unsigned size = width / 8;
   const Array *array_a = getArray("a", 8);
   const Array *array_b = getArray("b", 8);
-  std::string name = "m_" + llvm::utostr(id);
-  const Array *array_m = getArray(name, 8);
+  const Array *array_m = getArray("m_" + llvm::utostr(id), 8);
 
   ref<Expr> a = getSymbolicValue(array_a, size);
   ref<Expr> b = getSymbolicValue(array_b, size);
