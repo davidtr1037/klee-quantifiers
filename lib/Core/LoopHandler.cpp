@@ -64,8 +64,8 @@ void LoopHandler::addClosedState(ExecutionState *es,
   if (i == mergeGroupsByExit.end()) {
     mergeGroupsByExit[mp].push_back(es);
   } else {
-    MergeGroup &group = i->second;
-    group.push_back(es);
+    MergeGroup &states = i->second;
+    states.push_back(es);
   }
 
   executor->mergingSearcher->pauseState(*es);
@@ -101,13 +101,13 @@ void LoopHandler::splitStates(std::vector<MergeGroup> &result) {
       std::vector<PatternMatch> matches;
       extractPatterns(tree, ids, matches);
       for (PatternMatch &pm : matches) {
-        MergeGroup group;
+        MergeGroup states;
         for (StateMatch &sm : pm.matches) {
           auto i = m.find(sm.stateID);
           assert(i != m.end());
-          group.push_back(i->second);
+          states.push_back(i->second);
         }
-        /* TODO: add group */
+        result.push_back(states);
       }
     }
   } else {
@@ -124,6 +124,7 @@ void LoopHandler::releaseStates() {
 
   std::vector<MergeGroup> groups;
   splitStates(groups);
+  klee_message("splitting to %lu merging groups", groups.size());
 
   if (OptimizeGroupMerge && groups.size() == 2) {
     unsigned groupId = 0;
