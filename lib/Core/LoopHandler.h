@@ -32,14 +32,13 @@ class LoopHandler {
 private:
 
   typedef std::vector<ExecutionState *> MergeGroup;
-  typedef std::map<llvm::Instruction *, MergeGroup> MergeGroups;
 
   unsigned closedStateCount;
 
   std::vector<ExecutionState *> openStates;
 
   /* TODO: rename (mergeGroupByExit) */
-  MergeGroups mergeGroups;
+  std::map<llvm::Instruction *, MergeGroup> mergeGroups;
 
   unsigned activeStates;
 
@@ -57,7 +56,7 @@ public:
 
   void removeOpenState(ExecutionState *es);
 
-  void splitStatesByPattern(MergeGroups &result);
+  void splitStates(std::vector<MergeGroup> &result);
 
   void releaseStates();
 

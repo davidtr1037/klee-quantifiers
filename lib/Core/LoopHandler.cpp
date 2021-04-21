@@ -85,28 +85,35 @@ void LoopHandler::removeOpenState(ExecutionState *es) {
   openStates.pop_back();
 }
 
-void LoopHandler::splitStatesByPattern(MergeGroups &result) {
-  for (auto &i: mergeGroups) {
-    MergeGroup &states = i.second;
+void LoopHandler::splitStates(std::vector<MergeGroup> &result) {
+  if (SplitByPattern) {
+    for (auto &i: mergeGroups) {
+      MergeGroup &states = i.second;
 
-    std::set<uint32_t> ids;
-    /* TODO: add this mapping to LoopHandler */
-    std::map<uint32_t, ExecutionState *> m;
-    for (ExecutionState *es : states) {
-        ids.insert(es->getID());
-        m[es->getID()] = es;
-    }
-
-    std::vector<PatternMatch> matches;
-    extractPatterns(tree, ids, matches);
-    for (PatternMatch &pm : matches) {
-      MergeGroup group;
-      for (StateMatch &sm : pm.matches) {
-        auto i = m.find(sm.stateID);
-        assert(i != m.end());
-        group.push_back(i->second);
+      std::set<uint32_t> ids;
+      /* TODO: add this mapping to LoopHandler */
+      std::map<uint32_t, ExecutionState *> m;
+      for (ExecutionState *es : states) {
+          ids.insert(es->getID());
+          m[es->getID()] = es;
       }
-      /* TODO: add group */
+
+      std::vector<PatternMatch> matches;
+      extractPatterns(tree, ids, matches);
+      for (PatternMatch &pm : matches) {
+        MergeGroup group;
+        for (StateMatch &sm : pm.matches) {
+          auto i = m.find(sm.stateID);
+          assert(i != m.end());
+          group.push_back(i->second);
+        }
+        /* TODO: add group */
+      }
+    }
+  } else {
+    for (auto &i: mergeGroups) {
+      MergeGroup &states = i.second;
+      result.push_back(states);
     }
   }
 }
@@ -115,19 +122,13 @@ void LoopHandler::releaseStates() {
   std::vector<ref<Expr>> toAdd;
   unsigned largestGroup = 0;
 
-  MergeGroups groups;
-  if (SplitByPattern) {
-    assert(0);
-  } else {
-    /* TODO: avoid copy? */
-    groups = mergeGroups;
-  }
+  std::vector<MergeGroup> groups;
+  splitStates(groups);
 
   if (OptimizeGroupMerge && groups.size() == 2) {
     unsigned groupId = 0;
     size_t maxCount = 0;
-    for (auto &i : groups) {
-      vector<ExecutionState *> &states = i.second;
+    for (MergeGroup &states : groups) {
       ref<Expr> e = ExecutionState::buildMergedConstraint(states);
       toAdd.push_back(e);
       if (states.size() > maxCount) {
@@ -139,8 +140,7 @@ void LoopHandler::releaseStates() {
   }
 
   unsigned groupId = 0;
-  for (auto &i: groups) {
-    vector<ExecutionState *> &states = i.second;
+  for (MergeGroup &states: groups) {
     vector<ExecutionState *> snapshots;
     if (ValidateMerge) {
       /* take snapshots before merging */
