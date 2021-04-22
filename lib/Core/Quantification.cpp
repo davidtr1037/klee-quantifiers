@@ -52,6 +52,45 @@ ref<Expr> generateRangeConstraint(PatternMatch &pm, ref<Expr> parameter) {
   );
 }
 
+void generateForall(PatternMatch &pm,
+                    std::vector<ParametrizedExpr> solutions,
+                    ref<Expr> &forallExpr,
+                    ref<Expr> &rangeExpr) {
+  if (solutions.empty()) {
+    forallExpr = rangeExpr = ConstantExpr::create(1, Expr::Bool);
+    return;
+  }
+
+  const Array *array_i = getArray("__i", 8, true);
+
+  ref<Expr> coreExpr = ConstantExpr::create(1, Expr::Bool);
+  for (const ParametrizedExpr &pe : solutions) {
+    ref<Expr> i = getSymbolicValue(array_i, pe.parameter->getWidth() / 8);
+    ExprReplaceVisitor visitor(pe.parameter, i);
+    ref<Expr> substituted = visitor.visit(pe.e);
+    coreExpr = AndExpr::create(coreExpr, substituted);
+  }
+
+  /* TODO: not so elegant */
+  ref<Expr> parameter = solutions[0].parameter;
+
+  /* outside of the forall expression */
+  rangeExpr = generateRangeConstraint(pm, parameter);
+
+  /* the forall expression itself */
+  ref<Expr> bound = getSymbolicValue(array_i, parameter->getWidth() / 8);
+  ref<Expr> premise = generateForallPremise(bound, parameter);
+  forallExpr = ForallExpr::create(
+    bound,
+    OrExpr::create(
+      Expr::createIsZero(premise),
+      coreExpr
+    )
+  );
+}
+
+
+/* TODO: handle low number of matches */
 ref<Expr> klee::generateQuantifiedConstraint(PatternMatch &pm,
                                              ExecTree &tree,
                                              uint32_t id,
@@ -71,55 +110,35 @@ ref<Expr> klee::generateQuantifiedConstraint(PatternMatch &pm,
     return nullptr;
   }
 
-  const Array *array_i = getArray("__i", 8, true);
-
-  ref<Expr> coreExpr = ConstantExpr::create(1, Expr::Bool);
-  for (const ParametrizedExpr &pe : coreSolutions) {
-    ref<Expr> i = getSymbolicValue(array_i, pe.parameter->getWidth() / 8);
-    ExprReplaceVisitor visitor(pe.parameter, i);
-    ref<Expr> substituted = visitor.visit(pe.e);
-    coreExpr = AndExpr::create(coreExpr, substituted);
-  }
+  ref<Expr> forallExpr, rangeExpr;
+  generateForall(pm, coreSolutions, forallExpr, rangeExpr);
 
   ref<Expr> suffixExpr = ConstantExpr::create(1, Expr::Bool);
   for (const ParametrizedExpr &pe : suffixSolutions) {
     suffixExpr = AndExpr::create(suffixExpr, pe.e);
   }
 
-  /* TODO: check parameter consistency */
-  assert(!coreSolutions.empty());
-  ref<Expr> parameter = coreSolutions[0].parameter;
-  ref<Expr> bound = getSymbolicValue(array_i, parameter->getWidth() / 8);
-  ref<Expr> premise = generateForallPremise(bound, parameter);
-  ref<Expr> rangeExpr = generateRangeConstraint(pm, parameter);
-
-  errs() << "prefix:\n";
-  prefix->dump();
-  errs() << "core premise:\n";
-  premise->dump();
-  errs() << "core:\n";
-  for (const ParametrizedExpr &pe : coreSolutions) {
-    pe.e->dump();
-  }
-  errs() << "suffix:\n";
-  for (const ParametrizedExpr &pe : suffixSolutions) {
-    pe.e->dump();
-  }
-  errs() << "range:\n";
-  rangeExpr->dump();
+  //errs() << "prefix:\n";
+  //prefix->dump();
+  //errs() << "core premise:\n";
+  //premise->dump();
+  //errs() << "core:\n";
+  //for (const ParametrizedExpr &pe : coreSolutions) {
+  //  pe.e->dump();
+  //}
+  //errs() << "suffix:\n";
+  //for (const ParametrizedExpr &pe : suffixSolutions) {
+  //  pe.e->dump();
+  //}
+  //errs() << "range:\n";
+  //rangeExpr->dump();
 
   return AndExpr::create(
     prefix,
     AndExpr::create(
       rangeExpr,
       AndExpr::create(
-        ForallExpr::create(
-          bound,
-          OrExpr::create(
-            Expr::createIsZero(premise),
-            coreExpr
-          )
-        ),
+        forallExpr,
         suffixExpr
       )
     )
