@@ -1206,7 +1206,7 @@ public:
   ref<Expr> bound, body;
   const Array *array;
 
-public:
+  static const Width AUX_VARIABLE_WIDTH;
 
   unsigned getNumKids() const { return 2; }
   ref<Expr> getKid(unsigned i) const {

@@ -143,7 +143,7 @@ Z3ASTHandle Z3Builder::buildBVFromArray(const Array *root) {
   if (!hashed) {
     std::string unique_id = llvm::utostr(_arr_hash._array_hash.size());
     std::string unique_name = root->name + unique_id;
-    bv_expr = buildBV(unique_name.c_str(), 64);
+    bv_expr = buildBV(unique_name.c_str(), QuantifiedExpr::AUX_VARIABLE_WIDTH);
     _arr_hash.hashArrayExpr(root, bv_expr);
   }
   return Z3ASTHandle(bv_expr, ctx);

@@ -1239,3 +1239,5 @@ CMPCREATE(UltExpr, Ult)
 CMPCREATE(UleExpr, Ule)
 CMPCREATE(SltExpr, Slt)
 CMPCREATE(SleExpr, Sle)
+
+const Expr::Width QuantifiedExpr::AUX_VARIABLE_WIDTH = 64;

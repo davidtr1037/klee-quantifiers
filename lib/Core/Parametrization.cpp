@@ -280,7 +280,8 @@ static bool solveLinearEquation(TimingSolver &solver,
   unsigned size = width / 8;
   const Array *array_a = getArray("a", 8);
   const Array *array_b = getArray("b", 8);
-  const Array *array_m = getArray("m_" + llvm::utostr(id), 8);
+  const Array *array_m = getArray("m_" + llvm::utostr(id),
+                                  QuantifiedExpr::AUX_VARIABLE_WIDTH);
 
   ref<Expr> a = getSymbolicValue(array_a, size);
   ref<Expr> b = getSymbolicValue(array_b, size);
@@ -329,6 +330,7 @@ static bool solveLinearEquation(TimingSolver &solver,
     coefficient_b
   );
   templateExpr.parameter = m;
+  templateExpr.array = array_m;
 
   return true;
 }
@@ -357,7 +359,7 @@ bool klee::solveEquationSystem(SMTEquationSystem &system,
   if (system.size() == 1) {
     /* no parameter here */
     klee_warning("system has only one equation");
-    result = ParametrizedExpr(system[0].e, nullptr);
+    result = ParametrizedExpr(system[0].e, nullptr, nullptr);
     return true;
   }
 
@@ -383,7 +385,7 @@ bool klee::solveEquationSystem(SMTEquationSystem &system,
   }
 
   ref<Expr> e = replaceDistinctTerms(eq1.e, eq2.e, templateExpr.e);
-  ParametrizedExpr parametricExpr(e, templateExpr.parameter);
+  ParametrizedExpr parametricExpr(e, templateExpr.parameter, templateExpr.array);
   if (validateSolution(system, parametricExpr)) {
     result = parametricExpr;
     return true;

@@ -26,17 +26,18 @@ typedef std::vector<SMTEquation> SMTEquationSystem;
 
 /* TODO: rename? */
 struct ParametrizedExpr {
-  ParametrizedExpr() : e(nullptr), parameter(nullptr) {
+  ParametrizedExpr() : e(nullptr), parameter(nullptr), array(nullptr) {
 
   }
 
-  ParametrizedExpr(ref<Expr> e, ref<Expr> parameter) :
-    e(e), parameter(parameter) {
+  ParametrizedExpr(ref<Expr> e, ref<Expr> parameter, const Array *array) :
+    e(e), parameter(parameter), array(array) {
 
   }
 
   ref<Expr> e;
   ref<Expr> parameter;
+  const Array *array;
 };
 
 const Array *getArray(const std::string &name, uint64_t size, bool modelAsBV = false);

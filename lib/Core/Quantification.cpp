@@ -27,7 +27,7 @@ ref<Expr> generateForallPremise(ref<Expr> bound, ref<Expr> parameter) {
   );
 }
 
-ref<Expr> generateRangeConstraint(PatternMatch &pm, ref<Expr> parameter) {
+ref<Expr> generateRangeConstraint(PatternMatch &pm, const Array *array) {
   unsigned min = -1, max = 0;
   for (StateMatch &sm : pm.matches) {
     if (sm.count >= max) {
@@ -38,8 +38,11 @@ ref<Expr> generateRangeConstraint(PatternMatch &pm, ref<Expr> parameter) {
     }
   }
 
-  ref<Expr> maxExpr = ConstantExpr::create(max, parameter->getWidth());
-  ref<Expr> minExpr = ConstantExpr::create(min, parameter->getWidth());
+  Expr::Width w = QuantifiedExpr::AUX_VARIABLE_WIDTH;
+  ref<Expr> maxExpr = ConstantExpr::create(max, w);
+  ref<Expr> minExpr = ConstantExpr::create(min, w);
+  ref<Expr> parameter = getSymbolicValue(array, w / 8);
+
   if (max == min) {
     return EqExpr::create(parameter, maxExpr);
   }
@@ -72,10 +75,12 @@ void generateForall(PatternMatch &pm,
   }
 
   /* TODO: not so elegant */
-  ref<Expr> parameter = solutions[0].parameter;
+  ParametrizedExpr &pe = solutions[0];
+  /* TODO: rename parameter --> aux */
+  ref<Expr> parameter = pe.parameter;
 
   /* outside of the forall expression */
-  rangeExpr = generateRangeConstraint(pm, parameter);
+  rangeExpr = generateRangeConstraint(pm, pe.array);
 
   /* the forall expression itself */
   ref<Expr> bound = getSymbolicValue(array_i, parameter->getWidth() / 8);
