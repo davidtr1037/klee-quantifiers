@@ -5,8 +5,7 @@
 using namespace llvm;
 using namespace klee;
 
-/* TODO: rename */
-bool smCompare(StateMatch &sm1, StateMatch &sm2) {
+static bool compare(StateMatch &sm1, StateMatch &sm2) {
   return sm1.count < sm2.count;
 }
 
@@ -98,7 +97,7 @@ void klee::extractPatterns(ExecTree &t,
   unifyMatches(matches, result);
   for (PatternMatch &pm : result) {
     /* TODO: something more efficient? */
-    std::sort(pm.matches.begin(), pm.matches.end(), smCompare);
+    std::sort(pm.matches.begin(), pm.matches.end(), compare);
   }
 
   for (PatternMatch &pm : result) {
