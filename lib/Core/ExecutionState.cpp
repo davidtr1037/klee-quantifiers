@@ -941,7 +941,7 @@ bool ExecutionState::areEquiv(TimingSolver *solver,
       OrExpr::create(NotExpr::create(pcB), pcA)
     );
   } else {
-    pcEquiv = OrExpr::create(Expr::createIsZero(pcA), pcB);
+    pcEquiv = OrExpr::create(NotExpr::create(pcA), pcB);
   }
 
   ConstraintSet empty;
