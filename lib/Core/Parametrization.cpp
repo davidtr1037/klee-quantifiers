@@ -3,6 +3,7 @@
 
 #include <klee/Expr/ArrayCache.h>
 #include <klee/Expr/ExprUtil.h>
+#include <klee/Support/ErrorHandling.h>
 
 #include "llvm/ADT/StringExtras.h"
 
@@ -346,7 +347,14 @@ bool klee::solveEquationSystem(SMTEquationSystem &system,
                                TimingSolver &solver,
                                uint32_t id,
                                ParametrizedExpr &result) {
-  assert(system.size() >= 2);
+  assert(!system.empty());
+
+  if (system.size() == 1) {
+    /* no parameter here */
+    klee_warning("system has only one equation");
+    result = ParametrizedExpr(system[0].e, nullptr);
+    return true;
+  }
 
   /* TODO: ... */
   SMTEquation eq1 = system[0];
