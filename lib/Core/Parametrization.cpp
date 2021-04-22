@@ -307,11 +307,16 @@ static bool solveLinearEquation(TimingSolver &solver,
   bool mayBeTrue;
   SolverQueryMetaData metaData;
   assert(solver.mayBeTrue(s, all, mayBeTrue, metaData));
+  if (!mayBeTrue) {
+    return false;
+  }
 
   /* get assignment */
   std::vector<const Array *> objects = {array_a, array_b};
   std::vector<std::vector<unsigned char>> result;
-  assert(solver.getInitialValues(s, objects, result, metaData));
+  if (!solver.getInitialValues(s, objects, result, metaData)) {
+    assert(0);
+  }
 
   ref<Expr> coefficient_a = getConstantExpr(result[0], size);
   ref<Expr> coefficient_b = getConstantExpr(result[1], size);
@@ -373,7 +378,9 @@ bool klee::solveEquationSystem(SMTEquationSystem &system,
   }
 
   ParametrizedExpr templateExpr;
-  solveLinearEquation(solver, {eq1, eq2}, {r1, r2}, id, templateExpr);
+  if (!solveLinearEquation(solver, {eq1, eq2}, {r1, r2}, id, templateExpr)) {
+    assert(0);
+  }
 
   ref<Expr> e = replaceDistinctTerms(eq1.e, eq2.e, templateExpr.e);
   ParametrizedExpr parametricExpr(e, templateExpr.parameter);
