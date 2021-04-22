@@ -109,11 +109,7 @@ void klee::extractPatterns(ExecTree &t,
     std::sort(pm.matches.begin(), pm.matches.end(), compare);
   }
 
-  for (PatternMatch &pm : result) {
-    errs() << "pattern:\n";
-    pm.pattern.dump();
-    for (auto &sm : pm.matches) {
-      errs() << "-- count " << sm.count << "\n";
-    }
-  }
+  //for (PatternMatch &pm : result) {
+  //  pm.dump();
+  //}
 }
