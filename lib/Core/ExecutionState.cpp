@@ -922,7 +922,8 @@ ref<Expr> ExecutionState::mergeValuesUsingPattern(State2Value &valuesMap,
 
 bool ExecutionState::areEquiv(TimingSolver *solver,
                               const ExecutionState *sa,
-                              const ExecutionState *sb) {
+                              const ExecutionState *sb,
+                              bool checkPCEquivalence) {
   ref<Expr> pcA = ConstantExpr::create(1, Expr::Bool);
   for (ref<Expr> e : sa->constraints) {
     pcA = AndExpr::create(pcA, e);
@@ -933,10 +934,16 @@ bool ExecutionState::areEquiv(TimingSolver *solver,
     pcB = AndExpr::create(pcB, e);
   }
 
-  ref<Expr> pcEquiv = AndExpr::create(
-    OrExpr::create(NotExpr::create(pcA), pcB),
-    OrExpr::create(NotExpr::create(pcB), pcA)
-  );
+  ref<Expr> pcEquiv;
+  if (checkPCEquivalence) {
+    pcEquiv = AndExpr::create(
+      OrExpr::create(NotExpr::create(pcA), pcB),
+      OrExpr::create(NotExpr::create(pcB), pcA)
+    );
+  } else {
+    pcEquiv = OrExpr::create(Expr::createIsZero(pcA), pcB);
+  }
+
   ConstraintSet empty;
   bool isTrue = false;
   SolverQueryMetaData meta;

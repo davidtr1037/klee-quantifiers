@@ -96,6 +96,7 @@ void klee::extractPatterns(ExecTree &t,
   /* try to match the non-repetitive patterns */
   unifyMatches(matches, result);
   for (PatternMatch &pm : result) {
+    /* we sort, to help in finding distinct terms */
     /* TODO: something more efficient? */
     std::sort(pm.matches.begin(), pm.matches.end(), compare);
   }

@@ -285,7 +285,10 @@ LoopHandler::~LoopHandler() {
 
 bool LoopHandler::validateMerge(std::vector<ExecutionState *> &snapshots, ExecutionState *merged) {
   ExecutionState *expected = ExecutionState::mergeStates(snapshots);
-  return ExecutionState::areEquiv(executor->solver, merged, expected);
+  return ExecutionState::areEquiv(executor->solver,
+                                  merged,
+                                  expected,
+                                  !OptimizeUsingQuantifiers);
 }
 
 }

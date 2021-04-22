@@ -278,7 +278,8 @@ public:
 
   static bool areEquiv(TimingSolver *solver,
                        const ExecutionState *sa,
-                       const ExecutionState *sb);
+                       const ExecutionState *sb,
+                       bool checkPCEquivalence);
 
   static bool shouldOptimizeArrayValues();
 
