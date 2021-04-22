@@ -572,9 +572,9 @@ ExecutionState *ExecutionState::mergeStatesOptimized(std::vector<ExecutionState 
   ExecutionState *merged = states[0];
 
   /* local vars */
-  mergeLocalVars(merged, states, suffixes, loopHandler, isComplete);
+  mergeLocalVars(merged, states, suffixes, loopHandler, isComplete, matches);
   /* heap */
-  mergeHeap(merged, states, suffixes, mutated, loopHandler);
+  mergeHeap(merged, states, suffixes, mutated, loopHandler, matches);
 
   /* path constraints */
   merged->constraints = ConstraintSet();
@@ -687,7 +687,8 @@ void ExecutionState::mergeLocalVars(ExecutionState *merged,
                                     std::vector<ExecutionState *> &states,
                                     std::vector<ref<Expr>> &suffixes,
                                     LoopHandler *loopHandler,
-                                    bool isComplete) {
+                                    bool isComplete,
+                                    std::vector<PatternMatch> &matches) {
   for (unsigned i = 0; i < merged->stack.size(); i++) {
     StackFrame &sf = merged->stack[i];
     for (unsigned reg = 0; reg < sf.kf->numRegisters; reg++) {
@@ -721,6 +722,13 @@ void ExecutionState::mergeLocalVars(ExecutionState *merged,
       } else {
         v = mergeValues(suffixes, values);
       }
+
+      if (OptimizeUsingQuantifiers) {
+        assert(matches.size() == 1);
+        if (isa<SelectExpr>(v)) {
+          v = mergeValuesUsingPattern(valuesMap, loopHandler, matches[0]);
+        }
+      }
       stats::mergedValuesSize += v->size;
     }
   }
@@ -730,7 +738,8 @@ void ExecutionState::mergeHeap(ExecutionState *merged,
                                std::vector<ExecutionState *> &states,
                                std::vector<ref<Expr>> &suffixes,
                                std::set<const MemoryObject*> &mutated,
-                               LoopHandler *loopHandler) {
+                               LoopHandler *loopHandler,
+                               std::vector<PatternMatch> &matches) {
   for (const MemoryObject *mo : mutated) {
     const ObjectState *os = merged->addressSpace.findObject(mo);
     assert(os && !os->readOnly && "objects mutated but not writable in merging state");
@@ -813,6 +822,14 @@ void ExecutionState::mergeHeap(ExecutionState *merged,
         } else {
           v = mergeValues(neededSuffixes, values);
         }
+
+        if (OptimizeUsingQuantifiers) {
+          assert(matches.size() == 1);
+          if (isa<SelectExpr>(v)) {
+            v = mergeValuesUsingPattern(valuesMap, loopHandler, matches[0]);
+          }
+        }
+
         toWrite.push_back(v);
         stats::mergedValuesSize += v->size;
       } else {
@@ -884,6 +901,22 @@ ref<Expr> ExecutionState::mergeValuesFromNode(ExecTreeNode *n,
       return SelectExpr::create(n->left->e, lv, rv);
     }
   }
+}
+
+ref<Expr> ExecutionState::mergeValuesUsingPattern(State2Value &valuesMap,
+                                                  LoopHandler *loopHandler,
+                                                  PatternMatch &pm) {
+  ParametrizedExpr solution;
+  if (!generateMergedValue(pm,
+                           loopHandler->tree,
+                           valuesMap,
+                           mergeID,
+                           *loopHandler->solver,
+                           solution)) {
+    assert(0);
+  }
+
+  return solution.e;
 }
 
 bool ExecutionState::areEquiv(TimingSolver *solver,

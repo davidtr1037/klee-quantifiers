@@ -125,3 +125,19 @@ ref<Expr> klee::generateQuantifiedConstraint(PatternMatch &pm,
     )
   );
 }
+
+bool klee::generateMergedValue(PatternMatch &pm,
+                               ExecTree &tree,
+                               State2Value &valuesMap,
+                               uint32_t mergeID,
+                               TimingSolver &solver,
+                               ParametrizedExpr &solution) {
+  SMTEquationSystem system;
+  extractEquationsForValue(tree, pm, valuesMap, system);
+
+  if (!solveEquationSystem(system, solver, mergeID, solution)) {
+    return false;
+  }
+
+  return true;
+}

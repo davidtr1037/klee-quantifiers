@@ -54,6 +54,11 @@ void extractEquationsForSuffix(ExecTree &t,
                                PatternMatch &pm,
                                std::vector<SMTEquationSystem> &result);
 
+void extractEquationsForValue(ExecTree &t,
+                              PatternMatch &pm,
+                              State2Value &valuesMap,
+                              SMTEquationSystem &system);
+
 bool solveEquationSystem(SMTEquationSystem &system,
                          TimingSolver &solver,
                          uint32_t id,

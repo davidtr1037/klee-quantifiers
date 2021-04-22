@@ -87,7 +87,6 @@ struct StackFrame {
 /// @brief ExecutionState representing a path under exploration
 class ExecutionState {
   typedef std::vector<ref<Expr>> ExprSet;
-  typedef std::map<std::uint32_t, ref<Expr>> State2Value;
 
   struct ExprKeyHash {
     unsigned operator()(const ref<Expr> &e) const {
@@ -252,13 +251,15 @@ public:
                              std::vector<ExecutionState *> &states,
                              std::vector<ref<Expr>> &suffixes,
                              LoopHandler *loopHandler,
-                             bool isComplete);
+                             bool isComplete,
+                             std::vector<PatternMatch> &matches);
 
   static void mergeHeap(ExecutionState *merged,
                         std::vector<ExecutionState *> &states,
                         std::vector<ref<Expr>> &suffixes,
                         std::set<const MemoryObject*> &mutated,
-                        LoopHandler *loopHandler);
+                        LoopHandler *loopHandler,
+                        std::vector<PatternMatch> &matches);
 
   static ref<Expr> mergeValues(std::vector<ref<Expr>> &suffixes,
                                std::vector<ref<Expr>> &values);
@@ -268,6 +269,10 @@ public:
 
   static ref<Expr> mergeValuesFromNode(ExecTreeNode *n,
                                        State2Value &valuesMap);
+
+  static ref<Expr> mergeValuesUsingPattern(State2Value &valuesMap,
+                                           LoopHandler *loopHandler,
+                                           PatternMatch &pm);
 
   static bool areEquiv(TimingSolver *solver,
                        const ExecutionState *sa,

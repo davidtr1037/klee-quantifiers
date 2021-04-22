@@ -8,6 +8,8 @@
 
 namespace klee {
 
+typedef std::map<std::uint32_t, ref<Expr>> State2Value;
+
 class ExecTreeNode {
 public:
 

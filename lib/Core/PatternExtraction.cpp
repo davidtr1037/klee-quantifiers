@@ -1,8 +1,14 @@
 #include "PatternExtraction.h"
 
+#include <algorithm>
 
 using namespace llvm;
 using namespace klee;
+
+/* TODO: rename */
+bool smCompare(StateMatch &sm1, StateMatch &sm2) {
+  return sm1.count < sm2.count;
+}
 
 PatternMatch::PatternMatch(const PatternInstance &pi) {
   pattern = Pattern(pi.prefix, pi.core, pi.suffix);
@@ -90,6 +96,10 @@ void klee::extractPatterns(ExecTree &t,
 
   /* try to match the non-repetitive patterns */
   unifyMatches(matches, result);
+  for (PatternMatch &pm : result) {
+    /* TODO: something more efficient? */
+    std::sort(pm.matches.begin(), pm.matches.end(), smCompare);
+  }
 
   for (PatternMatch &pm : result) {
     errs() << "pattern:\n";

@@ -111,6 +111,40 @@ void klee::extractEquationsForSuffix(ExecTree &t,
   }
 }
 
+void klee::extractEquationsForValue(ExecTree &t,
+                                    PatternMatch &pm,
+                                    State2Value &valuesMap,
+                                    SMTEquationSystem &system) {
+  for (StateMatch &sm : pm.matches) {
+    ExecTreeIterator iter(t);
+
+    /* traverse prefix */
+    for (unsigned i = 0; i < pm.pattern.prefix.size(); i++) {
+      assert(iter.hasNext());
+      iter.next(pm.pattern.prefix[i]);
+    }
+
+    /* traverse core */
+    for (unsigned k = 0; k < sm.count; k++) {
+      for (unsigned i = 0; i < pm.pattern.core.size(); i++) {
+        assert(iter.hasNext());
+        iter.next(pm.pattern.core[i]);
+      }
+    }
+
+    /* traverse suffix */
+    for (unsigned i = 0; i < pm.pattern.suffix.size(); i++) {
+      assert(iter.hasNext());
+      iter.next(pm.pattern.suffix[i]);
+    }
+
+    uint32_t stateID = iter.getCurrent()->stateID;
+    auto i = valuesMap.find(stateID);
+    assert(i != valuesMap.end());
+    system.push_back(SMTEquation(i->second, sm.count));
+  }
+}
+
 static bool findDistinctTerms(ref<Expr> e1,
                               ref<Expr> e2,
                               ref<Expr> &r1,
@@ -320,7 +354,14 @@ bool klee::solveEquationSystem(SMTEquationSystem &system,
 
   ref<Expr> r1, r2;
   if (!findDistinctTerms(eq1.e, eq2.e, r1, r2)) {
-    assert(0);
+    if (system.size() < 3) {
+      assert(0);
+    }
+    eq1 = system[1];
+    eq2 = system[2];
+    if (!findDistinctTerms(eq1.e, eq2.e, r1, r2)) {
+      assert(0);
+    }
   }
 
   ParametrizedExpr templateExpr;
