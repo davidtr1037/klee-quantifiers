@@ -8,6 +8,7 @@
 
 namespace klee {
 
+/* TODO: StateID2Value */
 typedef std::map<std::uint32_t, ref<Expr>> State2Value;
 
 class ExecTreeNode {

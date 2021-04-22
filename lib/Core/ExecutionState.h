@@ -247,6 +247,7 @@ public:
   static bool canMerge(std::vector<ExecutionState *> &states,
                        std::set<const MemoryObject*> &mutated);
 
+  /* TODO: too many parameters */
   static void mergeLocalVars(ExecutionState *merged,
                              std::vector<ExecutionState *> &states,
                              std::vector<ref<Expr>> &suffixes,
@@ -254,6 +255,7 @@ public:
                              bool isComplete,
                              std::vector<PatternMatch> &matches);
 
+  /* TODO: too many parameters */
   static void mergeHeap(ExecutionState *merged,
                         std::vector<ExecutionState *> &states,
                         std::vector<ref<Expr>> &suffixes,

@@ -552,6 +552,9 @@ ExecutionState *ExecutionState::mergeStatesOptimized(std::vector<ExecutionState 
                                                      std::vector<PatternMatch> &matches,
                                                      LoopHandler *loopHandler) {
   TimerStatIncrementer timer(stats::mergeTime);
+  if (OptimizeUsingQuantifiers) {
+    assert(matches.size() == 1);
+  }
 
   std::set<const MemoryObject*> mutated;
   if (!canMerge(states, mutated)) {
@@ -724,7 +727,6 @@ void ExecutionState::mergeLocalVars(ExecutionState *merged,
       }
 
       if (OptimizeUsingQuantifiers) {
-        assert(matches.size() == 1);
         if (isa<SelectExpr>(v)) {
           v = mergeValuesUsingPattern(valuesMap, loopHandler, matches[0]);
         }
@@ -824,7 +826,6 @@ void ExecutionState::mergeHeap(ExecutionState *merged,
         }
 
         if (OptimizeUsingQuantifiers) {
-          assert(matches.size() == 1);
           if (isa<SelectExpr>(v)) {
             v = mergeValuesUsingPattern(valuesMap, loopHandler, matches[0]);
           }
