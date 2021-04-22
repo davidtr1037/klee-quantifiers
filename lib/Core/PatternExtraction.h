@@ -25,6 +25,8 @@ struct PatternMatch {
 
   void addStateMatch(const StateMatch &sm);
 
+  void dump() const;
+
   Pattern pattern;
   /* TODO: use a set? */
   std::vector<StateMatch> matches;

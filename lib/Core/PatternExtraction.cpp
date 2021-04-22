@@ -22,6 +22,14 @@ void PatternMatch::addStateMatch(const StateMatch &sm) {
   matches.push_back(sm);
 }
 
+void PatternMatch::dump() const {
+  errs() << "pattern:\n";
+  pattern.dump();
+  for (auto &sm : matches) {
+    errs() << "-- count " << sm.count << "\n";
+  }
+}
+
 static bool addPatttern(std::vector<PatternMatch> &matches,
                         PatternInstance &pi,
                         uint32_t stateID) {
