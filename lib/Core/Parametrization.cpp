@@ -276,13 +276,12 @@ static bool solveLinearEquation(TimingSolver &solver,
     assert(0);
   }
 
-  /* TODO: use pointer width */
-  unsigned size = width / 8;
-  const Array *array_a = getArray("a", 8);
-  const Array *array_b = getArray("b", 8);
+  const Array *array_a = getArray("a", QuantifiedExpr::AUX_VARIABLE_WIDTH);
+  const Array *array_b = getArray("b", QuantifiedExpr::AUX_VARIABLE_WIDTH);
   const Array *array_m = getArray("m_" + llvm::utostr(id),
                                   QuantifiedExpr::AUX_VARIABLE_WIDTH);
 
+  unsigned size = width / 8;
   ref<Expr> a = getSymbolicValue(array_a, size);
   ref<Expr> b = getSymbolicValue(array_b, size);
   ref<Expr> m = getSymbolicValue(array_m, size);
