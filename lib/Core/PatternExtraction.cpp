@@ -88,7 +88,7 @@ void klee::extractPatterns(ExecTree &t,
 
     ExecTreeNode *n = p.first;
     PatternInstance pi = p.second;
-    Symbol s(n->e->shapeHash());
+    Symbol s(n->getHash());
     pi.addSymbol(s);
 
     if (!n->isLeaf()) {

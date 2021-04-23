@@ -27,9 +27,10 @@ void ExecTree::addNode(ExecTreeNode *node) {
 void ExecTree::extend(uint32_t stateID,
                       ref<Expr> condition,
                       uint32_t trueStateID,
-                      uint32_t falseStateID) {
-  ExecTreeNode *left = new ExecTreeNode(falseStateID, Expr::createIsZero(condition));
-  ExecTreeNode *right = new ExecTreeNode(trueStateID, condition);
+                      uint32_t falseStateID,
+                      uint32_t salt) {
+  ExecTreeNode *left = new ExecTreeNode(falseStateID, Expr::createIsZero(condition), salt);
+  ExecTreeNode *right = new ExecTreeNode(trueStateID, condition, salt);
 
   for (ExecTreeNode *node : nodes) {
     if (node->stateID == stateID && node->isLeaf()) {
@@ -50,11 +51,11 @@ void ExecTree::computeHashes() {
 
 void ExecTree::computeNodeHashes(ExecTreeNode *n) {
   if (n->isLeaf()) {
-    n->subTreeHash = n->e->shapeHash();
+    n->subTreeHash = n->getHash();
   } else {
     computeNodeHashes(n->left);
     computeNodeHashes(n->right);
-    n->subTreeHash = n->e->shapeHash() + n->left->subTreeHash + n->right->subTreeHash;
+    n->subTreeHash = n->getHash() + n->left->subTreeHash + n->right->subTreeHash;
   }
 }
 
@@ -95,7 +96,7 @@ void ExecTree::dumpGML(llvm::raw_ostream &os, std::set<uint32_t> &ids) {
         if (n->e.isNull()) {
             os << "label=\"\"";
         } else {
-            os << "label=\"" << n->e->shapeHash();
+            os << "label=\"" << n->getHash();
             os << "\",shape=square";
         }
         if (n->isLeaf() && ids.find(n->stateID) != ids.end()) {

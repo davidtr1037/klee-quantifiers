@@ -5,15 +5,15 @@ using namespace llvm;
 
 void ExecTreeIterator::next(Symbol &s) {
   if (current == nullptr) {
-    assert(t.root->e->shapeHash() == s.hash);
+    assert(t.root->getHash() == s.hash);
     current = t.root;
   } else {
     /* TODO: remove later? */
     assert(hasNext());
 
-    if (current->left->e->shapeHash() == s.hash) {
+    if (current->left->getHash() == s.hash) {
       current = current->left;
-    } else if (current->right->e->shapeHash() == s.hash) {
+    } else if (current->right->getHash() == s.hash) {
       current = current->right;
     } else {
       assert(0);

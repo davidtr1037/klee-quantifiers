@@ -14,8 +14,8 @@ typedef std::map<std::uint32_t, ref<Expr>> State2Value;
 class ExecTreeNode {
 public:
 
-  ExecTreeNode(std::uint32_t stateID, ref<Expr> e) :
-    stateID(stateID), e(e), left(nullptr), right(nullptr), subTreeHash(0) {
+  ExecTreeNode(std::uint32_t stateID, ref<Expr> e, std::uint32_t salt = 1) :
+    stateID(stateID), e(e), left(nullptr), right(nullptr), subTreeHash(0), salt(salt) {
 
   }
 
@@ -23,11 +23,16 @@ public:
     return left == nullptr && right == nullptr;
   }
 
+  uint32_t getHash() {
+    return e->shapeHash() ^ salt;
+  }
+
   std::uint32_t stateID;
   ref<Expr> e;
   ExecTreeNode *left;
   ExecTreeNode *right;
   unsigned subTreeHash;
+  std::uint32_t salt;
 };
 
 class ExecTree {
@@ -42,7 +47,8 @@ public:
   void extend(std::uint32_t stateID,
               ref<Expr> condition,
               std::uint32_t leftID,
-              std::uint32_t rightID);
+              std::uint32_t rightID,
+              std::uint32_t salt);
 
   void computeHashes();
 

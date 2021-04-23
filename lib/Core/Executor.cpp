@@ -1146,7 +1146,8 @@ Executor::fork(ExecutionState &current, ref<Expr> condition, bool isInternal) {
           current.loopHandler->tree.extend(current.getID(),
                                            condition,
                                            trueState->getID(),
-                                           falseState->getID());
+                                           falseState->getID(),
+                                           current.prevPC->info->id);
         }
       }
     }
