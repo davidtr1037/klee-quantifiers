@@ -875,7 +875,8 @@ Z3ASTHandle Z3Builder::constructActual(ref<Expr> e, int *width_out) {
 
   case Expr::Forall: {
     ForallExpr *fe = cast<ForallExpr>(e);
-    Z3ASTHandle body = construct(fe->body);
+    ref<Expr> bodyExpr = OrExpr::create(NotExpr::create(fe->pre), fe->post);
+    Z3ASTHandle body = construct(bodyExpr);
 
     Z3ASTHandle bv_expr;
     bool hashed = _arr_hash.lookupArrayExpr(fe->array, bv_expr);
