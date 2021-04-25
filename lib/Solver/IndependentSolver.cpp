@@ -118,6 +118,12 @@ public:
     for (unsigned i = 0; i != reads.size(); ++i) {
       ReadExpr *re = reads[i].get();
       const Array *array = re->updates.root;
+      /* TODO: check correctness */
+      if (array->modelAsBV) {
+        /* bound variable */
+        assert(array->isSymbolicArray());
+        continue;
+      }
       
       // Reads of a constant array don't alias.
       if (re->updates.root->isConstantArray() && re->updates.head.isNull())
