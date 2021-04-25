@@ -8,6 +8,7 @@
 //===----------------------------------------------------------------------===//
 
 #include "klee/Expr/ExprEvaluator.h"
+#include "klee/Expr/ExprUtil.h"
 
 using namespace klee;
 
@@ -107,8 +108,57 @@ ExprVisitor::Action ExprEvaluator::visitExprPost(const Expr& e) {
   return Action::skipChildren();
 }
 
-/* TODO: fix */
 ExprVisitor::Action ExprEvaluator::visitForall(const ForallExpr &e) {
-  assert(0);
-  return Action::changeTo(ConstantExpr::create(1, Expr::Bool));
+  ref<AndExpr> pre = dyn_cast<AndExpr>(visit(e.pre));
+  assert(!pre.isNull());
+
+  ref<UleExpr> lower = dyn_cast<UleExpr>(pre->left);
+  assert(!lower.isNull());
+  ref<UleExpr> upper = dyn_cast<UleExpr>(pre->right);
+  assert(!upper.isNull());
+
+  /* get the bound variable */
+  ref<Expr> var = lower->right;
+
+  ref<ConstantExpr> minExpr = dyn_cast<ConstantExpr>(lower->left);
+  ref<ConstantExpr> maxExpr = dyn_cast<ConstantExpr>(upper->right);
+  assert(!minExpr.isNull());
+  assert(!maxExpr.isNull());
+  uint64_t min = minExpr->getZExtValue();
+  uint64_t max = maxExpr->getZExtValue();
+
+  ref<Expr> post = visit(e.post);
+  std::vector<ref<ReadExpr>> reads;
+  findReads(post, true, reads);
+
+  ref<Expr> result = ConstantExpr::create(1, Expr::Bool);
+  for (uint64_t i = min; i <= max; i++) {
+    std::map<ref<Expr>, ref<Expr>> map;
+    for (ref<ReadExpr> e : reads) {
+      /* TODO: check if it's an array of a bound variable... */
+      if (e->updates.root->modelAsBV) {
+        ref<ConstantExpr> index = dyn_cast<ConstantExpr>(e->index);
+        assert(!index.isNull());
+        uint64_t off = index->getZExtValue();
+        map[e] = ConstantExpr::create(i >> (8 * off), Expr::Int8);
+      }
+    }
+
+    ExprReplaceVisitor2 visitor(map);
+    ref<Expr> substituted = visitor.visit(post);
+    if (!isa<ConstantExpr>(substituted)) {
+      substituted = visit(substituted);
+    }
+
+    ref<ConstantExpr> sat = dyn_cast<ConstantExpr>(substituted);
+    assert(!sat.isNull());
+
+    /* TODO: remove AndExpr */
+    result = AndExpr::create(result, sat);
+    if (sat->isFalse()) {
+      break;
+    }
+  }
+
+  return Action::changeTo(result);
 }

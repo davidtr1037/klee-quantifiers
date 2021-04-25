@@ -71,6 +71,24 @@ namespace klee {
     }
   };
 
+  class ExprReplaceVisitor2 : public ExprVisitor {
+  private:
+    const std::map< ref<Expr>, ref<Expr> > &replacements;
+
+  public:
+    explicit ExprReplaceVisitor2(
+        const std::map<ref<Expr>, ref<Expr>> &_replacements)
+        : ExprVisitor(true), replacements(_replacements) {}
+
+    Action visitExprPost(const Expr &e) override {
+      auto it = replacements.find(ref<Expr>(const_cast<Expr *>(&e)));
+      if (it!=replacements.end()) {
+        return Action::changeTo(it->second);
+      }
+      return Action::doChildren();
+    }
+  };
+
 }
 
 #endif /* KLEE_EXPRUTIL_H */
