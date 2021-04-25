@@ -87,10 +87,8 @@ void generateForall(PatternMatch &pm,
   ref<Expr> premise = generateForallPremise(bound, parameter);
   forallExpr = ForallExpr::create(
     bound,
-    OrExpr::create(
-      Expr::createIsZero(premise),
-      coreExpr
-    )
+    premise,
+    coreExpr
   );
 }
 

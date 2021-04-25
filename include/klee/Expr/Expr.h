@@ -1203,18 +1203,23 @@ class QuantifiedExpr : public NonConstantExpr {
 
 public:
 
-  ref<Expr> bound, body;
+  ref<Expr> bound, pre, post;
   const Array *array;
 
   static const Width AUX_VARIABLE_WIDTH;
 
-  unsigned getNumKids() const { return 2; }
+  unsigned getNumKids() const { return 3; }
   ref<Expr> getKid(unsigned i) const {
-    if(i == 0)
+    switch (i) {
+    case 0:
       return bound;
-    if(i == 1)
-      return body;
-    return nullptr;
+    case 1:
+      return pre;
+    case 2:
+      return post;
+    default:
+      return nullptr;
+    }
   }
 
   Width getWidth() const {
@@ -1224,10 +1229,12 @@ public:
 
 protected:
 
-  QuantifiedExpr(const ref<Expr> &bound, const ref<Expr> &body) :
-    bound(bound), body(body) {
-    isTainted = bound->isTainted || body->isTainted;
-    size = bound->size + body->size + 1;
+  QuantifiedExpr(const ref<Expr> &bound,
+                 const ref<Expr> &pre,
+                 const ref<Expr> &post) :
+    bound(bound), pre(pre), post(post) {
+    isTainted = bound->isTainted || pre->isTainted || post->isTainted;
+    size = bound->size + pre->size + post->size + 1;
 
     ref<ConcatExpr> ce = dyn_cast<ConcatExpr>(bound);
     if (!ce.isNull()) {
@@ -1255,23 +1262,29 @@ class ForallExpr : public QuantifiedExpr {
 
 public:
 
-  ForallExpr(const ref<Expr> &bound, const ref<Expr> &body) :
-    QuantifiedExpr(bound, body) {
+  ForallExpr(const ref<Expr> &bound,
+             const ref<Expr> &pre,
+             const ref<Expr> &post) :
+    QuantifiedExpr(bound, pre, post) {
 
   }
 
-  static ref<Expr> alloc(const ref<Expr> &bound, const ref<Expr> &body) {
-      ref<Expr> res(new ForallExpr(bound, body));
+  static ref<Expr> alloc(const ref<Expr> &bound,
+                         const ref<Expr> &pre,
+                         const ref<Expr> &post) {
+      ref<Expr> res(new ForallExpr(bound, pre, post));
       res->computeHash();
       return res;
   }
 
-  static ref<Expr> create(const ref<Expr> &bound, const ref<Expr> &body) {
-    return ForallExpr::alloc(bound, body);
+  static ref<Expr> create(const ref<Expr> &bound,
+                          const ref<Expr> &pre,
+                          const ref<Expr> &post) {
+    return ForallExpr::alloc(bound, pre, post);
   }
 
   virtual ref<Expr> rebuild(ref<Expr> kids[]) const {
-    return create(kids[0], kids[1]);
+    return create(kids[0], kids[1], kids[2]);
   }
 
   Kind getKind() const {
@@ -1292,23 +1305,29 @@ class ExistsExpr : public QuantifiedExpr {
 
 public:
 
-  ExistsExpr(const ref<Expr> &bound, const ref<Expr> &body) :
-    QuantifiedExpr(bound, body) {
+  ExistsExpr(const ref<Expr> &bound,
+             const ref<Expr> &pre,
+             const ref<Expr> &post) :
+    QuantifiedExpr(bound, pre, post) {
 
   }
 
-  static ref<Expr> alloc(const ref<Expr> &bound, const ref<Expr> &body) {
-      ref<Expr> res(new ExistsExpr(bound, body));
+  static ref<Expr> alloc(const ref<Expr> &bound,
+                         const ref<Expr> &pre,
+                         const ref<Expr> &post) {
+      ref<Expr> res(new ExistsExpr(bound, pre, post));
       res->computeHash();
       return res;
   }
 
-  static ref<Expr> create(const ref<Expr> &bound, const ref<Expr> &body) {
-    return ExistsExpr::alloc(bound, body);
+  static ref<Expr> create(const ref<Expr> &bound,
+                          const ref<Expr> &pre,
+                          const ref<Expr> &post) {
+    return ExistsExpr::alloc(bound, pre, post);
   }
 
   virtual ref<Expr> rebuild(ref<Expr> kids[]) const {
-    return create(kids[0], kids[1]);
+    return create(kids[0], kids[1], kids[2]);
   }
 
   Kind getKind() const {
