@@ -14,6 +14,10 @@ namespace klee {
 
 struct SMTEquation {
 
+  SMTEquation() : e(nullptr), k(0) {
+
+  }
+
   SMTEquation(ref<Expr> e, unsigned k) : e(e), k(k) {
 
   }

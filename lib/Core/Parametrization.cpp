@@ -7,6 +7,8 @@
 
 #include "llvm/ADT/StringExtras.h"
 
+#define ATTEMPTS (2)
+
 using namespace llvm;
 using namespace klee;
 
@@ -362,21 +364,24 @@ bool klee::solveEquationSystem(SMTEquationSystem &system,
     return true;
   }
 
-  /* TODO: ... */
-  SMTEquation eq1 = system[0];
-  SMTEquation eq2 = system[1];
-
+  SMTEquation eq1, eq2;
   ref<Expr> r1, r2;
-  if (!findDistinctTerms(eq1.e, eq2.e, r1, r2)) {
-    if (system.size() < 3) {
+  bool found = false;
+  for (unsigned i = 0; i < ATTEMPTS; i++) {
+    if (system.size() < i + 2) {
+      /* not enough equations */
       assert(0);
     }
-    eq1 = system[1];
-    eq2 = system[2];
-    if (!findDistinctTerms(eq1.e, eq2.e, r1, r2)) {
-      assert(0);
+
+    eq1 = system[i];
+    eq2 = system[i + 1];
+    found = findDistinctTerms(eq1.e, eq2.e, r1, r2);
+    if (found) {
+      break;
     }
   }
+
+  assert(found);
 
   ParametrizedExpr templateExpr;
   if (!solveLinearEquation(solver, {eq1, eq2}, {r1, r2}, id, templateExpr)) {
