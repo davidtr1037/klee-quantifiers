@@ -109,6 +109,7 @@ ExprVisitor::Action ExprEvaluator::visitExprPost(const Expr& e) {
 }
 
 ExprVisitor::Action ExprEvaluator::visitForall(const ForallExpr &e) {
+  /* TODO: rename */
   ref<AndExpr> pre = dyn_cast<AndExpr>(visit(e.pre));
   assert(!pre.isNull());
 

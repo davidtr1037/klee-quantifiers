@@ -68,7 +68,11 @@ namespace klee {
 
   inline ref<Expr> Assignment::evaluate(const Array *array, 
                                         unsigned index) const {
-    assert(array);
+    if (array->modelAsBV) {
+      /* TODO: why __i is in the bindings? */
+      return ReadExpr::create(UpdateList(array, ref<UpdateNode>(nullptr)),
+                              ConstantExpr::alloc(index, array->getDomain()));
+    }
     bindings_ty::const_iterator it = bindings.find(array);
     if (it!=bindings.end() && index<it->second.size()) {
       return ConstantExpr::alloc(it->second[index], array->getRange());
