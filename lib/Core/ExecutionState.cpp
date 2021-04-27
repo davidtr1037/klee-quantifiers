@@ -561,6 +561,15 @@ ExecutionState *ExecutionState::mergeStatesOptimized(std::vector<ExecutionState 
     return nullptr;
   }
 
+  if (DumpExecutionTree) {
+    std::set<uint32_t> ids;
+    for (ExecutionState *es : states) {
+      ids.insert(es->getID());
+    }
+    std::string fname = loopHandler->loop->getHeader()->getParent()->getName();
+    loopHandler->tree.dumpGMLToFile(ids, fname);
+  }
+
   /* compute suffix for each state */
   std::vector<ref<Expr>> suffixes;
   for (unsigned i = 0; i < states.size(); i++) {
@@ -574,26 +583,12 @@ ExecutionState *ExecutionState::mergeStatesOptimized(std::vector<ExecutionState 
 
   ExecutionState *merged = states[0];
 
-  /* local vars */
-  mergeLocalVars(merged, states, suffixes, loopHandler, isComplete, matches);
-  /* heap */
-  mergeHeap(merged, states, suffixes, mutated, loopHandler, matches);
-
   /* path constraints */
   merged->constraints = ConstraintSet();
   ConstraintManager m(merged->constraints);
   for (ref<Expr> e : loopHandler->initialConstraints) {
     /* add without the manager? (the prefix is already optimized) */
     m.addConstraint(e);
-  }
-
-  if (DumpExecutionTree) {
-    std::set<uint32_t> ids;
-    for (ExecutionState *es : states) {
-      ids.insert(es->getID());
-    }
-    std::string fname = loopHandler->loop->getHeader()->getParent()->getName();
-    loopHandler->tree.dumpGMLToFile(ids, fname);
   }
 
   if (!isComplete) {
@@ -625,6 +620,11 @@ ExecutionState *ExecutionState::mergeStatesOptimized(std::vector<ExecutionState 
     stats::mergedConstraintsSize += orExpr->size;
     klee_message("partial merge constraint size %lu", orExpr->size);
   }
+
+  /* local vars */
+  mergeLocalVars(merged, states, suffixes, loopHandler, isComplete, matches);
+  /* heap */
+  mergeHeap(merged, states, suffixes, mutated, loopHandler, matches);
 
   if (OptimizeArrayValuesUsingITERewrite) {
     merged->optimizeArrayValues(mutated, loopHandler->solver);
