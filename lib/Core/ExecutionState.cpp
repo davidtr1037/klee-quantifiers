@@ -603,6 +603,11 @@ ExecutionState *ExecutionState::mergeStatesOptimized(std::vector<ExecutionState 
                                             loopHandler->tree,
                                             mergeID,
                                             *loopHandler->solver);
+      if (orExpr.isNull()) {
+        /* TODO: enable the relevant options */
+        klee_warning("failed to generate the merged constraint");
+        orExpr = buildMergedConstraintWithExecTree(loopHandler, states);
+      }
     } else {
       if (mergedConstraint.isNull()) {
         if (OptimizeITEUsingExecTree && loopHandler->canUseExecTree) {
