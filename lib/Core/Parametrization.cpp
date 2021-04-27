@@ -381,7 +381,10 @@ bool klee::solveEquationSystem(SMTEquationSystem &system,
     }
   }
 
-  assert(found);
+  if (!found) {
+    klee_warning("can't find distinct terms");
+    return false;
+  }
 
   ParametrizedExpr templateExpr;
   if (!solveLinearEquation(solver, {eq1, eq2}, {r1, r2}, id, templateExpr)) {

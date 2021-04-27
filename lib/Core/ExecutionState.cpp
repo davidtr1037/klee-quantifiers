@@ -728,7 +728,13 @@ void ExecutionState::mergeLocalVars(ExecutionState *merged,
 
       if (OptimizeUsingQuantifiers) {
         if (isa<SelectExpr>(v)) {
-          v = mergeValuesUsingPattern(valuesMap, loopHandler, matches[0]);
+          merged->dumpStack(errs());
+          ref<Expr> e = mergeValuesUsingPattern(valuesMap,
+                                                loopHandler,
+                                                matches[0]);
+          if (!e.isNull()) {
+            v = e;
+          }
         }
       }
       stats::mergedValuesSize += v->size;
@@ -827,7 +833,12 @@ void ExecutionState::mergeHeap(ExecutionState *merged,
 
         if (OptimizeUsingQuantifiers) {
           if (isa<SelectExpr>(v)) {
-            v = mergeValuesUsingPattern(valuesMap, loopHandler, matches[0]);
+            ref<Expr> e = mergeValuesUsingPattern(valuesMap,
+                                                  loopHandler,
+                                                  matches[0]);
+            if (!e.isNull()) {
+              v = e;
+            }
           }
         }
 
@@ -914,7 +925,7 @@ ref<Expr> ExecutionState::mergeValuesUsingPattern(State2Value &valuesMap,
                            mergeID,
                            *loopHandler->solver,
                            solution)) {
-    assert(0);
+    return nullptr;
   }
 
   return solution.e;
