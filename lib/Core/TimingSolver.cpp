@@ -50,8 +50,10 @@ bool TimingSolver::evaluate(const ConstraintSet &constraints, ref<Expr> expr,
   return success;
 }
 
-bool TimingSolver::mustBeTrue(const ConstraintSet &constraints, ref<Expr> expr,
-                              bool &result, SolverQueryMetaData &metaData,
+bool TimingSolver::mustBeTrue(const ConstraintSet &constraints,
+                              ref<Expr> expr,
+                              bool &result,
+                              SolverQueryMetaData &metaData,
                               bool auxiliary) {
   // Fast path, to avoid timer and OS overhead.
   if (ConstantExpr *CE = dyn_cast<ConstantExpr>(expr)) {
@@ -75,8 +77,10 @@ bool TimingSolver::mustBeTrue(const ConstraintSet &constraints, ref<Expr> expr,
   return success;
 }
 
-bool TimingSolver::mustBeFalse(const ConstraintSet &constraints, ref<Expr> expr,
-                               bool &result, SolverQueryMetaData &metaData,
+bool TimingSolver::mustBeFalse(const ConstraintSet &constraints,
+                               ref<Expr> expr,
+                               bool &result,
+                               SolverQueryMetaData &metaData,
                                bool auxiliary) {
   return mustBeTrue(constraints,
                     Expr::createIsZero(expr),
@@ -85,8 +89,10 @@ bool TimingSolver::mustBeFalse(const ConstraintSet &constraints, ref<Expr> expr,
                     auxiliary);
 }
 
-bool TimingSolver::mayBeTrue(const ConstraintSet &constraints, ref<Expr> expr,
-                             bool &result, SolverQueryMetaData &metaData,
+bool TimingSolver::mayBeTrue(const ConstraintSet &constraints,
+                             ref<Expr> expr,
+                             bool &result,
+                             SolverQueryMetaData &metaData,
                              bool auxiliary) {
   bool res;
   if (!mustBeFalse(constraints, expr, res, metaData, auxiliary))
@@ -95,8 +101,10 @@ bool TimingSolver::mayBeTrue(const ConstraintSet &constraints, ref<Expr> expr,
   return true;
 }
 
-bool TimingSolver::mayBeFalse(const ConstraintSet &constraints, ref<Expr> expr,
-                              bool &result, SolverQueryMetaData &metaData,
+bool TimingSolver::mayBeFalse(const ConstraintSet &constraints,
+                              ref<Expr> expr,
+                              bool &result,
+                              SolverQueryMetaData &metaData,
                               bool auxiliary) {
   bool res;
   if (!mustBeTrue(constraints, expr, res, metaData, auxiliary))
@@ -105,7 +113,8 @@ bool TimingSolver::mayBeFalse(const ConstraintSet &constraints, ref<Expr> expr,
   return true;
 }
 
-bool TimingSolver::getValue(const ConstraintSet &constraints, ref<Expr> expr,
+bool TimingSolver::getValue(const ConstraintSet &constraints,
+                            ref<Expr> expr,
                             ref<ConstantExpr> &result,
                             SolverQueryMetaData &metaData) {
   // Fast path, to avoid timer and OS overhead.
@@ -127,7 +136,8 @@ bool TimingSolver::getValue(const ConstraintSet &constraints, ref<Expr> expr,
 }
 
 bool TimingSolver::getInitialValues(
-    const ConstraintSet &constraints, const std::vector<const Array *> &objects,
+    const ConstraintSet &constraints,
+    const std::vector<const Array *> &objects,
     std::vector<std::vector<unsigned char>> &result,
     SolverQueryMetaData &metaData,
     bool auxiliary) {
