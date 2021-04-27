@@ -591,6 +591,7 @@ ExecutionState *ExecutionState::mergeStatesOptimized(std::vector<ExecutionState 
     m.addConstraint(e);
   }
 
+  bool usingQuantifiers = false;
   if (!isComplete) {
     ref<Expr> orExpr = nullptr;
     if (OptimizeUsingQuantifiers && matches.size() == 1) {
@@ -600,6 +601,8 @@ ExecutionState *ExecutionState::mergeStatesOptimized(std::vector<ExecutionState 
                                             *loopHandler->solver);
       if (orExpr.isNull()) {
         klee_warning("failed to generate the merged constraint");
+      } else {
+        usingQuantifiers = true;
       }
     }
     if (orExpr.isNull()) {
@@ -621,9 +624,9 @@ ExecutionState *ExecutionState::mergeStatesOptimized(std::vector<ExecutionState 
   }
 
   /* local vars */
-  mergeLocalVars(merged, states, suffixes, loopHandler, matches);
+  mergeLocalVars(merged, states, suffixes, loopHandler, usingQuantifiers, matches);
   /* heap */
-  mergeHeap(merged, states, suffixes, mutated, loopHandler, matches);
+  mergeHeap(merged, states, suffixes, mutated, loopHandler, usingQuantifiers, matches);
 
   if (OptimizeArrayValuesUsingITERewrite) {
     merged->optimizeArrayValues(mutated, loopHandler->solver);
@@ -694,6 +697,7 @@ void ExecutionState::mergeLocalVars(ExecutionState *merged,
                                     std::vector<ExecutionState *> &states,
                                     std::vector<ref<Expr>> &suffixes,
                                     LoopHandler *loopHandler,
+                                    bool usingQuantifiers,
                                     std::vector<PatternMatch> &matches) {
   for (unsigned i = 0; i < merged->stack.size(); i++) {
     StackFrame &sf = merged->stack[i];
@@ -729,7 +733,7 @@ void ExecutionState::mergeLocalVars(ExecutionState *merged,
         v = mergeValues(suffixes, values);
       }
 
-      if (OptimizeUsingQuantifiers) {
+      if (OptimizeUsingQuantifiers && usingQuantifiers) {
         if (isa<SelectExpr>(v)) {
           ref<Expr> e = mergeValuesUsingPattern(valuesMap,
                                                 loopHandler,
@@ -749,6 +753,7 @@ void ExecutionState::mergeHeap(ExecutionState *merged,
                                std::vector<ref<Expr>> &suffixes,
                                std::set<const MemoryObject*> &mutated,
                                LoopHandler *loopHandler,
+                               bool usingQuantifiers,
                                std::vector<PatternMatch> &matches) {
   for (const MemoryObject *mo : mutated) {
     const ObjectState *os = merged->addressSpace.findObject(mo);
@@ -833,7 +838,7 @@ void ExecutionState::mergeHeap(ExecutionState *merged,
           v = mergeValues(neededSuffixes, values);
         }
 
-        if (OptimizeUsingQuantifiers) {
+        if (OptimizeUsingQuantifiers && usingQuantifiers) {
           if (isa<SelectExpr>(v)) {
             ref<Expr> e = mergeValuesUsingPattern(valuesMap,
                                                   loopHandler,
