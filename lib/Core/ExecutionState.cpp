@@ -728,7 +728,6 @@ void ExecutionState::mergeLocalVars(ExecutionState *merged,
 
       if (OptimizeUsingQuantifiers) {
         if (isa<SelectExpr>(v)) {
-          merged->dumpStack(errs());
           ref<Expr> e = mergeValuesUsingPattern(valuesMap,
                                                 loopHandler,
                                                 matches[0]);
