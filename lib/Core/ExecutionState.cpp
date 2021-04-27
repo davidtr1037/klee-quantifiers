@@ -592,18 +592,17 @@ ExecutionState *ExecutionState::mergeStatesOptimized(std::vector<ExecutionState 
   }
 
   if (!isComplete) {
-    ref<Expr> orExpr;
+    ref<Expr> orExpr = nullptr;
     if (OptimizeUsingQuantifiers && matches.size() == 1) {
       orExpr = generateQuantifiedConstraint(matches[0],
                                             loopHandler->tree,
                                             mergeID,
                                             *loopHandler->solver);
       if (orExpr.isNull()) {
-        /* TODO: enable the relevant options */
         klee_warning("failed to generate the merged constraint");
-        orExpr = buildMergedConstraintWithExecTree(loopHandler, states);
       }
-    } else {
+    }
+    if (orExpr.isNull()) {
       if (mergedConstraint.isNull()) {
         if (OptimizeITEUsingExecTree && loopHandler->canUseExecTree) {
           orExpr = buildMergedConstraintWithExecTree(loopHandler, states);
@@ -622,7 +621,7 @@ ExecutionState *ExecutionState::mergeStatesOptimized(std::vector<ExecutionState 
   }
 
   /* local vars */
-  mergeLocalVars(merged, states, suffixes, loopHandler, isComplete, matches);
+  mergeLocalVars(merged, states, suffixes, loopHandler, matches);
   /* heap */
   mergeHeap(merged, states, suffixes, mutated, loopHandler, matches);
 
@@ -695,7 +694,6 @@ void ExecutionState::mergeLocalVars(ExecutionState *merged,
                                     std::vector<ExecutionState *> &states,
                                     std::vector<ref<Expr>> &suffixes,
                                     LoopHandler *loopHandler,
-                                    bool isComplete,
                                     std::vector<PatternMatch> &matches) {
   for (unsigned i = 0; i < merged->stack.size(); i++) {
     StackFrame &sf = merged->stack[i];

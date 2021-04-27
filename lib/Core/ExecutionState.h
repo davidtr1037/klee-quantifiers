@@ -252,7 +252,6 @@ public:
                              std::vector<ExecutionState *> &states,
                              std::vector<ref<Expr>> &suffixes,
                              LoopHandler *loopHandler,
-                             bool isComplete,
                              std::vector<PatternMatch> &matches);
 
   /* TODO: too many parameters */
