@@ -203,10 +203,14 @@ static ref<Expr> replaceDistinctTerms(ref<Expr> e1,
       kids[i] = k1;
     } else {
       if (replaced) {
-        assert(false);
+        return nullptr;
       }
 
-      kids[i] = replaceDistinctTerms(k1, k2, placeHolder);
+      ref<Expr> replacedKid = replaceDistinctTerms(k1, k2, placeHolder);
+      if (replacedKid.isNull()) {
+        return nullptr;
+      }
+      kids[i] = replacedKid;
       replaced = true;
     }
   }
@@ -392,6 +396,10 @@ bool klee::solveEquationSystem(SMTEquationSystem &system,
   }
 
   ref<Expr> e = replaceDistinctTerms(eq1.e, eq2.e, templateExpr.e);
+  if (e.isNull()) {
+    return false;
+  }
+
   ParametrizedExpr parametricExpr(e, templateExpr.parameter, templateExpr.array);
   if (validateSolution(system, parametricExpr)) {
     result = parametricExpr;
