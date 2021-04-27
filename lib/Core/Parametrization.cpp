@@ -14,10 +14,10 @@ using namespace klee;
 
 static ArrayCache cache;
 
-const Array *klee::getArray(const std::string &name, uint64_t size, bool modelAsBV) {
+const Array *klee::getArray(const std::string &name, uint64_t size, bool isBoundVariable) {
   const Array *array = cache.CreateArray(name, size);
-  if (modelAsBV) {
-    array->modelAsBV = modelAsBV;
+  if (isBoundVariable) {
+    array->isBoundVariable = isBoundVariable;
   }
   return array;
 }

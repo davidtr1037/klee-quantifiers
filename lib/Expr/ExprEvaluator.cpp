@@ -137,7 +137,7 @@ ExprVisitor::Action ExprEvaluator::visitForall(const ForallExpr &e) {
     std::map<ref<Expr>, ref<Expr>> map;
     for (ref<ReadExpr> e : reads) {
       /* TODO: check if it's an array of a bound variable... */
-      if (e->updates.root->modelAsBV) {
+      if (e->updates.root->isBoundVariable) {
         ref<ConstantExpr> index = dyn_cast<ConstantExpr>(e->index);
         assert(!index.isNull());
         uint64_t off = index->getZExtValue();

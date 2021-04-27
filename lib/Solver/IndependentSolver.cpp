@@ -119,7 +119,7 @@ public:
       ReadExpr *re = reads[i].get();
       const Array *array = re->updates.root;
       /* TODO: check correctness */
-      if (array->modelAsBV) {
+      if (array->isBoundVariable) {
         /* bound variable */
         assert(array->isSymbolicArray());
         continue;

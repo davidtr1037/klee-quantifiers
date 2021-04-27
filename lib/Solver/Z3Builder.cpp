@@ -143,6 +143,7 @@ Z3ASTHandle Z3Builder::buildBVFromArray(const Array *root) {
   if (!hashed) {
     std::string unique_id = llvm::utostr(_arr_hash._array_hash.size());
     std::string unique_name = root->name + unique_id;
+    /* TODO: use root->size instead? */
     bv_expr = buildBV(unique_name.c_str(), QuantifiedExpr::AUX_VARIABLE_WIDTH);
     _arr_hash.hashArrayExpr(root, bv_expr);
   }
@@ -418,7 +419,7 @@ Z3ASTHandle Z3Builder::getInitialArray(const Array *root) {
                             root->getRange());
 
     if (root->isConstantArray() && constant_array_assertions.count(root) == 0) {
-      assert(!root->modelAsBV);
+      assert(!root->isBoundVariable);
       std::vector<Z3ASTHandle> array_assertions;
       for (unsigned i = 0, e = root->size; i != e; ++i) {
         // construct(= (select i root) root->value[i]) to be asserted in
@@ -442,7 +443,7 @@ Z3ASTHandle Z3Builder::getInitialArray(const Array *root) {
 }
 
 Z3ASTHandle Z3Builder::getInitialRead(const Array *root, unsigned index) {
-  if (root->modelAsBV) {
+  if (root->isBoundVariable) {
     Z3ASTHandle bv_expr = buildBVFromArray(root);
     return bvExtract(bv_expr, index * 8 + 7,  index * 8);
   } else {
@@ -539,12 +540,11 @@ Z3ASTHandle Z3Builder::constructActual(ref<Expr> e, int *width_out) {
     return construct(noe->src, width_out);
   }
 
-  /* TODO: check if modelAsBV */
   case Expr::Read: {
     ReadExpr *re = cast<ReadExpr>(e);
     assert(re && re->updates.root);
     *width_out = re->updates.root->getRange();
-    if (re->updates.root->modelAsBV) {
+    if (re->updates.root->isBoundVariable) {
       Z3ASTHandle bv_expr = buildBVFromArray(re->updates.root);
       assert(isa<ConstantExpr>(re->index));
       unsigned index = dyn_cast<ConstantExpr>(re->index)->getZExtValue();

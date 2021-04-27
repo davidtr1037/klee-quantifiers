@@ -515,7 +515,7 @@ public:
   /// the array size.
   const std::vector<ref<ConstantExpr> > constantValues;
 
-  mutable bool modelAsBV;
+  mutable bool isBoundVariable;
 
 private:
   unsigned hashValue;
