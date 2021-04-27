@@ -51,7 +51,8 @@ bool TimingSolver::evaluate(const ConstraintSet &constraints, ref<Expr> expr,
 }
 
 bool TimingSolver::mustBeTrue(const ConstraintSet &constraints, ref<Expr> expr,
-                              bool &result, SolverQueryMetaData &metaData) {
+                              bool &result, SolverQueryMetaData &metaData,
+                              bool auxiliary) {
   // Fast path, to avoid timer and OS overhead.
   if (ConstantExpr *CE = dyn_cast<ConstantExpr>(expr)) {
     result = CE->isTrue() ? true : false;
@@ -59,6 +60,10 @@ bool TimingSolver::mustBeTrue(const ConstraintSet &constraints, ref<Expr> expr,
   }
 
   TimerStatIncrementer timer(stats::solverTime);
+
+  if (auxiliary) {
+    ++stats::auxilaryQueries;
+  }
 
   if (simplifyExprs)
     expr = ConstraintManager::simplifyExpr(constraints, expr);
@@ -71,23 +76,30 @@ bool TimingSolver::mustBeTrue(const ConstraintSet &constraints, ref<Expr> expr,
 }
 
 bool TimingSolver::mustBeFalse(const ConstraintSet &constraints, ref<Expr> expr,
-                               bool &result, SolverQueryMetaData &metaData) {
-  return mustBeTrue(constraints, Expr::createIsZero(expr), result, metaData);
+                               bool &result, SolverQueryMetaData &metaData,
+                               bool auxiliary) {
+  return mustBeTrue(constraints,
+                    Expr::createIsZero(expr),
+                    result,
+                    metaData,
+                    auxiliary);
 }
 
 bool TimingSolver::mayBeTrue(const ConstraintSet &constraints, ref<Expr> expr,
-                             bool &result, SolverQueryMetaData &metaData) {
+                             bool &result, SolverQueryMetaData &metaData,
+                             bool auxiliary) {
   bool res;
-  if (!mustBeFalse(constraints, expr, res, metaData))
+  if (!mustBeFalse(constraints, expr, res, metaData, auxiliary))
     return false;
   result = !res;
   return true;
 }
 
 bool TimingSolver::mayBeFalse(const ConstraintSet &constraints, ref<Expr> expr,
-                              bool &result, SolverQueryMetaData &metaData) {
+                              bool &result, SolverQueryMetaData &metaData,
+                              bool auxiliary) {
   bool res;
-  if (!mustBeTrue(constraints, expr, res, metaData))
+  if (!mustBeTrue(constraints, expr, res, metaData, auxiliary))
     return false;
   result = !res;
   return true;
@@ -117,11 +129,16 @@ bool TimingSolver::getValue(const ConstraintSet &constraints, ref<Expr> expr,
 bool TimingSolver::getInitialValues(
     const ConstraintSet &constraints, const std::vector<const Array *> &objects,
     std::vector<std::vector<unsigned char>> &result,
-    SolverQueryMetaData &metaData) {
+    SolverQueryMetaData &metaData,
+    bool auxiliary) {
   if (objects.empty())
     return true;
 
   TimerStatIncrementer timer(stats::solverTime);
+
+  if (auxiliary) {
+    ++stats::auxilaryQueries;
+  }
 
   bool success = solver->getInitialValues(
       Query(constraints, ConstantExpr::alloc(0, Expr::Bool)), objects, result);

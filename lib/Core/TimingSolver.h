@@ -48,16 +48,20 @@ public:
                 SolverQueryMetaData &metaData, bool auxiliary = false);
 
   bool mustBeTrue(const ConstraintSet &, ref<Expr>, bool &result,
-                  SolverQueryMetaData &metaData);
+                  SolverQueryMetaData &metaData,
+                  bool auxiliary = false);
 
   bool mustBeFalse(const ConstraintSet &, ref<Expr>, bool &result,
-                   SolverQueryMetaData &metaData);
+                   SolverQueryMetaData &metaData,
+                   bool auxiliary = false);
 
   bool mayBeTrue(const ConstraintSet &, ref<Expr>, bool &result,
-                 SolverQueryMetaData &metaData);
+                 SolverQueryMetaData &metaData,
+                 bool auxiliary = false);
 
   bool mayBeFalse(const ConstraintSet &, ref<Expr>, bool &result,
-                  SolverQueryMetaData &metaData);
+                  SolverQueryMetaData &metaData,
+                  bool auxiliary = false);
 
   bool getValue(const ConstraintSet &, ref<Expr> expr,
                 ref<ConstantExpr> &result, SolverQueryMetaData &metaData);
@@ -65,7 +69,8 @@ public:
   bool getInitialValues(const ConstraintSet &,
                         const std::vector<const Array *> &objects,
                         std::vector<std::vector<unsigned char>> &result,
-                        SolverQueryMetaData &metaData);
+                        SolverQueryMetaData &metaData,
+                        bool auxiliary = false);
 
   std::pair<ref<Expr>, ref<Expr>> getRange(const ConstraintSet &,
                                            ref<Expr> query,
