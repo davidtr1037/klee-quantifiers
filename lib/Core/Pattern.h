@@ -56,7 +56,7 @@ public:
 
   void clear();
 
-  friend llvm::raw_ostream &operator<<(llvm::raw_ostream &os, const Symbol &s);
+  friend llvm::raw_ostream &operator<<(llvm::raw_ostream &os, const Word &s);
 
   std::vector<Symbol> symbols;
 };

@@ -129,16 +129,23 @@ bool PatternInstance::isInstanceOf(Pattern &p, unsigned &repetitions) {
   }
 }
 
-bool PatternInstance::findRepetition(Word &input, Word &prefix, Word &core) {
+bool PatternInstance::findRepetition(Word &input,
+                                     Word &out_prefix,
+                                     Word &out_core) {
   for (unsigned i = 0; i < input.size(); i++) {
     Word current_prefix, current_core;
-
-    if (i > 0) {
-      current_prefix.append(input[i - 1]);
-    }
-
     bool hasPattern = true;
     size_t tailSize = input.size() - i;
+
+    /* must be even */
+    if (tailSize % 2 != 0) {
+      continue;
+    }
+
+    for (unsigned j = 0; j < i; j++) {
+      current_prefix.append(input[j]);
+    }
+
     for (unsigned j = 0; j < tailSize / 2; j++) {
       if (input[i + j] != input[i + (tailSize / 2) + j]) {
         hasPattern = false;
@@ -149,8 +156,8 @@ bool PatternInstance::findRepetition(Word &input, Word &prefix, Word &core) {
 
     /* if found a non-empty pattern */
     if (hasPattern && !current_core.isEmpty()) {
-      prefix = current_prefix;
-      core = current_core;
+      out_prefix = current_prefix;
+      out_core = current_core;
       return true;
     }
   }
