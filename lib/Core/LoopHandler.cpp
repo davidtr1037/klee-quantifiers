@@ -98,8 +98,10 @@ void LoopHandler::splitStates(std::vector<MergeGroup> &result) {
           m[es->getID()] = es;
       }
 
+      /* TODO: check forward as well */
       std::vector<PatternMatch> matches;
-      extractPatterns(tree, ids, matches);
+      extractPatternsBackward(tree, ids, matches);
+
       for (PatternMatch &pm : matches) {
         MergeGroup states;
         for (StateMatch &sm : pm.matches) {
@@ -175,7 +177,8 @@ void LoopHandler::releaseStates() {
           for (ExecutionState *es : states) {
             ids.insert(es->getID());
           }
-          extractPatterns(tree, ids, matches);
+          /* TODO: avoid calling twice */
+          extractPatternsBackward(tree, ids, matches);
         }
 
         merged = ExecutionState::mergeStatesOptimized(states,
