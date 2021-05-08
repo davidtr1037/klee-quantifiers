@@ -45,7 +45,8 @@ public:
 
   bool operator!=(const Word &other) const;
 
-  Symbol &operator[] (size_t n);
+  /* TODO: return a reference? */
+  Symbol operator[] (size_t n) const;
 
   size_t size() const;
 
@@ -57,6 +58,8 @@ public:
   void clear();
 
   friend llvm::raw_ostream &operator<<(llvm::raw_ostream &os, const Word &s);
+
+  Word reversed() const;
 
   std::vector<Symbol> symbols;
 };
@@ -75,6 +78,12 @@ public:
 
   bool hasCore() const;
 
+  Word getInstance(unsigned count) const;
+
+  bool operator==(const Pattern &other) const;
+
+  bool operator!=(const Pattern &other) const;
+
   void dump() const;
 
   Word prefix;
@@ -90,13 +99,19 @@ public:
 
   }
 
-  PatternInstance(Word &prefix) : Pattern(prefix, Word(), Word()), count(0) {
-
+  PatternInstance(Pattern &p, unsigned count) :
+    Pattern(p.prefix, p.core, p.suffix), count(count) {
+    word = p.getInstance(count);
   }
 
-  void addSymbol(Symbol &s);
+  void addSymbol(const Symbol &s);
 
-  bool isInstanceOf(Pattern &p, unsigned &repetitions);
+  /* TODO: remove */
+  bool isInstanceOf(const Pattern &p, unsigned &repetitions);
+
+  PatternInstance reversed() const;
+
+  Word word;
 
   unsigned count;
 

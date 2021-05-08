@@ -3,7 +3,7 @@
 using namespace klee;
 using namespace llvm;
 
-void ExecTreeIterator::next(Symbol &s) {
+void ExecTreeIterator::next(const Symbol &s) {
   if (current == nullptr) {
     assert(t.root->getHash() == s.hash);
     current = t.root;

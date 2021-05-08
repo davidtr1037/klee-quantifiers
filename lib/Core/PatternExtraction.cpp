@@ -13,6 +13,7 @@ PatternMatch::PatternMatch(const PatternInstance &pi) {
   pattern = Pattern(pi.prefix, pi.core, pi.suffix);
 }
 
+/* TODO: sort by sm.count? */
 void PatternMatch::addStateMatch(const StateMatch &sm) {
   if (!pattern.hasCore()) {
     /* if has no core, only one match is possible */
@@ -20,6 +21,63 @@ void PatternMatch::addStateMatch(const StateMatch &sm) {
   }
 
   matches.push_back(sm);
+}
+
+bool PatternMatch::hasMatch(const Word &w,
+                            unsigned &repetitions) const {
+  if (!pattern.hasCore()) {
+    Word instance = pattern.getInstance(0);
+    if (instance == w) {
+      repetitions = 0;
+      return true;
+    } else {
+      return false;
+    }
+  }
+
+  /* TODO: don't check existing state matches */
+  unsigned k = 0;
+  Word instance;
+  do {
+    instance = pattern.getInstance(k);
+    if (instance == w) {
+      repetitions = k;
+      return true;
+    }
+    k++;
+  } while (instance.size() < w.size());
+
+  return false;
+}
+
+bool PatternMatch::hasMatch(const PatternInstance &pi,
+                            unsigned &repetitions) const {
+  if (!pattern.hasCore()) {
+    /* TODO: why? */
+    return false;
+  }
+
+  /* TODO: comparing different types here... */
+  if (pattern == pi) {
+    /* the number of repetitions is already given */
+    repetitions = pi.count;
+    return true;
+  }
+
+  return hasMatch(pi.word, repetitions);
+}
+
+bool PatternMatch::canBeMergedTo(const PatternMatch &pm,
+                                 std::vector<StateMatch> &result) const {
+  for (const StateMatch &sm : matches) {
+    Word w = pattern.getInstance(sm.count);
+    unsigned repetitions;
+    if (!pm.hasMatch(w, repetitions)) {
+      return false;
+    }
+    result.push_back(StateMatch(sm.stateID, repetitions));
+  }
+  return true;
 }
 
 void PatternMatch::dump() const {
@@ -30,12 +88,12 @@ void PatternMatch::dump() const {
   }
 }
 
-static bool addPatttern(std::vector<PatternMatch> &matches,
-                        PatternInstance &pi,
-                        uint32_t stateID) {
+static bool addPattern(std::vector<PatternMatch> &matches,
+                       PatternInstance &pi,
+                       uint32_t stateID) {
   for (PatternMatch &pm : matches) {
     unsigned count;
-    if (pi.isInstanceOf(pm.pattern, count)) {
+    if (pm.hasMatch(pi, count)) {
       pm.matches.push_back(StateMatch(stateID, count));
       return true;
     }
@@ -50,25 +108,37 @@ static bool addPatttern(std::vector<PatternMatch> &matches,
 static void handleLeaf(ExecTreeNode *n,
                        PatternInstance &pi,
                        std::vector<PatternMatch> &matches) {
-  addPatttern(matches, pi, n->stateID);
+  addPattern(matches, pi, n->stateID);
 }
 
+/* TODO: do we need a fixpoint algorithm here? */
 static void unifyMatches(std::vector<PatternMatch> &matches,
                          std::vector<PatternMatch> &result) {
+  std::vector<PatternMatch *> worklist;
   for (PatternMatch &pm : matches) {
-    if (pm.pattern.hasCore()) {
-      result.push_back(pm);
-    }
+    worklist.push_back(&pm);
   }
 
-  for (PatternMatch &pm : matches) {
-    if (!pm.pattern.hasCore()) {
-      /* no repetitions, only prefix */
-      PatternInstance pi(pm.pattern.prefix);
+  while (!worklist.empty()) {
+    bool merged = false;
+    PatternMatch *pm1 = worklist.back();
+    worklist.pop_back();
 
-      /* get state id */
-      assert(pm.matches.size() == 1);
-      addPatttern(result, pi, pm.matches[0].stateID);
+    for (PatternMatch *pm2 : worklist) {
+      if (pm1->matches.size() <= pm2->matches.size()) {
+        std::vector<StateMatch> sms;
+        if (pm1->canBeMergedTo(*pm2, sms)) {
+          for (StateMatch &sm : sms) {
+            pm2->addStateMatch(sm);
+          }
+          merged = true;
+          break;
+        }
+      }
+    }
+
+    if (!merged) {
+      result.push_back(*pm1);
     }
   }
 }
@@ -105,6 +175,62 @@ void klee::extractPatterns(ExecTree &t,
   unifyMatches(matches, result);
   for (PatternMatch &pm : result) {
     /* we sort, to help in finding distinct terms */
+    /* TODO: something more efficient? */
+    std::sort(pm.matches.begin(), pm.matches.end(), compare);
+  }
+
+  //for (PatternMatch &pm : result) {
+  //  pm.dump();
+  //}
+}
+
+void klee::traverse(ExecTree &t,
+                    std::set<uint32_t> &ids,
+                    std::vector<TreePath> &result) {
+  std::vector<std::pair<ExecTreeNode *, Word>> worklist;
+  worklist.push_back(std::make_pair(t.root, Word()));
+
+  while (!worklist.empty()) {
+    auto p = worklist.back();
+    worklist.pop_back();
+
+    ExecTreeNode *n = p.first;
+    Word w = p.second;
+    Symbol s(n->getHash());
+    w.append(s);
+
+    if (!n->isLeaf()) {
+      worklist.push_back(std::make_pair(n->left, w));
+      worklist.push_back(std::make_pair(n->right, w));
+    } else {
+      if (ids.find(n->stateID) != ids.end()) {
+        result.push_back(TreePath(w, n->stateID));
+      }
+    }
+  }
+}
+
+void klee::extractPatternsBackward(ExecTree &t,
+                                   std::set<uint32_t> &ids,
+                                   std::vector<PatternMatch> &result) {
+  std::vector<TreePath> paths;
+  traverse(t, ids, paths);
+
+  /* compute pattern instances */
+  std::vector<PatternMatch> matches;
+  for (TreePath &path : paths) {
+    PatternInstance pi = PatternInstance();
+    const Word &w = path.w;
+    size_t n = path.w.size();
+    for (unsigned i = 0; i < n; i++) {
+      pi.addSymbol(w[n - i - 1]);
+    }
+    PatternInstance rpi = pi.reversed();
+    addPattern(matches, rpi, path.stateID);
+  }
+
+  unifyMatches(matches, result);
+  for (PatternMatch &pm : result) {
     /* TODO: something more efficient? */
     std::sort(pm.matches.begin(), pm.matches.end(), compare);
   }

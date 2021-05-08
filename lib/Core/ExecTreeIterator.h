@@ -14,7 +14,7 @@ public:
   }
 
   /* TODO: just pass the hash value? */
-  void next(Symbol &s);
+  void next(const Symbol &s);
 
   bool hasNext() const;
 

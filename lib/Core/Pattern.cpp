@@ -32,7 +32,7 @@ bool Word::operator!=(const Word &other) const {
   return !operator==(other);
 }
 
-Symbol &Word::operator[] (size_t n) {
+Symbol Word::operator[] (size_t n) const {
   assert(n < symbols.size());
   return symbols[n];
 }
@@ -64,8 +64,37 @@ raw_ostream &operator<<(raw_ostream &os, const Word &w) {
   return os;
 }
 
+Word Word::reversed() const {
+  Word w;
+  size_t n = size();
+  for (unsigned i = 0; i < n; i++) {
+    w.append(symbols[n - i - 1]);
+  }
+  return w;
+}
+
 bool Pattern::hasCore() const {
   return !core.isEmpty();
+}
+
+Word Pattern::getInstance(unsigned count) const {
+  Word w;
+  w = w + prefix;
+  for (unsigned i = 0; i < count; i++) {
+    w = w + core;
+  }
+  w = w + suffix;
+  return w;
+}
+
+bool Pattern::operator==(const Pattern &other) const {
+  return prefix == other.prefix && \
+         core == other.core && \
+         suffix == other.suffix;
+}
+
+bool Pattern::operator!=(const Pattern &other) const {
+  return !operator==(other);
 }
 
 void Pattern::dump() const {
@@ -75,7 +104,8 @@ void Pattern::dump() const {
   errs() << "\n";
 }
 
-void PatternInstance::addSymbol(Symbol &s) {
+void PatternInstance::addSymbol(const Symbol &s) {
+  word.append(s);
   if (core.isEmpty()) {
     prefix.append(s);
 
@@ -94,7 +124,8 @@ void PatternInstance::addSymbol(Symbol &s) {
   }
 }
 
-bool PatternInstance::isInstanceOf(Pattern &p, unsigned &repetitions) {
+/* TODO: remove */
+bool PatternInstance::isInstanceOf(const Pattern &p, unsigned &repetitions) {
   if (!p.hasCore()) {
     return false;
   }
@@ -126,6 +157,17 @@ bool PatternInstance::isInstanceOf(Pattern &p, unsigned &repetitions) {
     } else {
       return false;
     }
+  }
+}
+
+PatternInstance PatternInstance::reversed() const {
+  if (core.isEmpty()) {
+    assert(suffix.isEmpty());
+    Pattern p(prefix.reversed(), Word(), Word());
+    return PatternInstance(p, count);
+  } else {
+    Pattern p(suffix.reversed(), core.reversed(), prefix.reversed());
+    return PatternInstance(p, count);
   }
 }
 

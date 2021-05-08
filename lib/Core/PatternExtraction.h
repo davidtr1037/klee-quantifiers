@@ -25,6 +25,13 @@ struct PatternMatch {
 
   void addStateMatch(const StateMatch &sm);
 
+  bool hasMatch(const Word &w, unsigned &repetitions) const;
+
+  bool hasMatch(const PatternInstance &pi, unsigned &repetitions) const;
+
+  bool canBeMergedTo(const PatternMatch &pm,
+                     std::vector<StateMatch> &result) const;
+
   void dump() const;
 
   Pattern pattern;
@@ -32,9 +39,30 @@ struct PatternMatch {
   std::vector<StateMatch> matches;
 };
 
+struct TreePath {
+  Word w;
+  uint32_t stateID;
+
+  TreePath() : stateID(0) {
+
+  }
+
+  TreePath(Word &w, uint32_t stateID) : w(w), stateID(stateID) {
+
+  }
+};
+
 void extractPatterns(ExecTree &t,
                      std::set<uint32_t> &ids,
                      std::vector<PatternMatch> &matches);
+
+void traverse(ExecTree &t,
+              std::set<uint32_t> &ids,
+              std::vector<TreePath> &result);
+
+void extractPatternsBackward(ExecTree &t,
+                             std::set<uint32_t> &ids,
+                             std::vector<PatternMatch> &matches);
 
 }
 
