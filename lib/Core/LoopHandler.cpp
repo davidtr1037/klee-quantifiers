@@ -50,6 +50,11 @@ cl::opt<bool> SplitByPattern(
     cl::desc(""),
     cl::cat(klee::LoopCat));
 
+cl::opt<bool> UseForwardExtract(
+    "use-forward-extract", cl::init(false),
+    cl::desc(""),
+    cl::cat(klee::LoopCat));
+
 void LoopHandler::addOpenState(ExecutionState *es){
   openStates.push_back(es);
   activeStates++;
@@ -100,7 +105,11 @@ void LoopHandler::splitStates(std::vector<MergeGroup> &result) {
 
       /* TODO: check forward as well */
       std::vector<PatternMatch> matches;
-      extractPatternsBackward(tree, ids, matches);
+      if (UseForwardExtract) {
+        extractPatterns(tree, ids, matches);
+      } else {
+        extractPatternsBackward(tree, ids, matches);
+      }
 
       for (PatternMatch &pm : matches) {
         MergeGroup states;
@@ -178,7 +187,11 @@ void LoopHandler::releaseStates() {
             ids.insert(es->getID());
           }
           /* TODO: avoid calling twice */
-          extractPatternsBackward(tree, ids, matches);
+          if (UseForwardExtract) {
+            extractPatterns(tree, ids, matches);
+          } else {
+            extractPatternsBackward(tree, ids, matches);
+          }
         }
 
         merged = ExecutionState::mergeStatesOptimized(states,
