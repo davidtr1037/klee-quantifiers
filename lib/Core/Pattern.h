@@ -106,9 +106,6 @@ public:
 
   void addSymbol(const Symbol &s);
 
-  /* TODO: remove */
-  bool isInstanceOf(const Pattern &p, unsigned &repetitions);
-
   PatternInstance reversed() const;
 
   Word word;

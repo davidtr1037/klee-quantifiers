@@ -124,42 +124,6 @@ void PatternInstance::addSymbol(const Symbol &s) {
   }
 }
 
-/* TODO: remove */
-bool PatternInstance::isInstanceOf(const Pattern &p, unsigned &repetitions) {
-  if (!p.hasCore()) {
-    return false;
-  }
-
-  if (count == 0) {
-    /* if the instance has no core, then everything is in the prefix */
-    assert(core.isEmpty());
-    assert(suffix.isEmpty());
-
-    /* try zero or one repetitions */
-    for (unsigned i = 0; i < 2; i++) {
-      /* generate */
-      Word w = p.prefix;
-      for (unsigned j = 0; j < i; j++) {
-        w = w + p.core;
-      }
-      w = w + p.suffix;
-
-      if (prefix == w) {
-        repetitions = i;
-        return true;
-      }
-    }
-    return false;
-  } else {
-    if (prefix == p.prefix && core == p.core && suffix == p.suffix) {
-      repetitions = count;
-      return true;
-    } else {
-      return false;
-    }
-  }
-}
-
 PatternInstance PatternInstance::reversed() const {
   if (core.isEmpty()) {
     assert(suffix.isEmpty());
