@@ -80,6 +80,14 @@ bool PatternMatch::canBeMergedTo(const PatternMatch &pm,
   return true;
 }
 
+bool PatternMatch::operator==(const PatternMatch &other) const {
+  return pattern == other.pattern && matches == other.matches;
+}
+
+bool PatternMatch::operator!=(const PatternMatch &other) const {
+  return !operator==(other);
+}
+
 void PatternMatch::dump() const {
   errs() << "pattern:\n";
   pattern.dump();
@@ -114,30 +122,38 @@ static void handleLeaf(ExecTreeNode *n,
 /* TODO: do we need a fixpoint algorithm here? */
 static void unifyMatches(std::vector<PatternMatch> &matches,
                          std::vector<PatternMatch> &result) {
-  std::vector<PatternMatch *> worklist;
+  /* we can first sort, and then do the unification */
+  std::vector<std::pair<PatternMatch *, bool>> worklist;
   for (PatternMatch &pm : matches) {
-    worklist.push_back(&pm);
+    worklist.push_back(std::make_pair(&pm, false));
   }
 
-  while (!worklist.empty()) {
-    bool merged = false;
-    PatternMatch *pm1 = worklist.back();
-    worklist.pop_back();
+  for (auto &i1 : worklist) {
+    PatternMatch *pm1 = i1.first;
+    for (auto &i2 : worklist) {
+      if (i2.second) {
+        /* already merged */
+        continue;
+      }
 
-    for (PatternMatch *pm2 : worklist) {
+      PatternMatch *pm2 = i2.first;
+      if (*pm1 == *pm2) {
+        continue;
+      }
+
       if (pm1->matches.size() <= pm2->matches.size()) {
         std::vector<StateMatch> sms;
         if (pm1->canBeMergedTo(*pm2, sms)) {
           for (StateMatch &sm : sms) {
             pm2->addStateMatch(sm);
           }
-          merged = true;
+          i1.second = true;
           break;
         }
       }
     }
-
-    if (!merged) {
+    if (!i1.second) {
+      /* if not merged, add */
       result.push_back(*pm1);
     }
   }
