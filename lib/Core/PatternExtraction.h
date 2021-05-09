@@ -15,6 +15,14 @@ struct StateMatch {
 
   }
 
+  bool operator==(const StateMatch &other) const {
+    return stateID == other.stateID && count == other.count;
+  }
+
+  bool operator!=(const StateMatch &other) const {
+    return !operator==(other);
+  }
+
   uint32_t stateID;
   unsigned count;
 };
@@ -31,6 +39,10 @@ struct PatternMatch {
 
   bool canBeMergedTo(const PatternMatch &pm,
                      std::vector<StateMatch> &result) const;
+
+  bool operator==(const PatternMatch &other) const;
+
+  bool operator!=(const PatternMatch &other) const;
 
   void dump() const;
 
