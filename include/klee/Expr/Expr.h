@@ -32,6 +32,7 @@ namespace llvm {
 namespace klee {
 
 class Array;
+class Expr;
 class ArrayCache;
 class ConstantExpr;
 class ObjectState;
@@ -87,6 +88,18 @@ The general rules are:
 Todo: Shouldn't bool \c Xor just be written as not equal?
 
 */
+
+struct ArrayMapping {
+  std::vector<std::pair<uint64_t, uint64_t>> map;
+  std::map<uint64_t, uint64_t> map1;
+  std::map<uint64_t, uint64_t> map2;
+  llvm::DenseSet<std::pair<const Expr *, const Expr *>> checked;
+
+  bool add(const Array *from, const Array *to);
+  void addPair(const Expr *e1, const Expr *e2);
+  bool hasPair(const Expr *e1, const Expr *e2);
+  void dump() const;
+};
 
 class Expr {
 public:
@@ -183,6 +196,7 @@ public:
 protected:  
   unsigned hashValue;
   unsigned shapeHashValue;
+  unsigned isoHashValue;
 
   /// Compares `b` to `this` Expr and determines how they are ordered
   /// (ignoring their kid expressions - i.e. those returned by `getKid()`).
@@ -227,6 +241,8 @@ public:
   virtual unsigned hash() const { return hashValue; }
 
   virtual unsigned shapeHash() const { return shapeHashValue; }
+
+  virtual unsigned isoHash() const { return isoHashValue; }
 
   /// (Re)computes the hash of the current expression.
   /// Returns the hash value. 
@@ -291,6 +307,15 @@ public:
   static bool needsResultType() { return false; }
 
   static bool classof(const Expr *) { return true; }
+
+  virtual bool isIsomorphic(const Expr &b) const;
+
+  virtual bool isIsomorphic(const Expr &b, ArrayMapping &map) const;
+
+  virtual bool compareContentsIsomorphism(const Expr &b,
+                                          ArrayMapping &map) const {
+    return compareContents(b) == 0;
+  }
 
   bool isTainted;
   uint64_t size;
@@ -470,6 +495,7 @@ class UpdateNode {
   // cache instead of recalc
   unsigned hashValue;
   unsigned shapeHashValue;
+  unsigned isoHashValue;
 
 public:
   const ref<UpdateNode> next;
@@ -491,6 +517,8 @@ public:
   int compare(const UpdateNode &b) const;  
   unsigned hash() const { return hashValue; }
   unsigned shapeHash() const { return shapeHashValue; }
+  unsigned isoHash() const { return isoHashValue; }
+  bool isIsomorphic(const UpdateNode &b, ArrayMapping &map) const;
 
   UpdateNode() = delete;
   ~UpdateNode() = default;
@@ -515,11 +543,16 @@ public:
   /// the array size.
   const std::vector<ref<ConstantExpr> > constantValues;
 
+  /* TODO: add docs */
   mutable bool isBoundVariable;
+
+  /* TODO: add docs */
+  uint64_t id;
 
 private:
   unsigned hashValue;
   unsigned shapeHashValue;
+  unsigned isoHashValue;
 
   // FIXME: Make =delete when we switch to C++11
   Array(const Array& array);
@@ -584,6 +617,8 @@ public:
   int compare(const UpdateList &b) const;
   unsigned hash() const;
   unsigned shapeHash() const;
+  unsigned isoHash() const;
+  bool isIsomorphic(const UpdateList &b, ArrayMapping &map) const;
 };
 
 /// Class representing a one byte read from an array. 
@@ -612,6 +647,8 @@ public:
   ref<Expr> getKid(unsigned i) const { return !i ? index : 0; }
   
   int compareContents(const Expr &b) const;
+
+  bool compareContentsIsomorphism(const Expr &b, ArrayMapping &map) const;
 
   virtual ref<Expr> rebuild(ref<Expr> kids[]) const {
     return create(updates, kids[0]);

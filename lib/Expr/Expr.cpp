@@ -41,6 +41,50 @@ cl::opt<bool> ConstArrayOpt(
 
 /***/
 
+bool ArrayMapping::add(const Array *from, const Array *to) {
+  uint64_t a = from->id;
+  uint64_t b = to->id;
+
+  std::pair<std::map<uint64_t, uint64_t>::iterator, bool> result;
+  result = map1.insert(std::make_pair(a, b));
+  if (!result.second) {
+    /* 'a' already exists */
+    if (result.first->second != b) {
+      return false;
+    }
+  }
+
+  result = map2.insert(std::make_pair(b, a));
+  if (!result.second) {
+    /* 'b' already exists */
+    if (result.first->second != a) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+void ArrayMapping::dump() const {
+  errs() << "Array mapping:\n";
+  for (auto &i : map1) {
+    errs() << i.first << " -- " << i.second << "\n";
+  }
+  for (auto &i : map2) {
+    errs() << i.first << " -- " << i.second << "\n";
+  }
+}
+
+/* TODO: swap if needed? */
+void ArrayMapping::addPair(const Expr *e1, const Expr *e2) {
+  checked.insert(std::make_pair(e1, e2));
+}
+
+/* TODO: swap if needed? */
+bool ArrayMapping::hasPair(const Expr *e1, const Expr *e2) {
+  return checked.find(std::make_pair(e1, e2)) != checked.end();
+}
+
 unsigned Expr::count = 0;
 
 ref<Expr> Expr::createTempRead(const Array *array, Expr::Width w) {
@@ -178,9 +222,50 @@ void Expr::printKind(llvm::raw_ostream &os, Kind k) {
 //
 ///////
 
+bool Expr::isIsomorphic(const Expr &b) const {
+  ArrayMapping map;
+  return isIsomorphic(b, map);
+}
+
+bool Expr::isIsomorphic(const Expr &b, ArrayMapping &map) const {
+  if (this == &b && isa<ConstantExpr>(this)) {
+    return true;
+  }
+
+  if (getKind() != b.getKind()) {
+    return false;
+  }
+
+  if (isoHashValue != b.isoHashValue) {
+    return false;
+  }
+
+  if (map.hasPair(this, &b)) {
+    return true;
+  }
+
+  if (!compareContentsIsomorphism(b, map)) {
+    return false;
+  }
+
+  unsigned aN = getNumKids();
+  for (unsigned i = 0; i < aN; i++) {
+    if (!getKid(i)->isIsomorphic(*b.getKid(i), map)) {
+      return false;
+    }
+  }
+
+  if (!isa<ConstantExpr>(this)) {
+    map.addPair(this, &b);
+  }
+
+  return true;
+}
+
 unsigned Expr::computeHash() {
   unsigned res = getKind() * Expr::MAGIC_HASH_CONSTANT;
   unsigned shapeRes = getKind() * Expr::MAGIC_HASH_CONSTANT;
+  unsigned isoRes = getKind() * Expr::MAGIC_HASH_CONSTANT;
 
   int n = getNumKids();
   for (int i = 0; i < n; i++) {
@@ -188,10 +273,13 @@ unsigned Expr::computeHash() {
     res ^= getKid(i)->hash() * Expr::MAGIC_HASH_CONSTANT;
     shapeRes <<= 1;
     shapeRes ^= getKid(i)->shapeHash() * Expr::MAGIC_HASH_CONSTANT;
+    isoRes <<= 1;
+    isoRes ^= getKid(i)->isoHash() * Expr::MAGIC_HASH_CONSTANT;
   }
   
   hashValue = res;
   shapeHashValue = shapeRes;
+  isoHashValue = isoRes;
   return hashValue;
 }
 
@@ -204,6 +292,7 @@ unsigned ConstantExpr::computeHash() {
 
   /* TODO: define? */
   shapeHashValue = Expr::MAGIC_SHAPE_HASH_CONSTANT;
+  isoHashValue = hashValue;
 
   return hashValue;
 }
@@ -213,6 +302,7 @@ unsigned CastExpr::computeHash() {
   hashValue = res ^ src->hash() * Expr::MAGIC_HASH_CONSTANT;
   unsigned shapeRes = getWidth() * Expr::MAGIC_HASH_CONSTANT;
   shapeHashValue = shapeRes ^ src->shapeHash() * Expr::MAGIC_HASH_CONSTANT;
+  isoHashValue = res ^ src->isoHash() * Expr::MAGIC_HASH_CONSTANT;
   return hashValue;
 }
 
@@ -220,9 +310,15 @@ unsigned ExtractExpr::computeHash() {
   unsigned res = offset * Expr::MAGIC_HASH_CONSTANT;
   res ^= getWidth() * Expr::MAGIC_HASH_CONSTANT;
   hashValue = res ^ expr->hash() * Expr::MAGIC_HASH_CONSTANT;
+
   unsigned shapeRes = offset * Expr::MAGIC_HASH_CONSTANT;
   shapeRes ^= getWidth() * Expr::MAGIC_HASH_CONSTANT;
   shapeHashValue = shapeRes ^ expr->shapeHash() * Expr::MAGIC_HASH_CONSTANT;
+
+  unsigned isoRes = offset * Expr::MAGIC_HASH_CONSTANT;
+  isoRes ^= getWidth() * Expr::MAGIC_HASH_CONSTANT;
+  isoHashValue = isoRes ^ expr->isoHash() * Expr::MAGIC_HASH_CONSTANT;
+
   return hashValue;
 }
 
@@ -236,12 +332,17 @@ unsigned ReadExpr::computeHash() {
   shapeRes ^= updates.shapeHash();
   shapeHashValue = shapeRes;
 
+  unsigned isoRes = index->isoHash() * Expr::MAGIC_HASH_CONSTANT;
+  isoRes ^= updates.isoHash();
+  isoHashValue = isoRes;
+
   return hashValue;
 }
 
 unsigned NotExpr::computeHash() {
   hashValue = expr->hash() * Expr::MAGIC_HASH_CONSTANT * Expr::Not;
   shapeHashValue = expr->shapeHash() * Expr::MAGIC_HASH_CONSTANT * Expr::Not;
+  isoHashValue = expr->isoHash() * Expr::MAGIC_HASH_CONSTANT * Expr::Not;
   return hashValue;
 }
 
@@ -537,6 +638,8 @@ Array::Array(const std::string &_name, uint64_t _size,
     assert((*it)->getWidth() == getRange() &&
            "Invalid initial constant value!");
 #endif // NDEBUG
+  static uint64_t n = 0;
+  id = n++;
 }
 
 Array::~Array() {
@@ -555,6 +658,8 @@ unsigned Array::computeHash() {
   }
   shapeRes = (shapeRes * Expr::MAGIC_HASH_CONSTANT) + size;
   shapeHashValue = shapeRes;
+
+  isoHashValue = 7777;
 
   return hashValue; 
 }
@@ -612,6 +717,11 @@ ref<Expr> ReadExpr::create(const UpdateList &ul, ref<Expr> index) {
 
 int ReadExpr::compareContents(const Expr &b) const { 
   return updates.compare(static_cast<const ReadExpr&>(b).updates);
+}
+
+bool ReadExpr::compareContentsIsomorphism(const Expr &b,
+                                          ArrayMapping &map) const {
+  return updates.isIsomorphic(static_cast<const ReadExpr &>(b).updates, map);
 }
 
 ref<Expr> SelectExpr::create(ref<Expr> c, ref<Expr> t, ref<Expr> f) {

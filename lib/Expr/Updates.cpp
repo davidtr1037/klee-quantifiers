@@ -45,7 +45,17 @@ unsigned UpdateNode::computeHash() {
   if (!next.isNull())
     shapeHashValue ^= next->shapeHash();
 
+  isoHashValue = index->isoHash() ^ value->isoHash();
+  if (!next.isNull())
+    isoHashValue ^= next->isoHash();
+
   return hashValue;
+}
+
+bool UpdateNode::isIsomorphic(const UpdateNode &b,
+                              ArrayMapping &map) const {
+  return index->isIsomorphic(*b.index, map) && \
+         value->isIsomorphic(*b.value, map);
 }
 
 ///
@@ -106,4 +116,45 @@ unsigned UpdateList::shapeHash() const {
   if (head.get())
     res ^= head->shapeHash();
   return res;
+}
+
+/* TODO: return constant? */
+unsigned UpdateList::isoHash() const {
+  unsigned res = 0;
+  if (head.get())
+    res ^= head->isoHash();
+  return res;
+}
+
+bool UpdateList::isIsomorphic(const UpdateList &b, ArrayMapping &map) const {
+  if (getSize() != b.getSize()) {
+    return false;
+  }
+
+  if (root->size != b.root->size) {
+    return false;
+  }
+
+  if (root->constantValues.size() != b.root->constantValues.size()) {
+    return false;
+  }
+
+  for (unsigned int i = 0; i < root->constantValues.size(); i++) {
+    ref<ConstantExpr> e1 = root->constantValues[i];
+    ref<ConstantExpr> e2 = b.root->constantValues[i];
+    if (e1->compareContents(*e2) != 0) {
+      return false;
+    }
+  }
+
+  const UpdateNode *an = head.get(), *bn = b.head.get();
+  for (; an && bn; an = an->next.get(), bn = bn->next.get()) {
+    /* TODO: exploit shared list structure? */
+    if (!an->isIsomorphic(*bn, map)) {
+      return false;
+    }
+  }
+
+  assert(!an && !bn);
+  return map.add(root, b.root);
 }
