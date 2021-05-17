@@ -58,16 +58,61 @@ private:
     }
   };
 
-  typedef std::unordered_map<CacheEntry, IncompleteSolver::PartialValidity,
-                             CacheEntryHash>
-      cache_map;
+  struct IsoCacheEntry {
+    IsoCacheEntry(const ConstraintSet &c, ref<Expr> q)
+        : constraints(c), query(q) {}
+
+    IsoCacheEntry(const CacheEntry &ce)
+      : constraints(ce.constraints), query(ce.query) {}
+
+    ConstraintSet constraints;
+    ref<Expr> query;
+
+    bool operator==(const CacheEntry &other) const {
+      if (constraints.size() != other.constraints.size()) {
+        return false;
+      }
+
+      /* we must preserve the same mapping for all constraints (pc and expr) */
+      ArrayMapping map;
+      if (!query->isIsomorphic(*other.query, map)) {
+        return false;
+      }
+
+      auto iter1 = constraints.begin();
+      auto iter2 = other.constraints.begin();
+      while (iter1 != constraints.end()) {
+        ref<Expr> e1 = *iter1;
+        ref<Expr> e2 = *iter2;
+        if (!e1->isIsomorphic(*e2, map)) {
+          return false;
+        }
+        iter1++; iter2++;
+      }
+      return true;
+    }
+  };
+
+  struct IsoCacheEntryHash {
+    unsigned operator()(const IsoCacheEntry &ce) const {
+      unsigned result = ce.query->isoHash();
+      for (ref<Expr> e : ce.constraints) {
+        result ^= e->isoHash();
+      }
+      return result;
+    }
+  };
+
+  typedef std::unordered_map<CacheEntry, IncompleteSolver::PartialValidity, CacheEntryHash> cache_map;
+  typedef std::unordered_map<IsoCacheEntry, IncompleteSolver::PartialValidity, IsoCacheEntryHash> IsoCacheMap;
 
   Solver *solver;
   cache_map cache;
+  IsoCacheMap isoCache;
 
 public:
   CachingSolver(Solver *s) : solver(s) {}
-  ~CachingSolver() { cache.clear(); delete solver; }
+  ~CachingSolver() { cache.clear(); isoCache.clear(); delete solver; }
 
   bool computeValidity(const Query&, Solver::Validity &result);
   bool computeTruth(const Query&, bool &isValid);
