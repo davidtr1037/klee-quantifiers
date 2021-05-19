@@ -16,9 +16,20 @@
 #include "klee/Solver/SolverImpl.h"
 #include "klee/Solver/SolverStats.h"
 
+#include "llvm/Support/CommandLine.h"
+
 #include <unordered_map>
 
+using namespace llvm;
 using namespace klee;
+
+namespace {
+
+cl::opt<bool> UseIsoCache("use-iso-cache",
+                          cl::init(false),
+                          cl::desc(""));
+
+}
 
 class CachingSolver : public SolverImpl {
 private:
@@ -68,7 +79,7 @@ private:
     ConstraintSet constraints;
     ref<Expr> query;
 
-    bool operator==(const CacheEntry &other) const {
+    bool operator==(const IsoCacheEntry &other) const {
       if (constraints.size() != other.constraints.size()) {
         return false;
       }
@@ -157,14 +168,23 @@ bool CachingSolver::cacheLookup(const Query& query,
   bool negationUsed;
   ref<Expr> canonicalQuery = canonicalizeQuery(query.expr, negationUsed);
 
-  CacheEntry ce(query.constraints, canonicalQuery);
-  cache_map::iterator it = cache.find(ce);
-  
-  if (it != cache.end()) {
-    result = (negationUsed ?
-              IncompleteSolver::negatePartialValidity(it->second) :
-              it->second);
-    return true;
+  if (UseIsoCache) {
+    IsoCacheEntry ce(query.constraints, canonicalQuery);
+    auto it = isoCache.find(ce);
+    if (it != isoCache.end()) {
+      result = (negationUsed ? IncompleteSolver::negatePartialValidity(it->second) : it->second);
+      return true;
+    }
+  } else {
+    CacheEntry ce(query.constraints, canonicalQuery);
+    cache_map::iterator it = cache.find(ce);
+
+    if (it != cache.end()) {
+      result = (negationUsed ?
+                IncompleteSolver::negatePartialValidity(it->second) :
+                it->second);
+      return true;
+    }
   }
   
   return false;
@@ -176,11 +196,19 @@ void CachingSolver::cacheInsert(const Query& query,
   bool negationUsed;
   ref<Expr> canonicalQuery = canonicalizeQuery(query.expr, negationUsed);
 
-  CacheEntry ce(query.constraints, canonicalQuery);
-  IncompleteSolver::PartialValidity cachedResult = 
-    (negationUsed ? IncompleteSolver::negatePartialValidity(result) : result);
-  
-  cache.insert(std::make_pair(ce, cachedResult));
+  if (UseIsoCache) {
+    IsoCacheEntry ce(query.constraints, canonicalQuery);
+    IncompleteSolver::PartialValidity cachedResult =
+      (negationUsed ? IncompleteSolver::negatePartialValidity(result) : result);
+
+    isoCache.insert(std::make_pair(ce, cachedResult));
+  } else {
+    CacheEntry ce(query.constraints, canonicalQuery);
+    IncompleteSolver::PartialValidity cachedResult =
+      (negationUsed ? IncompleteSolver::negatePartialValidity(result) : result);
+
+    cache.insert(std::make_pair(ce, cachedResult));
+  }
 }
 
 bool CachingSolver::computeValidity(const Query& query,
