@@ -1273,13 +1273,18 @@ protected:
     isTainted = bound->isTainted || pre->isTainted || post->isTainted;
     size = bound->size + pre->size + post->size + 1;
 
-    ref<ConcatExpr> ce = dyn_cast<ConcatExpr>(bound);
-    if (!ce.isNull()) {
+    if (isa<ConcatExpr>(bound)) {
+      ref<ConcatExpr> ce = dyn_cast<ConcatExpr>(bound);
       ref<ReadExpr> re = dyn_cast<ReadExpr>(ce->getLeft());
       if (!re.isNull()) {
         array = re->updates.root;
       }
     }
+    if (isa<ReadExpr>(bound)) {
+      ref<ReadExpr> re = dyn_cast<ReadExpr>(bound);
+      array = re->updates.root;
+    }
+    assert(array);
   }
 
   virtual int compareContents(const Expr &b) const {
