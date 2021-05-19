@@ -374,7 +374,8 @@ bool klee::solveEquationSystem(SMTEquationSystem &system,
   for (unsigned i = 0; i < ATTEMPTS; i++) {
     if (system.size() < i + 2) {
       /* not enough equations */
-      assert(0);
+      klee_warning("failed to find distinct terms after %u attempts", i);
+      return false;
     }
 
     eq1 = system[i];
