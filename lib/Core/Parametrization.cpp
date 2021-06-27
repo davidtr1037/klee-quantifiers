@@ -14,11 +14,11 @@ using namespace klee;
 
 static ArrayCache cache;
 
+/* TODO: the size probably shouldn't be a parameter */
 const Array *klee::getArray(const std::string &name,
                             uint64_t size,
                             bool isBoundVariable) {
-  std::string typed_name = name + "_" + std::to_string(size);
-  const Array *array = cache.CreateArray(typed_name, size);
+  const Array *array = cache.CreateArray(name, size);
   if (isBoundVariable) {
     array->isBoundVariable = isBoundVariable;
   }
