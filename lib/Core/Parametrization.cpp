@@ -207,6 +207,7 @@ static ref<Expr> replaceDistinctTerms(ref<Expr> e1,
       kids[i] = k1;
     } else {
       if (replaced) {
+        klee_message("multiple distinct children expressions");
         return nullptr;
       }
 
@@ -374,7 +375,7 @@ bool klee::solveEquationSystem(SMTEquationSystem &system,
 
   if (system.size() == 1) {
     /* no parameter here */
-    klee_warning("system has only one equation");
+    klee_message("system has only one equation");
     result = ParametrizedExpr(system[0].e, nullptr, nullptr);
     return true;
   }
@@ -385,7 +386,7 @@ bool klee::solveEquationSystem(SMTEquationSystem &system,
   for (unsigned i = 0; i < ATTEMPTS; i++) {
     if (system.size() < i + 2) {
       /* not enough equations */
-      klee_warning("failed to find distinct terms after %u attempts", i);
+      klee_message("failed to find distinct terms after %u attempts", i);
       return false;
     }
 
@@ -398,13 +399,14 @@ bool klee::solveEquationSystem(SMTEquationSystem &system,
   }
 
   if (!found) {
-    klee_warning("can't find distinct terms");
+    klee_message("failed to find distinct terms");
     return false;
   }
 
   ParametrizedExpr templateExpr;
   if (!solveLinearEquation(solver, {eq1, eq2}, {r1, r2}, id, templateExpr)) {
-    assert(0);
+    klee_message("failed to solve linear equation");
+    return false;
   }
 
   ref<Expr> e = replaceDistinctTerms(eq1.e, eq2.e, templateExpr.e);
@@ -417,6 +419,7 @@ bool klee::solveEquationSystem(SMTEquationSystem &system,
     result = parametricExpr;
     return true;
   } else {
+    klee_message("invalid solution");
     return false;
   }
 }
