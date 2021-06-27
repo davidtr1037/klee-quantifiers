@@ -14,8 +14,11 @@ using namespace klee;
 
 static ArrayCache cache;
 
-const Array *klee::getArray(const std::string &name, uint64_t size, bool isBoundVariable) {
-  const Array *array = cache.CreateArray(name, size);
+const Array *klee::getArray(const std::string &name,
+                            uint64_t size,
+                            bool isBoundVariable) {
+  std::string typed_name = name + "_" + std::to_string(size);
+  const Array *array = cache.CreateArray(typed_name, size);
   if (isBoundVariable) {
     array->isBoundVariable = isBoundVariable;
   }
@@ -178,6 +181,7 @@ static bool findDistinctTerms(ref<Expr> e1,
   return false;
 }
 
+/* TODO: must pass both e1 and e2? */
 static ref<Expr> replaceDistinctTerms(ref<Expr> e1,
                                       ref<Expr> e2,
                                       ref<Expr> placeHolder) {
@@ -282,18 +286,20 @@ static bool solveLinearEquation(TimingSolver &solver,
     assert(0);
   }
 
+  unsigned size = width / 8;
+
   const Array *array_a = getArray("a", QuantifiedExpr::AUX_VARIABLE_WIDTH);
   const Array *array_b = getArray("b", QuantifiedExpr::AUX_VARIABLE_WIDTH);
   const Array *array_m = getArray("m_" + llvm::utostr(id),
                                   QuantifiedExpr::AUX_VARIABLE_WIDTH);
 
-  unsigned size = width / 8;
   ref<Expr> a = getSymbolicValue(array_a, size);
   ref<Expr> b = getSymbolicValue(array_b, size);
   ref<Expr> m = getSymbolicValue(array_m, size);
 
   ref<Expr> all = ConstantExpr::create(1, Expr::Bool);
   for (unsigned i = 0; i < system.size(); i++) {
+    /* c[i] = a * k[i] + b */
     ref<Expr> eq = EqExpr::create(
       constants[i],
       AddExpr::create(
@@ -307,7 +313,8 @@ static bool solveLinearEquation(TimingSolver &solver,
     all = AndExpr::create(all, eq);
   }
 
-  ConstraintSet s({all});
+  /* must be empty */
+  ConstraintSet s;
 
   /* first check is satisfiable */
   bool mayBeTrue;
@@ -316,6 +323,9 @@ static bool solveLinearEquation(TimingSolver &solver,
   if (!mayBeTrue) {
     return false;
   }
+
+  /* now, we can add the constraint as it is feasible */
+  s.push_back(all);
 
   /* get assignment */
   std::vector<const Array *> objects = {array_a, array_b};
@@ -327,6 +337,7 @@ static bool solveLinearEquation(TimingSolver &solver,
   ref<Expr> coefficient_a = getConstantExpr(result[0], size);
   ref<Expr> coefficient_b = getConstantExpr(result[1], size);
 
+  /* parameter: a * m + b */
   templateExpr.e = AddExpr::create(
     MulExpr::create(
       coefficient_a,
