@@ -240,6 +240,7 @@ bool checkWidthConsistency(const std::vector<ref<Expr>> &constants,
 }
 
 ref<Expr> klee::getSymbolicValue(const Array *array, unsigned size) {
+  assert(array->size >= size);
   ref<Expr> r = nullptr;
   for (unsigned i = 0; i < size; i++) {
     ref<Expr> b = ReadExpr::create(UpdateList(array, 0),
@@ -287,13 +288,13 @@ static bool solveLinearEquation(TimingSolver &solver,
     assert(0);
   }
 
+  unsigned auxArraySize = QuantifiedExpr::AUX_VARIABLE_WIDTH / 8;
+  const Array *array_a = getArray("a", auxArraySize);
+  const Array *array_b = getArray("b", auxArraySize);
+  /* TODO: add a dedicated API for that */
+  const Array *array_m = getArray("m_" + llvm::utostr(id), auxArraySize);
+
   unsigned size = width / 8;
-
-  const Array *array_a = getArray("a", QuantifiedExpr::AUX_VARIABLE_WIDTH);
-  const Array *array_b = getArray("b", QuantifiedExpr::AUX_VARIABLE_WIDTH);
-  const Array *array_m = getArray("m_" + llvm::utostr(id),
-                                  QuantifiedExpr::AUX_VARIABLE_WIDTH);
-
   ref<Expr> a = getSymbolicValue(array_a, size);
   ref<Expr> b = getSymbolicValue(array_b, size);
   ref<Expr> m = getSymbolicValue(array_m, size);

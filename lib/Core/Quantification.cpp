@@ -1,16 +1,18 @@
 #include "Quantification.h"
 #include "klee/Expr/ExprUtil.h"
 
+#include "llvm/ADT/StringExtras.h"
+
 using namespace klee;
 using namespace llvm;
 
 bool getParametricExpressions(std::vector<SMTEquationSystem> systems,
                               TimingSolver &solver,
-                              uint32_t id,
+                              uint32_t mergeID,
                               std::vector<ParametrizedExpr> &result) {
   for (SMTEquationSystem &system : systems) {
     ParametrizedExpr solution;
-    if (!solveEquationSystem(system, solver, id, solution)) {
+    if (!solveEquationSystem(system, solver, mergeID, solution)) {
       return false;
     }
 
@@ -39,6 +41,8 @@ ref<Expr> generateRangeConstraint(PatternMatch &pm, const Array *array) {
   }
 
   Expr::Width w = QuantifiedExpr::AUX_VARIABLE_WIDTH;
+  assert(array->size * 8 >= w);
+
   ref<Expr> maxExpr = ConstantExpr::create(max, w);
   ref<Expr> minExpr = ConstantExpr::create(min, w);
   ref<Expr> parameter = getSymbolicValue(array, w / 8);
@@ -57,6 +61,7 @@ ref<Expr> generateRangeConstraint(PatternMatch &pm, const Array *array) {
 
 void generateForall(PatternMatch &pm,
                     std::vector<ParametrizedExpr> solutions,
+                    uint32_t mergeID,
                     ref<Expr> &forallExpr,
                     ref<Expr> &rangeExpr) {
   if (solutions.empty()) {
@@ -64,7 +69,17 @@ void generateForall(PatternMatch &pm,
     return;
   }
 
-  const Array *array_i = getArray("__i", 8, true);
+  unsigned auxArraySize = QuantifiedExpr::AUX_VARIABLE_WIDTH / 8;
+  const Array *array_i = getArray("__i", auxArraySize, true);
+  /* TODO: reuse the array from other module */
+  const Array *array_m = getArray("m_" + llvm::utostr(mergeID), auxArraySize);
+
+  /* outside of the forall expression */
+  rangeExpr = generateRangeConstraint(pm, array_m);
+
+  ref<Expr> bound = getSymbolicValue(array_i, array_i->size);
+  ref<Expr> aux = getSymbolicValue(array_m, array_m->size);
+  ref<Expr> premise = generateForallPremise(bound, aux);
 
   ref<Expr> coreExpr = ConstantExpr::create(1, Expr::Bool);
   for (const ParametrizedExpr &pe : solutions) {
@@ -76,17 +91,7 @@ void generateForall(PatternMatch &pm,
     coreExpr = AndExpr::create(coreExpr, substituted);
   }
 
-  /* TODO: the sizes of the parameters can vary, handle... */
-  ParametrizedExpr &pe = solutions[0];
-  /* TODO: rename parameter --> aux */
-  ref<Expr> parameter = pe.parameter;
-
-  /* outside of the forall expression */
-  rangeExpr = generateRangeConstraint(pm, pe.array);
-
   /* the forall expression itself */
-  ref<Expr> bound = getSymbolicValue(array_i, parameter->getWidth() / 8);
-  ref<Expr> premise = generateForallPremise(bound, parameter);
   forallExpr = ForallExpr::create(
     bound,
     premise,
@@ -98,7 +103,7 @@ void generateForall(PatternMatch &pm,
 /* TODO: handle low number of matches */
 ref<Expr> klee::generateQuantifiedConstraint(PatternMatch &pm,
                                              ExecTree &tree,
-                                             uint32_t id,
+                                             uint32_t mergeID,
                                              TimingSolver &solver) {
   std::vector<SMTEquationSystem> coreSystems, suffixSystems;
   std::vector<ParametrizedExpr> coreSolutions, suffixSolutions;
@@ -106,17 +111,17 @@ ref<Expr> klee::generateQuantifiedConstraint(PatternMatch &pm,
   ref<Expr> prefix = extractPrefixConstraint(tree, pm);
 
   extractEquationsForCore(tree, pm, coreSystems);
-  if (!getParametricExpressions(coreSystems, solver, id, coreSolutions)) {
+  if (!getParametricExpressions(coreSystems, solver, mergeID, coreSolutions)) {
     return nullptr;
   }
 
   extractEquationsForSuffix(tree, pm, suffixSystems);
-  if (!getParametricExpressions(suffixSystems, solver, id, suffixSolutions)) {
+  if (!getParametricExpressions(suffixSystems, solver, mergeID, suffixSolutions)) {
     return nullptr;
   }
 
   ref<Expr> forallExpr, rangeExpr;
-  generateForall(pm, coreSolutions, forallExpr, rangeExpr);
+  generateForall(pm, coreSolutions, mergeID, forallExpr, rangeExpr);
 
   ref<Expr> suffixExpr = ConstantExpr::create(1, Expr::Bool);
   for (const ParametrizedExpr &pe : suffixSolutions) {
