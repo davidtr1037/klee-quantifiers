@@ -68,13 +68,15 @@ void generateForall(PatternMatch &pm,
 
   ref<Expr> coreExpr = ConstantExpr::create(1, Expr::Bool);
   for (const ParametrizedExpr &pe : solutions) {
+    /* TODO: rename */
     ref<Expr> i = getSymbolicValue(array_i, pe.parameter->getWidth() / 8);
     ExprReplaceVisitor visitor(pe.parameter, i);
+    /* TODO: rename */
     ref<Expr> substituted = visitor.visit(pe.e);
     coreExpr = AndExpr::create(coreExpr, substituted);
   }
 
-  /* TODO: not so elegant */
+  /* TODO: the sizes of the parameters can vary, handle... */
   ParametrizedExpr &pe = solutions[0];
   /* TODO: rename parameter --> aux */
   ref<Expr> parameter = pe.parameter;

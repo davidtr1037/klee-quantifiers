@@ -39,6 +39,7 @@ struct ParametrizedExpr {
 
   }
 
+  /* TODO: rename */
   ref<Expr> e;
   ref<Expr> parameter;
   /* TODO: rename to parameter_array */
