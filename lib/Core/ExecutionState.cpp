@@ -942,6 +942,8 @@ bool ExecutionState::areEquiv(TimingSolver *solver,
                               const ExecutionState *sa,
                               const ExecutionState *sb,
                               bool checkPCEquivalence) {
+  ConstraintSet empty;
+
   ref<Expr> pcA = ConstantExpr::create(1, Expr::Bool);
   for (ref<Expr> e : sa->constraints) {
     pcA = AndExpr::create(pcA, e);
@@ -959,10 +961,17 @@ bool ExecutionState::areEquiv(TimingSolver *solver,
       OrExpr::create(NotExpr::create(pcB), pcA)
     );
   } else {
+    /* make sure that A is consistent (satisfiable) */
+    bool isSatisfiable = false;
+    SolverQueryMetaData meta;
+    assert(solver->mayBeTrue(empty, pcA, isSatisfiable, meta));
+    if (!isSatisfiable) {
+      return false;
+    }
+    /* A --> B */
     pcEquiv = OrExpr::create(NotExpr::create(pcA), pcB);
   }
 
-  ConstraintSet empty;
   bool isTrue = false;
   SolverQueryMetaData meta;
   assert(solver->mustBeTrue(empty, pcEquiv, isTrue, meta));
