@@ -51,11 +51,11 @@ void ExecTree::computeHashes() {
 
 void ExecTree::computeNodeHashes(ExecTreeNode *n) {
   if (n->isLeaf()) {
-    n->subTreeHash = n->getHash();
+    n->treeHash = n->getHash();
   } else {
     computeNodeHashes(n->left);
     computeNodeHashes(n->right);
-    n->subTreeHash = n->getHash() + n->left->subTreeHash + n->right->subTreeHash;
+    n->treeHash = n->getHash() + n->left->treeHash + n->right->treeHash;
   }
 }
 

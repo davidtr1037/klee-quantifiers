@@ -21,7 +21,7 @@ public:
     e(e),
     left(nullptr),
     right(nullptr),
-    subTreeHash(0),
+    treeHash(0),
     salt(salt) {
 
   }
@@ -34,11 +34,24 @@ public:
     return e->shapeHash() ^ salt;
   }
 
+  uint32_t getTreeHash() {
+    return treeHash;
+  }
+
+  uint32_t getSubTreeHash() {
+    if (isLeaf()) {
+      return 0;
+    } else {
+      /* excluding the root */
+      return left->getTreeHash() ^ right->getTreeHash();
+    }
+  }
+
   std::uint32_t stateID;
   ref<Expr> e;
   ExecTreeNode *left;
   ExecTreeNode *right;
-  unsigned subTreeHash;
+  unsigned treeHash;
   std::uint32_t salt;
 };
 
