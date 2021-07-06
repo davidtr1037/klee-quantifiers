@@ -3,20 +3,50 @@
 #include "llvm/Support/raw_ostream.h"
 #include "llvm/Support/FileSystem.h"
 
+#include <list>
+
 using namespace std;
 using namespace llvm;
 
 namespace klee {
 
 ExecTree::ExecTree(uint32_t stateID) {
-  ExecTreeNode *n = new ExecTreeNode(stateID, ConstantExpr::create(1, Expr::Bool));
-  root = n;
-  addNode(n);
+  root = new ExecTreeNode(stateID, ConstantExpr::create(1, Expr::Bool));
+  addNode(root);
 }
 
 ExecTree::~ExecTree() {
   for (ExecTreeNode *n : nodes) {
     delete n;
+  }
+}
+
+ExecTree::ExecTree(const ExecTree &other) {
+  root = new ExecTreeNode(*other.root);
+  addNode(root);
+
+  std::list<std::pair<ExecTreeNode *, ExecTreeNode *>> worklist;
+  worklist.push_back(std::make_pair(other.root, root));
+  while (!worklist.empty()) {
+    auto p = worklist.front();
+    worklist.pop_front();
+
+    ExecTreeNode *other_n = p.first;
+    ExecTreeNode *n = p.second;
+    if (other_n->left) {
+      ExecTreeNode *left = new ExecTreeNode(*other_n->left);
+      addNode(left);
+      n->left = left;
+    } else {
+      n->left = nullptr;
+    }
+    if (other_n->right) {
+      ExecTreeNode *right = new ExecTreeNode(*other_n->right);
+      addNode(right);
+      n->right = right;
+    } else {
+      n->right = nullptr;
+    }
   }
 }
 

@@ -26,6 +26,17 @@ public:
 
   }
 
+  ExecTreeNode(const ExecTreeNode &other) :
+    stateID(other.stateID),
+    e(other.e),
+    left(other.left),
+    right(other.right),
+    treeHash(other.treeHash),
+    salt(other.salt)
+  {
+
+  }
+
   bool isLeaf() {
     return left == nullptr && right == nullptr;
   }
@@ -61,6 +72,8 @@ public:
   ExecTree(std::uint32_t stateID);
 
   ~ExecTree();
+
+  ExecTree(const ExecTree &other);
 
   void addNode(ExecTreeNode *node);
 
