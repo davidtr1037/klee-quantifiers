@@ -21,6 +21,7 @@ public:
     e(e),
     left(nullptr),
     right(nullptr),
+    parent(nullptr),
     treeHash(0),
     salt(salt) {
 
@@ -31,6 +32,7 @@ public:
     e(other.e),
     left(other.left),
     right(other.right),
+    parent(other.parent),
     treeHash(other.treeHash),
     salt(other.salt)
   {
@@ -62,6 +64,7 @@ public:
   ref<Expr> e;
   ExecTreeNode *left;
   ExecTreeNode *right;
+  ExecTreeNode *parent;
   unsigned treeHash;
   std::uint32_t salt;
 };

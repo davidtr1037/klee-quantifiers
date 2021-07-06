@@ -37,6 +37,7 @@ ExecTree::ExecTree(const ExecTree &other) {
       ExecTreeNode *left = new ExecTreeNode(*other_n->left);
       addNode(left);
       n->left = left;
+      left->parent = n;
     } else {
       n->left = nullptr;
     }
@@ -44,6 +45,7 @@ ExecTree::ExecTree(const ExecTree &other) {
       ExecTreeNode *right = new ExecTreeNode(*other_n->right);
       addNode(right);
       n->right = right;
+      right->parent = n;
     } else {
       n->right = nullptr;
     }
@@ -59,13 +61,19 @@ void ExecTree::extend(uint32_t stateID,
                       uint32_t trueStateID,
                       uint32_t falseStateID,
                       uint32_t salt) {
-  ExecTreeNode *left = new ExecTreeNode(falseStateID, Expr::createIsZero(condition), salt);
-  ExecTreeNode *right = new ExecTreeNode(trueStateID, condition, salt);
+  ExecTreeNode *left = new ExecTreeNode(falseStateID,
+                                        Expr::createIsZero(condition),
+                                        salt);
+  ExecTreeNode *right = new ExecTreeNode(trueStateID,
+                                         condition,
+                                         salt);
 
   for (ExecTreeNode *node : nodes) {
     if (node->stateID == stateID && node->isLeaf()) {
       node->left = left;
       node->right = right;
+      left->parent = node;
+      right->parent = node;
       addNode(left);
       addNode(right);
       return;
