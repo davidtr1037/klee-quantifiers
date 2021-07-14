@@ -29,12 +29,6 @@ cl::opt<bool> UseOptimizedMerge(
     cl::desc(""),
     cl::cat(klee::LoopCat));
 
-/* TODO: remove? */
-cl::opt<bool> OptimizeGroupMerge(
-    "optimize-group-merge", cl::init(false),
-    cl::desc(""),
-    cl::cat(klee::LoopCat));
-
 cl::opt<bool> ValidateMerge(
     "validate-merge", cl::init(false),
     cl::desc(""),
@@ -131,25 +125,10 @@ void LoopHandler::splitStates(std::vector<MergeGroup> &result) {
 
 void LoopHandler::releaseStates() {
   std::vector<ref<Expr>> toAdd;
-  unsigned largestGroup = 0;
 
   std::vector<MergeGroup> groups;
   splitStates(groups);
   klee_message("splitting to %lu merging groups", groups.size());
-
-  if (OptimizeGroupMerge && groups.size() == 2) {
-    unsigned groupId = 0;
-    size_t maxCount = 0;
-    for (MergeGroup &states : groups) {
-      ref<Expr> e = ExecutionState::buildMergedConstraint(states);
-      toAdd.push_back(e);
-      if (states.size() > maxCount) {
-        maxCount = states.size();
-        largestGroup = groupId;
-      }
-      groupId++;
-    }
-  }
 
   unsigned groupId = 0;
   for (MergeGroup &states: groups) {
@@ -170,16 +149,6 @@ void LoopHandler::releaseStates() {
 
     if (MaxStatesToMerge == 0 || states.size() < MaxStatesToMerge) {
       if (UseOptimizedMerge) {
-        ref<Expr> e = nullptr;
-        if (OptimizeGroupMerge && groups.size() > 1 && groupId == largestGroup) {
-          e = ConstantExpr::create(1, Expr::Bool);
-          for (unsigned k = 0; k < toAdd.size(); k++) {
-            if (k != largestGroup) {
-              e = AndExpr::create(e, NotExpr::create(toAdd[k]));
-            }
-          }
-        }
-
         std::vector<PatternMatch> matches;
         if (OptimizeUsingQuantifiers) {
           std::set<uint32_t> ids;
@@ -196,7 +165,7 @@ void LoopHandler::releaseStates() {
 
         merged = ExecutionState::mergeStatesOptimized(states,
                                                       isComplete,
-                                                      e,
+                                                      nullptr,
                                                       matches,
                                                       this);
       } else {
