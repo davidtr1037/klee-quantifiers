@@ -83,6 +83,7 @@ void ExecTree::extend(uint32_t stateID,
   assert(false);
 }
 
+/* currently unused */
 void ExecTree::computeHashes() {
   computeNodeHashes(root);
 }
