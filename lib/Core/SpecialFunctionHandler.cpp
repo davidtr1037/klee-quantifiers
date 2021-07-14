@@ -141,6 +141,7 @@ static SpecialFunctionHandler::HandlerInfo handlerInfo[] = {
 
   add("klee_open_loop_merge", handleOpenLoopMerge, false),
   add("klee_close_loop_merge", handleCloseLoopMerge, false),
+  add("klee_or", handleOr, true),
 
 #undef addDNR
 #undef add
@@ -963,4 +964,29 @@ void SpecialFunctionHandler::handleCloseLoopMerge(ExecutionState &state,
   //  state.openLoopHandlerStack.back()->addClosedState(&state, i);
   //  state.openLoopHandlerStack.pop_back();
   //}
+}
+
+void SpecialFunctionHandler::handleOr(ExecutionState &state,
+                                      KInstruction *target,
+                                      std::vector<ref<Expr> > &arguments) {
+  assert(arguments.size() == 2);
+  ref<ConstantExpr> count = dyn_cast<ConstantExpr>(arguments[0]);
+  ref<ConstantExpr> address = dyn_cast<ConstantExpr>(arguments[1]);
+
+  ObjectPair op;
+  if (!state.addressSpace.resolveOne(state, executor.solver, address, op)) {
+    assert(0);
+  }
+
+  const MemoryObject *mo = op.first;
+  const ObjectState *os = op.second;
+
+  ref<Expr> orExpr = ConstantExpr::create(0, Expr::Bool);
+  /* TODO: should use getSizeExpr */
+  for (unsigned i = 0; i < mo->capacity; i++) {
+    ref<ZExtExpr> e = dyn_cast<ZExtExpr>(os->read8(i));
+    assert(!e.isNull());
+    orExpr = OrExpr::create(e->src, orExpr);
+  }
+  executor.bindLocal(target, state, orExpr);
 }

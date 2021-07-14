@@ -146,6 +146,7 @@ namespace klee {
     HANDLER(handleDivRemOverflow);
     HANDLER(handleOpenLoopMerge);
     HANDLER(handleCloseLoopMerge);
+    HANDLER(handleOr);
 #undef HANDLER
   };
 } // End klee namespace

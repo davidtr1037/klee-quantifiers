@@ -201,3 +201,5 @@ void klee_set_forking(unsigned enable) { }
 void klee_open_merge() { }
 
 void klee_close_merge() { }
+
+bool klee_or(size_t n, bool cond[]);

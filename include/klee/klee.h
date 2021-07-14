@@ -12,6 +12,7 @@
 
 #include "stdint.h"
 #include "stddef.h"
+#include "stdbool.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -160,6 +161,7 @@ extern "C" {
   void klee_close_object_merge();
   void klee_open_loop_merge();
   void klee_close_loop_merge();
+  bool klee_or(size_t n, bool cond[]);
 
   /* Get errno value of the current state */
   int klee_get_errno(void);
