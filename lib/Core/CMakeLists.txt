@@ -14,7 +14,6 @@ klee_add_component(kleeCore
   CoreStats.cpp
   ExecTree.cpp
   ExecTreeIterator.cpp
-  ExecTreeRewrite.cpp
   ExecutionState.cpp
   Executor.cpp
   ExecutorUtil.cpp
