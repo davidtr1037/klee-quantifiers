@@ -8,6 +8,8 @@
 
 namespace klee {
 
+class ExecutionState;
+
 /* TODO: StateID2Value */
 typedef std::map<std::uint32_t, ref<Expr>> State2Value;
 
@@ -16,9 +18,11 @@ public:
 
   ExecTreeNode(std::uint32_t stateID,
                ref<Expr> e,
+               ExecutionState *snapshot,
                std::uint32_t salt = 1) :
     stateID(stateID),
     e(e),
+    snapshot(snapshot),
     left(nullptr),
     right(nullptr),
     parent(nullptr),
@@ -30,14 +34,16 @@ public:
   ExecTreeNode(const ExecTreeNode &other) :
     stateID(other.stateID),
     e(other.e),
+    snapshot(other.snapshot),
     left(other.left),
     right(other.right),
     parent(other.parent),
     treeHash(other.treeHash),
-    salt(other.salt)
-  {
+    salt(other.salt) {
 
   }
+
+  ~ExecTreeNode();
 
   bool isLeaf() {
     return left == nullptr && right == nullptr;
@@ -62,9 +68,11 @@ public:
 
   std::uint32_t stateID;
   ref<Expr> e;
+  ExecutionState *snapshot;
   ExecTreeNode *left;
   ExecTreeNode *right;
   ExecTreeNode *parent;
+  /* TODO: remove */
   unsigned treeHash;
   std::uint32_t salt;
 };
@@ -80,10 +88,12 @@ public:
 
   void addNode(ExecTreeNode *node);
 
-  void extend(std::uint32_t stateID,
+  void extend(ExecutionState &current,
+              ExecutionState &trueState,
+              ExecutionState *trueSnapshot,
+              ExecutionState &falseState,
+              ExecutionState *falseSnapshot,
               ref<Expr> condition,
-              std::uint32_t leftID,
-              std::uint32_t rightID,
               std::uint32_t salt);
 
   void computeHashes();

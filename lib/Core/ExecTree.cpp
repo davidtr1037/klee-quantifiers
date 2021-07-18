@@ -1,4 +1,5 @@
 #include "ExecTree.h"
+#include "ExecutionState.h"
 
 #include "llvm/Support/raw_ostream.h"
 #include "llvm/Support/FileSystem.h"
@@ -10,8 +11,18 @@ using namespace llvm;
 
 namespace klee {
 
+ExecTreeNode::~ExecTreeNode() {
+  if (snapshot) {
+    delete snapshot;
+  }
+}
+
+/* TODO: pass a reference to ExecutionState? */
 ExecTree::ExecTree(uint32_t stateID) {
-  root = new ExecTreeNode(stateID, ConstantExpr::create(1, Expr::Bool));
+  /* TODO: add snapshot? */
+  root = new ExecTreeNode(stateID,
+                          ConstantExpr::create(1, Expr::Bool),
+                          nullptr);
   addNode(root);
 }
 
@@ -56,20 +67,24 @@ void ExecTree::addNode(ExecTreeNode *node) {
   nodes.push_back(node);
 }
 
-void ExecTree::extend(uint32_t stateID,
+void ExecTree::extend(ExecutionState &current,
+                      ExecutionState &trueState,
+                      ExecutionState *trueSnapshot,
+                      ExecutionState &falseState,
+                      ExecutionState *falseSnapshot,
                       ref<Expr> condition,
-                      uint32_t trueStateID,
-                      uint32_t falseStateID,
-                      uint32_t salt) {
-  ExecTreeNode *left = new ExecTreeNode(falseStateID,
+                      std::uint32_t salt) {
+  ExecTreeNode *left = new ExecTreeNode(falseState.getID(),
                                         Expr::createIsZero(condition),
+                                        falseSnapshot,
                                         salt);
-  ExecTreeNode *right = new ExecTreeNode(trueStateID,
+  ExecTreeNode *right = new ExecTreeNode(trueState.getID(),
                                          condition,
+                                         trueSnapshot,
                                          salt);
 
   for (ExecTreeNode *node : nodes) {
-    if (node->stateID == stateID && node->isLeaf()) {
+    if (node->stateID == current.getID() && node->isLeaf()) {
       node->left = left;
       node->right = right;
       left->parent = node;

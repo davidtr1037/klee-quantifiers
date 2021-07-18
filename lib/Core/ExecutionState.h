@@ -106,7 +106,7 @@ public:
 private:
 #endif
   // copy ctor
-  ExecutionState(const ExecutionState &state);
+  ExecutionState(const ExecutionState &state, bool isSnapshot = false);
 
 public:
   using stack_ty = std::vector<StackFrame>;
@@ -215,7 +215,7 @@ public:
   // dtor
   ~ExecutionState();
 
-  ExecutionState *branch();
+  ExecutionState *branch(bool isSnapshot = false);
 
   void pushFrame(KInstIterator caller, KFunction *kf);
   void popFrame();

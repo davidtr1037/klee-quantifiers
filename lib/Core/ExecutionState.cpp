@@ -159,7 +159,8 @@ ExecutionState::~ExecutionState() {
   while (!stack.empty()) popFrame();
 }
 
-ExecutionState::ExecutionState(const ExecutionState& state):
+/* TODO: try to avoid adding patameters */
+ExecutionState::ExecutionState(const ExecutionState& state, bool isSnapshot):
     pc(state.pc),
     prevPC(state.prevPC),
     stack(state.stack),
@@ -189,15 +190,15 @@ ExecutionState::ExecutionState(const ExecutionState& state):
   for (ref<LoopHandler> handler : openLoopHandlerStack) {
     handler->addOpenState(this);
   }
-  if (!loopHandler.isNull()) {
+  if (!loopHandler.isNull() && !isSnapshot) {
     loopHandler->addOpenState(this);
   }
 }
 
-ExecutionState *ExecutionState::branch() {
+ExecutionState *ExecutionState::branch(bool isSnapshot) {
   depth++;
 
-  auto *falseState = new ExecutionState(*this);
+  auto *falseState = new ExecutionState(*this, isSnapshot);
   falseState->setID();
   falseState->coveredNew = false;
   falseState->coveredLines.clear();

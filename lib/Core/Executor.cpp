@@ -1140,14 +1140,20 @@ Executor::fork(ExecutionState &current, ref<Expr> condition, bool isInternal) {
     falseState = trueState->branch();
     addedStates.push_back(falseState);
 
+    /* TODO: add a function for this check */
     if (UseLoopMerge && !current.loopHandler.isNull()) {
       if (OptimizeITEUsingExecTree || OptimizeArrayITEUsingExecTree) {
         if (current.loopHandler->canUseExecTree) {
-          current.loopHandler->tree.extend(current.getID(),
-                                           condition,
-                                           trueState->getID(),
-                                           falseState->getID(),
-                                           current.prevPC->info->id);
+          ExecutionState *trueSnapshot = createSnapshot(*trueState);
+          ExecutionState *falseSnapshot = createSnapshot(*falseState);
+          ExecTree &tree = current.loopHandler->tree;
+          tree.extend(current,
+                      *trueState,
+                      trueSnapshot,
+                      *falseState,
+                      falseSnapshot,
+                      condition,
+                      current.prevPC->info->id);
         }
       }
     }
@@ -4665,6 +4671,8 @@ ExecutionState *Executor::createSnapshot(ExecutionState &state) {
   }
 
   ExecutionState *snapshot = state.branch(true);
+  /* TODO: otherwise, the loop handler won't be deallocated */
+  snapshot->loopHandler = nullptr;
   transferToBasicBlock(branchInst->getSuccessor(0),
                        branchInst->getParent(),
                        *snapshot);
