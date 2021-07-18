@@ -499,7 +499,8 @@ private:
   void computePartition(ExecutionState &state,
                         std::vector<uint64_t> &partition);
 
-  ExecutionState *createSnapshot(ExecutionState &state);
+  ExecutionState *createSnapshot(ExecutionState &state,
+                                 unsigned index);
 
 public:
   Executor(llvm::LLVMContext &ctx, const InterpreterOptions &opts,

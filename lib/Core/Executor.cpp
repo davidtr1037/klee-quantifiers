@@ -1162,9 +1162,10 @@ Executor::fork(ExecutionState &current, ref<Expr> condition, bool isInternal) {
           ExecutionState *trueSnapshot = nullptr;
           ExecutionState *falseSnapshot = nullptr;
           if (CreateSnapshots) {
-            trueSnapshot = createSnapshot(*trueState);
-            falseSnapshot = createSnapshot(*falseState);
+            trueSnapshot = createSnapshot(*trueState, 0);
+            falseSnapshot = createSnapshot(*falseState, 1);
           }
+
           ExecTree &tree = current.loopHandler->tree;
           tree.extend(current,
                       *trueState,
@@ -4767,7 +4768,8 @@ void Executor::computePartition(ExecutionState &state,
   }
 }
 
-ExecutionState *Executor::createSnapshot(ExecutionState &state) {
+ExecutionState *Executor::createSnapshot(ExecutionState &state,
+                                         unsigned index) {
   BranchInst *branchInst = dyn_cast<BranchInst>(state.prevPC->inst);
   if (!branchInst) {
     /* supporting only branches (no switches) */
@@ -4777,7 +4779,7 @@ ExecutionState *Executor::createSnapshot(ExecutionState &state) {
   ExecutionState *snapshot = state.branch(true);
   /* TODO: otherwise, the loop handler won't be deallocated */
   snapshot->loopHandler = nullptr;
-  transferToBasicBlock(branchInst->getSuccessor(0),
+  transferToBasicBlock(branchInst->getSuccessor(index),
                        branchInst->getParent(),
                        *snapshot);
   return snapshot;
