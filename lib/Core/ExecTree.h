@@ -49,6 +49,18 @@ public:
     return left == nullptr && right == nullptr;
   }
 
+  ExecTreeNode *getSibling() const {
+    if (!parent) {
+      return nullptr;
+    }
+
+    if (parent->left == this) {
+      return parent->right;
+    } else {
+      return parent->left;
+    }
+  }
+
   uint32_t getHash() {
     return e->shapeHash() ^ salt;
   }
