@@ -2,6 +2,7 @@
 #define KLEE_LOOPHANDLER_H
 
 #include "TimingSolver.h"
+#include "Memory.h"
 #include "ExecTree.h"
 
 #include "klee/ADT/Ref.h"
@@ -62,6 +63,18 @@ public:
   void markEarlyTerminated(ExecutionState &state);
 
   unsigned getEarlyTerminated();
+
+  bool compareStack(ExecutionState &s1, ExecutionState &s2);
+
+  bool compareHeap(ExecutionState &s1,
+                   ExecutionState &s2,
+                   std::set<const MemoryObject *> &mutated);
+
+  bool shouldMerge(ExecutionState &s1, ExecutionState &s2);
+
+  void mergeIntermediateState(ExecTreeNode *target);
+
+  void mergeIntermediateStates();
 
   bool validateMerge(std::vector<ExecutionState *> &states,
                      ExecutionState *merged);

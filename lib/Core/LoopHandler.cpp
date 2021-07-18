@@ -4,7 +4,10 @@
 #include "ExecutionState.h"
 #include "Executor.h"
 #include "Searcher.h"
+#include "Memory.h"
 #include "PatternExtraction.h"
+
+#include <list>
 
 using namespace std;
 using namespace llvm;
@@ -265,6 +268,85 @@ LoopHandler::~LoopHandler() {
   for (auto &i: mergeGroupsByExit) {
     vector<ExecutionState *> &states = i.second;
     assert(states.empty());
+  }
+}
+
+bool LoopHandler::compareStack(ExecutionState &s1, ExecutionState &s2) {
+  StackFrame &sf1 = s1.stack.back();
+  StackFrame &sf2 = s2.stack.back();
+  for (unsigned reg = 0; reg < sf1.kf->numRegisters; reg++) {
+    ref<Expr> v1 = sf1.locals[reg].value;
+    ref<Expr> v2 = sf2.locals[reg].value;
+    if (v1.isNull() || v2.isNull()) {
+      return v1.isNull() && v2.isNull();
+    }
+    if (*v1 != *v2) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+bool LoopHandler::compareHeap(ExecutionState &s1,
+                              ExecutionState &s2,
+                              std::set<const MemoryObject *> &mutated) {
+  for (const MemoryObject *mo : mutated) {
+    const ObjectState *os1 = s1.addressSpace.findObject(mo);
+    const ObjectState *os2 = s2.addressSpace.findObject(mo);
+    for (unsigned i = 0; i < mo->capacity; i++) {
+      ref<Expr> e1 = os1->read8(i, false);
+      ref<Expr> e2 = os2->read8(i, false);
+      if (*e1 != *e2) {
+        return false;
+      }
+    }
+  }
+
+  return true;
+}
+
+bool LoopHandler::shouldMerge(ExecutionState &s1, ExecutionState &s2) {
+  std::vector<ExecutionState *> states = {&s1, &s2};
+  std::set<const MemoryObject*> mutated;
+  if (!ExecutionState::canMerge(states, mutated)) {
+    return false;
+  }
+
+  if (!compareStack(s1, s2)) {
+    return false;
+  }
+  if (!compareHeap(s1, s2, mutated)) {
+    return false;
+  }
+
+  return true;
+}
+
+void LoopHandler::mergeIntermediateState(ExecTreeNode *target) {
+  std::list<ExecTreeNode *> worklist;
+
+  ExecTreeNode *n = target;
+  while (n->parent) {
+    ExecTreeNode *sibling = n->getSibling();
+    worklist.push_back(sibling);
+    n = n->parent;
+  }
+
+  while (!worklist.empty()) {
+    ExecTreeNode *n = worklist.back();
+    worklist.pop_back();
+    if (shouldMerge(*target->snapshot, *n->snapshot)) {
+      errs() << "OK\n";
+    }
+  }
+}
+
+void LoopHandler::mergeIntermediateStates() {
+  for (ExecTreeNode *n : tree.nodes) {
+    if (n != tree.root) {
+      mergeIntermediateState(n);
+    }
   }
 }
 
