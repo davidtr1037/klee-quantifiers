@@ -240,12 +240,12 @@ unsigned LoopHandler::getEarlyTerminated() {
   return earlyTerminated;
 }
 
-LoopHandler::LoopHandler(Executor *_executor, ExecutionState *es, Loop *loop)
+LoopHandler::LoopHandler(Executor *executor, ExecutionState *es, Loop *loop)
     : closedStateCount(0),
       activeStates(0),
       earlyTerminated(0),
-      executor(_executor),
-      solver(_executor->solver),
+      executor(executor),
+      solver(executor->solver),
       loop(loop),
       tree(es->getID()),
       canUseExecTree(true) {

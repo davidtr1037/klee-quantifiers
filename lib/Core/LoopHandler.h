@@ -45,7 +45,7 @@ private:
 
 public:
 
-  LoopHandler(Executor *_executor, ExecutionState *es, llvm::Loop *loop);
+  LoopHandler(Executor *executor, ExecutionState *es, llvm::Loop *loop);
 
   ~LoopHandler();
 
@@ -63,7 +63,8 @@ public:
 
   unsigned getEarlyTerminated();
 
-  bool validateMerge(std::vector<ExecutionState *> &states, ExecutionState *merged);
+  bool validateMerge(std::vector<ExecutionState *> &states,
+                     ExecutionState *merged);
 
   class ReferenceCounter _refCount;
 
