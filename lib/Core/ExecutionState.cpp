@@ -91,6 +91,11 @@ cl::opt<bool> klee::OptimizeUsingQuantifiers(
     cl::desc(""),
     cl::cat(MergeCat));
 
+cl::opt<bool> klee::CreateSnapshots(
+    "create-snapshots", cl::init(false),
+    cl::desc(""),
+    cl::cat(MergeCat));
+
 /***/
 
 std::uint32_t ExecutionState::nextID = 1;

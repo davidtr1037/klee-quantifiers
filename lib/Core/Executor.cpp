@@ -1144,8 +1144,12 @@ Executor::fork(ExecutionState &current, ref<Expr> condition, bool isInternal) {
     if (UseLoopMerge && !current.loopHandler.isNull()) {
       if (OptimizeITEUsingExecTree || OptimizeArrayITEUsingExecTree) {
         if (current.loopHandler->canUseExecTree) {
-          ExecutionState *trueSnapshot = createSnapshot(*trueState);
-          ExecutionState *falseSnapshot = createSnapshot(*falseState);
+          ExecutionState *trueSnapshot = nullptr;
+          ExecutionState *falseSnapshot = nullptr;
+          if (CreateSnapshots) {
+            trueSnapshot = createSnapshot(*trueState);
+            falseSnapshot = createSnapshot(*falseState);
+          }
           ExecTree &tree = current.loopHandler->tree;
           tree.extend(current,
                       *trueState,
