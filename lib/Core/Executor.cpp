@@ -4657,6 +4657,20 @@ void Executor::computePartition(ExecutionState &state,
   }
 }
 
+ExecutionState *Executor::createSnapshot(ExecutionState &state) {
+  BranchInst *branchInst = dyn_cast<BranchInst>(state.prevPC->inst);
+  if (!branchInst) {
+    /* supporting only branches (no switches) */
+    assert(0);
+  }
+
+  ExecutionState *snapshot = state.branch(true);
+  transferToBasicBlock(branchInst->getSuccessor(0),
+                       branchInst->getParent(),
+                       *snapshot);
+  return snapshot;
+}
+
 ///
 
 Interpreter *Interpreter::create(LLVMContext &ctx, const InterpreterOptions &opts,
