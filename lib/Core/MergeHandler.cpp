@@ -112,6 +112,7 @@ void MergeHandler::addClosedState(ExecutionState *es,
         executor->terminateState(*es);
         executor->mergingSearcher->inCloseMerge.erase(es);
         mergedSuccessful = true;
+        executor->interpreterHandler->decUnmergedExploredPaths();
         break;
       }
     }
@@ -144,13 +145,15 @@ MergeHandler::MergeHandler(Executor *_executor, ExecutionState *es)
 }
 
 MergeHandler::~MergeHandler() {
-  auto it = std::find(executor->mergingSearcher->mergeGroups.begin(),
-                      executor->mergingSearcher->mergeGroups.end(), this);
-  assert(it != executor->mergingSearcher->mergeGroups.end() &&
-         "All MergeHandlers should be registered in mergeGroups");
-  std::swap(*it, executor->mergingSearcher->mergeGroups.back());
-  executor->mergingSearcher->mergeGroups.pop_back();
-
-  releaseStates();
+  /* TODO: do something better? */
+  if (executor->searcher) {
+    auto it = std::find(executor->mergingSearcher->mergeGroups.begin(),
+                        executor->mergingSearcher->mergeGroups.end(), this);
+    assert(it != executor->mergingSearcher->mergeGroups.end() &&
+           "All MergeHandlers should be registered in mergeGroups");
+    std::swap(*it, executor->mergingSearcher->mergeGroups.back());
+    executor->mergingSearcher->mergeGroups.pop_back();
+    releaseStates();
+  }
 }
 }
