@@ -278,10 +278,13 @@ bool LoopHandler::compareStack(ExecutionState &s1, ExecutionState &s2) {
     ref<Expr> v1 = sf1.locals[reg].value;
     ref<Expr> v2 = sf2.locals[reg].value;
     if (v1.isNull() || v2.isNull()) {
-      return v1.isNull() && v2.isNull();
-    }
-    if (*v1 != *v2) {
-      return false;
+      if (!(v1.isNull() && v2.isNull())) {
+        return false;
+      }
+    } else {
+      if (*v1 != *v2) {
+        return false;
+      }
     }
   }
 
@@ -337,7 +340,7 @@ void LoopHandler::mergeIntermediateState(ExecTreeNode *target) {
     ExecTreeNode *n = worklist.back();
     worklist.pop_back();
     if (shouldMerge(*target->snapshot, *n->snapshot)) {
-      errs() << "OK\n";
+      /* TODO: merge */
     }
   }
 }
