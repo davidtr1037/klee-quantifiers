@@ -19,6 +19,7 @@ klee_add_component(kleeCore
   ExecutorUtil.cpp
   ExternalDispatcher.cpp
   ImpliedValue.cpp
+  LivenessAnalysis.cpp
   LoopHandler.cpp
   Memory.cpp
   MemoryManager.cpp
