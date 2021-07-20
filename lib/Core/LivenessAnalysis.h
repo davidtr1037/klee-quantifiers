@@ -16,11 +16,13 @@ public:
 
   typedef std::map<llvm::Instruction *, std::set<llvm::StringRef>> LiveSet;
 
-  static void analyze(llvm::Function *f);
+  static void analyze(llvm::Function *f,
+                      LiveSet &liveIn,
+                      LiveSet &liveOut);
 
   static bool runIteration(llvm::Function *f,
-                           LiveSet &live_in,
-                           LiveSet &live_out);
+                           LiveSet &liveIn,
+                           LiveSet &liveOut);
 
   static void gen(llvm::Instruction *inst,
                   std::set<llvm::StringRef> &variables);

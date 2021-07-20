@@ -20,19 +20,18 @@ using namespace std;
 
 namespace klee {
 
-void LivenessAnalysis::analyze(Function *f) {
-  LiveSet live_in;
-  LiveSet live_out;
+void LivenessAnalysis::analyze(Function *f,
+                               LiveSet &liveIn,
+                               LiveSet &liveOut) {
   bool changed;
-
   do {
-    changed = runIteration(f, live_in, live_out);
+    changed = runIteration(f, liveIn, liveOut);
   } while (changed);
 }
 
 bool LivenessAnalysis::runIteration(Function *f,
-                                    LiveSet &live_in,
-                                    LiveSet &live_out) {
+                                    LiveSet &liveIn,
+                                    LiveSet &liveOut) {
   list<Instruction *> worklist;
   set<Instruction *> visited;
   bool changed = false;
@@ -53,7 +52,6 @@ bool LivenessAnalysis::runIteration(Function *f,
       continue;
     }
 
-    errs() << "HANDLE " << *inst << "\n";
     set<StringRef> toKill, toGen;
     gen(inst, toGen);
     kill(inst, toKill);
@@ -69,10 +67,9 @@ bool LivenessAnalysis::runIteration(Function *f,
       successors.push_back(inst->getNextNode());
     }
     for (Instruction *s : successors) {
-      for (StringRef n : live_in[s]) {
-        auto r = live_out[inst].insert(n);
+      for (StringRef n : liveIn[s]) {
+        auto r = liveOut[inst].insert(n);
         if (r.second) {
-          errs() << "ADD OUT " << n << "\n";
           changed = true;
         }
       }
@@ -80,16 +77,15 @@ bool LivenessAnalysis::runIteration(Function *f,
 
     /* live-in */
     for (StringRef n : toGen) {
-      auto r = live_in[inst].insert(n);
+      auto r = liveIn[inst].insert(n);
       if (r.second) {
-        errs() << "ADD IN " << n << "\n";
+        changed = true;
       }
     }
-    for (StringRef name : live_out[inst]) {
+    for (StringRef name : liveOut[inst]) {
       if (toKill.find(name) == toKill.end()) {
-        auto r = live_in[inst].insert(name);
+        auto r = liveIn[inst].insert(name);
         if (r.second) {
-          errs() << "ADD IN " << name << "\n";
           changed = true;
         }
       }

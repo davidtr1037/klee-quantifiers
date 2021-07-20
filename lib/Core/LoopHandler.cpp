@@ -6,6 +6,7 @@
 #include "Searcher.h"
 #include "Memory.h"
 #include "PatternExtraction.h"
+#include "LivenessAnalysis.h"
 
 #include <list>
 
