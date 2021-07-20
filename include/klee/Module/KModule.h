@@ -55,6 +55,9 @@ namespace klee {
     /// "coverable" for statistics and search heuristics.
     bool trackCoverage;
 
+    /* TODO: add docs */
+    std::map<unsigned, llvm::Instruction *> inverseRegisterMap;
+
   public:
     explicit KFunction(llvm::Function*, KModule *);
     KFunction(const KFunction &) = delete;

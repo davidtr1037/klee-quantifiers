@@ -563,8 +563,12 @@ KFunction::KFunction(llvm::Function *_function,
   for (llvm::Function::iterator bbit = function->begin(), 
          bbie = function->end(); bbit != bbie; ++bbit) {
     for (llvm::BasicBlock::iterator it = bbit->begin(), ie = bbit->end();
-         it != ie; ++it)
-      registerMap[&*it] = rnum++;
+         it != ie; ++it) {
+      Instruction *inst = &*it;
+      registerMap[inst] = rnum;
+      inverseRegisterMap[rnum] = inst;
+      rnum++;
+    }
   }
   numRegisters = rnum;
   
