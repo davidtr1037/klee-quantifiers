@@ -112,6 +112,8 @@ public:
 
   void computeNodeHashes(ExecTreeNode *n);
 
+  ExecTreeNode *getNearestAncestor(ExecTreeNode *n1, ExecTreeNode *n2);
+
   void dump();
 
   void dumpGML(llvm::raw_ostream &os, std::set<uint32_t> &ids);

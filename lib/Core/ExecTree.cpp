@@ -113,6 +113,32 @@ void ExecTree::computeNodeHashes(ExecTreeNode *n) {
   }
 }
 
+ExecTreeNode *ExecTree::getNearestAncestor(ExecTreeNode *n1, ExecTreeNode *n2) {
+  std::vector<ExecTreeNode *> p1;
+  std::set<ExecTreeNode *> p2;
+  ExecTreeNode *current;
+
+  current = n1;
+  while (current) {
+    p1.push_back(current);
+    current = current->parent;
+  }
+
+  current = n2;
+  while (current) {
+    p2.insert(current);
+    current = current->parent;
+  }
+
+  for (ExecTreeNode *n1 : p1) {
+    if (p2.find(n1) != p2.end()) {
+      return n1;
+    }
+  }
+
+  return nullptr;
+}
+
 void ExecTree::dump() {
   std::vector<ExecTreeNode *> worklist;
   worklist.push_back(root);
