@@ -272,10 +272,38 @@ LoopHandler::~LoopHandler() {
   }
 }
 
+bool LoopHandler::isLiveAt(LivenessAnalysis::Result &result,
+                           KFunction *kf,
+                           KInstruction *kinst,
+                           unsigned reg) {
+  auto i = kf->inverseRegisterMap.find(reg);
+  if (i == kf->inverseRegisterMap.end()) {
+    return true;
+  }
+
+  set<Value *> &live = result.liveIn[kinst->inst];
+  Value *regValue = i->second;
+  if (live.find(regValue) != live.end()) {
+    return true;
+  }
+
+  return false;
+}
+
 bool LoopHandler::compareStack(ExecutionState &s1, ExecutionState &s2) {
   StackFrame &sf1 = s1.stack.back();
   StackFrame &sf2 = s2.stack.back();
-  for (unsigned reg = 0; reg < sf1.kf->numRegisters; reg++) {
+
+  /* identical in both states */
+  KInstruction *kinst = s1.pc;
+  KFunction *kf = sf1.kf;
+
+  auto result = getLivenessAnalysisResult(kf->function);
+
+  for (unsigned reg = 0; reg < kf->numRegisters; reg++) {
+    if (!isLiveAt(result, kf, kinst, reg)) {
+      continue;
+    }
     ref<Expr> v1 = sf1.locals[reg].value;
     ref<Expr> v2 = sf2.locals[reg].value;
     if (v1.isNull() || v2.isNull()) {
@@ -361,6 +389,18 @@ bool LoopHandler::validateMerge(std::vector<ExecutionState *> &snapshots,
                                   merged,
                                   expected,
                                   !OptimizeUsingQuantifiers);
+}
+
+/* TODO: return a reference */
+LivenessAnalysis::Result LoopHandler::getLivenessAnalysisResult(Function *f) {
+  if (cache.find(f) != cache.end()) {
+    return cache[f];
+  }
+
+  LivenessAnalysis::Result result;
+  LivenessAnalysis::analyze(f, result.liveIn, result.liveOut);
+  cache[f] = result;
+  return result;
 }
 
 }

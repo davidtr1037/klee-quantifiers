@@ -4,9 +4,11 @@
 #include "TimingSolver.h"
 #include "Memory.h"
 #include "ExecTree.h"
+#include "LivenessAnalysis.h"
 
 #include "klee/ADT/Ref.h"
 #include "klee/Expr/Constraints.h"
+#include "klee/Module/KModule.h"
 
 #include "llvm/Support/CommandLine.h"
 #include "llvm/Analysis/LoopInfo.h"
@@ -64,6 +66,11 @@ public:
 
   unsigned getEarlyTerminated();
 
+  bool isLiveAt(LivenessAnalysis::Result &result,
+                KFunction *kf,
+                KInstruction *kinst,
+                unsigned reg);
+
   bool compareStack(ExecutionState &s1, ExecutionState &s2);
 
   bool compareHeap(ExecutionState &s1,
@@ -79,6 +86,8 @@ public:
   bool validateMerge(std::vector<ExecutionState *> &states,
                      ExecutionState *merged);
 
+  LivenessAnalysis::Result getLivenessAnalysisResult(llvm::Function *f);
+
   class ReferenceCounter _refCount;
 
   Executor *executor;
@@ -92,6 +101,8 @@ public:
   ExecTree tree;
 
   bool canUseExecTree;
+
+  std::map<llvm::Function *, LivenessAnalysis::Result> cache;
 };
 
 }
