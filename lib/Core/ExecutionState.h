@@ -241,6 +241,7 @@ public:
 
   static ExecutionState *mergeStatesOptimized(std::vector<ExecutionState *> &states,
                                               bool isComplete,
+                                              bool usePattern,
                                               std::vector<PatternMatch> &matches,
                                               LoopHandler *loopHandler);
 

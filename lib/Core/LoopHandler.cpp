@@ -169,6 +169,7 @@ void LoopHandler::releaseStates() {
 
         merged = ExecutionState::mergeStatesOptimized(states,
                                                       isComplete,
+                                                      OptimizeUsingQuantifiers,
                                                       matches,
                                                       this);
       } else {

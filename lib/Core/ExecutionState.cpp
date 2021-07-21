@@ -554,10 +554,11 @@ ExecutionState *ExecutionState::mergeStates(std::vector<ExecutionState *> &state
 
 ExecutionState *ExecutionState::mergeStatesOptimized(std::vector<ExecutionState *> &states,
                                                      bool isComplete,
+                                                     bool usePattern,
                                                      std::vector<PatternMatch> &matches,
                                                      LoopHandler *loopHandler) {
   TimerStatIncrementer timer(stats::mergeTime);
-  if (OptimizeUsingQuantifiers) {
+  if (usePattern) {
     assert(matches.size() == 1);
   }
 
@@ -599,7 +600,7 @@ ExecutionState *ExecutionState::mergeStatesOptimized(std::vector<ExecutionState 
   bool usingQuantifiers = false;
   if (!isComplete) {
     ref<Expr> orExpr = nullptr;
-    if (OptimizeUsingQuantifiers && matches.size() == 1) {
+    if (usePattern && matches.size() == 1) {
       orExpr = generateQuantifiedConstraint(matches[0],
                                             loopHandler->tree,
                                             mergeID,
@@ -625,9 +626,21 @@ ExecutionState *ExecutionState::mergeStatesOptimized(std::vector<ExecutionState 
   }
 
   /* local vars */
-  mergeLocalVars(merged, states, suffixes, loopHandler, usingQuantifiers, matches);
+  mergeLocalVars(merged,
+                 states,
+                 suffixes,
+                 loopHandler,
+                 usingQuantifiers,
+                 matches);
+
   /* heap */
-  mergeHeap(merged, states, suffixes, mutated, loopHandler, usingQuantifiers, matches);
+  mergeHeap(merged,
+            states,
+            suffixes,
+            mutated,
+            loopHandler,
+            usingQuantifiers,
+            matches);
 
   if (OptimizeArrayValuesUsingITERewrite) {
     merged->optimizeArrayValues(mutated, loopHandler->solver);
