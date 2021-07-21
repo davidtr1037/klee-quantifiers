@@ -1155,29 +1155,6 @@ Executor::fork(ExecutionState &current, ref<Expr> condition, bool isInternal) {
     falseState = trueState->branch();
     addedStates.push_back(falseState);
 
-    /* TODO: add a function for this check */
-    if (UseLoopMerge && !current.loopHandler.isNull()) {
-      if (OptimizeITEUsingExecTree || OptimizeArrayITEUsingExecTree) {
-        if (current.loopHandler->canUseExecTree) {
-          ExecutionState *trueSnapshot = nullptr;
-          ExecutionState *falseSnapshot = nullptr;
-          if (CreateSnapshots) {
-            trueSnapshot = createSnapshot(*trueState, 0);
-            falseSnapshot = createSnapshot(*falseState, 1);
-          }
-
-          ExecTree &tree = current.loopHandler->tree;
-          tree.extend(current,
-                      *trueState,
-                      trueSnapshot,
-                      *falseState,
-                      falseSnapshot,
-                      condition,
-                      current.prevPC->info->id);
-        }
-      }
-    }
-
     if (it != seedMap.end()) {
       std::vector<SeedInfo> seeds = it->second;
       it->second.clear();
@@ -1234,6 +1211,30 @@ Executor::fork(ExecutionState &current, ref<Expr> condition, bool isInternal) {
 
     addConstraint(*trueState, condition);
     addConstraint(*falseState, Expr::createIsZero(condition));
+
+    /* TODO: add a function for this check */
+    if (UseLoopMerge && !current.loopHandler.isNull()) {
+      if (OptimizeITEUsingExecTree || OptimizeArrayITEUsingExecTree) {
+        if (current.loopHandler->canUseExecTree) {
+          ExecutionState *trueSnapshot = nullptr;
+          ExecutionState *falseSnapshot = nullptr;
+          if (CreateSnapshots) {
+            trueSnapshot = createSnapshot(*trueState, 0);
+            falseSnapshot = createSnapshot(*falseState, 1);
+          }
+
+          ExecTree &tree = current.loopHandler->tree;
+          tree.extend(current,
+                      *trueState,
+                      trueSnapshot,
+                      *falseState,
+                      falseSnapshot,
+                      condition,
+                      current.prevPC->info->id);
+          current.loopHandler->mergeIntermediateStates();
+        }
+      }
+    }
 
     // Kinda gross, do we even really still want this option?
     if (MaxDepth && MaxDepth<=trueState->depth) {
