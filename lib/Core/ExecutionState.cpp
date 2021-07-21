@@ -554,7 +554,6 @@ ExecutionState *ExecutionState::mergeStates(std::vector<ExecutionState *> &state
 
 ExecutionState *ExecutionState::mergeStatesOptimized(std::vector<ExecutionState *> &states,
                                                      bool isComplete,
-                                                     ref<Expr> mergedConstraint,
                                                      std::vector<PatternMatch> &matches,
                                                      LoopHandler *loopHandler) {
   TimerStatIncrementer timer(stats::mergeTime);
@@ -612,14 +611,10 @@ ExecutionState *ExecutionState::mergeStatesOptimized(std::vector<ExecutionState 
       }
     }
     if (orExpr.isNull()) {
-      if (mergedConstraint.isNull()) {
-        if (OptimizeITEUsingExecTree && loopHandler->canUseExecTree) {
-          orExpr = buildMergedConstraintWithExecTree(loopHandler, states);
-        } else {
-          orExpr = buildMergedConstraint(states);
-        }
+      if (OptimizeITEUsingExecTree && loopHandler->canUseExecTree) {
+        orExpr = buildMergedConstraintWithExecTree(loopHandler, states);
       } else {
-        orExpr = mergedConstraint;
+        orExpr = buildMergedConstraint(states);
       }
     }
 
