@@ -12,6 +12,8 @@
 #include <llvm/IR/CFG.h>
 #include <llvm/Support/raw_ostream.h>
 
+#include <klee/Support/ErrorHandling.h>
+
 #include "LivenessAnalysis.h"
 
 
@@ -52,7 +54,28 @@ bool LivenessAnalysis::runIteration(Function *f,
       continue;
     }
 
-    set<StringRef> toKill, toGen;
+    Instruction *prev = inst->getPrevNode();
+    if (prev) {
+      worklist.push_back(prev);
+    } else {
+      for (BasicBlock *pred : predecessors(inst->getParent())) {
+        Instruction *last = pred->getTerminator();
+        worklist.push_back(last);
+      }
+    }
+
+    if (isa<CallInst>(inst)) {
+      CallInst *callInst = dyn_cast<CallInst>(inst);
+      Function *f = callInst->getCalledFunction();
+      if (f) {
+        if (f->isIntrinsic()) {
+          klee_warning_once(0, "ignoring function: %s", f->getName().data());
+          continue;
+        }
+      }
+    }
+
+    set<Value *> toKill, toGen;
     gen(inst, toGen);
     kill(inst, toKill);
 
@@ -67,8 +90,8 @@ bool LivenessAnalysis::runIteration(Function *f,
       successors.push_back(inst->getNextNode());
     }
     for (Instruction *s : successors) {
-      for (StringRef n : liveIn[s]) {
-        auto r = liveOut[inst].insert(n);
+      for (Value *v : liveIn[s]) {
+        auto r = liveOut[inst].insert(v);
         if (r.second) {
           changed = true;
         }
@@ -76,28 +99,18 @@ bool LivenessAnalysis::runIteration(Function *f,
     }
 
     /* live-in */
-    for (StringRef n : toGen) {
-      auto r = liveIn[inst].insert(n);
+    for (Value *v : toGen) {
+      auto r = liveIn[inst].insert(v);
       if (r.second) {
         changed = true;
       }
     }
-    for (StringRef name : liveOut[inst]) {
-      if (toKill.find(name) == toKill.end()) {
-        auto r = liveIn[inst].insert(name);
+    for (Value *v : liveOut[inst]) {
+      if (toKill.find(v) == toKill.end()) {
+        auto r = liveIn[inst].insert(v);
         if (r.second) {
           changed = true;
         }
-      }
-    }
-
-    Instruction *prev = inst->getPrevNode();
-    if (prev) {
-      worklist.push_back(prev);
-    } else {
-      for (BasicBlock *pred : predecessors(inst->getParent())) {
-        Instruction *last = pred->getTerminator();
-        worklist.push_back(last);
       }
     }
 
@@ -108,33 +121,31 @@ bool LivenessAnalysis::runIteration(Function *f,
 }
 
 void LivenessAnalysis::gen(Instruction *inst,
-                           set<StringRef> &variables) {
+                           set<Value *> &variables) {
   for (unsigned i = 0; i < inst->getNumOperands(); i++) {
     Value *v = inst->getOperand(i);
-    if (v->hasName()) {
-      variables.insert(v->getName());
+    if (isa<Instruction>(v) || isa<Argument>(v)) {
+      variables.insert(v);
     }
   }
 }
 
 void LivenessAnalysis::kill(Instruction *inst,
-                            set<StringRef> &variables) {
+                            set<Value *> &variables) {
   if (inst->getType()->isVoidTy()) {
     return;
   }
 
   Value *v = (Value *)(inst);
-  if (v->hasName()) {
-    variables.insert(v->getName());
-  }
+  variables.insert(v);
 }
 
 void LivenessAnalysis::dumpLiveSet(LiveSet &ls) {
   errs() << "--- live set ---\n";
   for (auto i : ls) {
     errs() << "instruction: " << *i.first << "\n";
-    for (StringRef name : i.second) {
-      errs() << "-- live: " << name << "\n";
+    for (Value *v : i.second) {
+      errs() << "-- live: " << *v << "\n";
     }
   }
 }

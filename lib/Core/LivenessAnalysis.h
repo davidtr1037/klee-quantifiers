@@ -14,7 +14,12 @@ class LivenessAnalysis {
 
 public:
 
-  typedef std::map<llvm::Instruction *, std::set<llvm::StringRef>> LiveSet;
+  typedef std::map<llvm::Instruction *, std::set<llvm::Value *>> LiveSet;
+
+  struct Result {
+      LiveSet liveIn;
+      LiveSet liveOut;
+  };
 
   static void analyze(llvm::Function *f,
                       LiveSet &liveIn,
@@ -25,10 +30,10 @@ public:
                            LiveSet &liveOut);
 
   static void gen(llvm::Instruction *inst,
-                  std::set<llvm::StringRef> &variables);
+                  std::set<llvm::Value *> &variables);
 
   static void kill(llvm::Instruction *inst,
-                   std::set<llvm::StringRef> &variables);
+                   std::set<llvm::Value *> &variables);
 
   static void dumpLiveSet(LiveSet &ls);
 
