@@ -55,9 +55,9 @@ public:
 
   void addOpenState(ExecutionState *es);
 
-  void addClosedState(ExecutionState *es, llvm::Instruction *mp);
-
   void removeOpenState(ExecutionState *es);
+
+  void addClosedState(ExecutionState *es, llvm::Instruction *mp);
 
   void splitStates(std::vector<MergeGroup> &result);
 

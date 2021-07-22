@@ -52,9 +52,45 @@ cl::opt<bool> UseForwardExtract(
     cl::desc(""),
     cl::cat(klee::LoopCat));
 
+LoopHandler::LoopHandler(Executor *executor, ExecutionState *es, Loop *loop)
+    : closedStateCount(0),
+      activeStates(0),
+      earlyTerminated(0),
+      executor(executor),
+      solver(executor->solver),
+      loop(loop),
+      tree(es->getID()),
+      canUseExecTree(true) {
+  assert(loop);
+  addOpenState(es);
+  for (ref<Expr> e : es->constraints) {
+    initialConstraints.push_back(e);
+  }
+}
+
+LoopHandler::~LoopHandler() {
+  if (executor->haltExecution) {
+    /* if execution is interrupted, may contain unreleased states */
+    return;
+  }
+
+  assert(activeStates == 0);
+  for (auto &i: mergeGroupsByExit) {
+    vector<ExecutionState *> &states = i.second;
+    assert(states.empty());
+  }
+}
+
 void LoopHandler::addOpenState(ExecutionState *es){
   openStates.push_back(es);
   activeStates++;
+}
+
+void LoopHandler::removeOpenState(ExecutionState *es) {
+  auto it = std::find(openStates.begin(), openStates.end(), es);
+  assert(it != openStates.end());
+  std::swap(*it, openStates.back());
+  openStates.pop_back();
 }
 
 void LoopHandler::addClosedState(ExecutionState *es,
@@ -78,13 +114,6 @@ void LoopHandler::addClosedState(ExecutionState *es,
   if (activeStates == 0) {
     releaseStates();
   }
-}
-
-void LoopHandler::removeOpenState(ExecutionState *es) {
-  auto it = std::find(openStates.begin(), openStates.end(), es);
-  assert(it != openStates.end());
-  std::swap(*it, openStates.back());
-  openStates.pop_back();
 }
 
 void LoopHandler::splitStates(std::vector<MergeGroup> &result) {
@@ -243,35 +272,6 @@ void LoopHandler::markEarlyTerminated(ExecutionState &state) {
 
 unsigned LoopHandler::getEarlyTerminated() {
   return earlyTerminated;
-}
-
-LoopHandler::LoopHandler(Executor *executor, ExecutionState *es, Loop *loop)
-    : closedStateCount(0),
-      activeStates(0),
-      earlyTerminated(0),
-      executor(executor),
-      solver(executor->solver),
-      loop(loop),
-      tree(es->getID()),
-      canUseExecTree(true) {
-  assert(loop);
-  addOpenState(es);
-  for (ref<Expr> e : es->constraints) {
-    initialConstraints.push_back(e);
-  }
-}
-
-LoopHandler::~LoopHandler() {
-  if (executor->haltExecution) {
-    /* if execution is interrupted, may contain unreleased states */
-    return;
-  }
-
-  assert(activeStates == 0);
-  for (auto &i: mergeGroupsByExit) {
-    vector<ExecutionState *> &states = i.second;
-    assert(states.empty());
-  }
 }
 
 bool LoopHandler::shouldMerge(ExecutionState &s1, ExecutionState &s2) {
