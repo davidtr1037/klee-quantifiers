@@ -368,8 +368,7 @@ void LoopHandler::discardState(ExecutionState *es) {
   executor->interpreterHandler->decUnmergedExploredPaths();
 }
 
-/* TODO: rename */
-void LoopHandler::removeSubTree(ExecTreeNode *src) {
+void LoopHandler::discardSubTree(ExecTreeNode *src) {
   std::set<unsigned> ids;
   std::vector<ExecTreeNode *> nodes;
 
@@ -391,7 +390,7 @@ void LoopHandler::removeSubTree(ExecTreeNode *src) {
     assert(i != openStates.end());
   }
 
-  tree.removePathTo(src);
+  tree.removeSubTree(src);
 }
 
 void LoopHandler::mergeNodes(ExecTreeNode *n1, ExecTreeNode *n2) {
@@ -407,8 +406,8 @@ void LoopHandler::mergeNodes(ExecTreeNode *n1, ExecTreeNode *n2) {
   ref<Expr> pc2 = tree.getPC(n2, ancestor);
 
   /* remove paths to nodes */
-  removeSubTree(n1);
-  removeSubTree(n2);
+  discardSubTree(n1);
+  discardSubTree(n2);
 
   if (!ancestor->left && !ancestor->right) {
     /* should not happen */

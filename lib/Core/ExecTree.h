@@ -124,7 +124,7 @@ public:
 
   ref<Expr> getPC(ExecTreeNode *from, ExecTreeNode *to);
 
-  void removePathTo(ExecTreeNode *dst);
+  void removeSubTree(ExecTreeNode *dst);
 
   void clear();
 

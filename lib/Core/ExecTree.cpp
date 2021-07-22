@@ -212,8 +212,7 @@ ref<Expr> ExecTree::getPC(ExecTreeNode *from, ExecTreeNode *to) {
 }
 
 /* TODO: check when the root is to be deleted (and assert) */
-/* TODO: rename (removeSubTree) */
-void ExecTree::removePathTo(ExecTreeNode *dst) {
+void ExecTree::removeSubTree(ExecTreeNode *dst) {
   /* remove the reachable nodes */
   std::vector<ExecTreeNode *> reachable;
   /* TODO: don't compute twice */
