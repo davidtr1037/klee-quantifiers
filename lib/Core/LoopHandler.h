@@ -67,17 +67,6 @@ public:
 
   unsigned getEarlyTerminated();
 
-  bool isLiveAt(LivenessAnalysis::Result &result,
-                KFunction *kf,
-                KInstruction *kinst,
-                unsigned reg);
-
-  bool compareStack(ExecutionState &s1, ExecutionState &s2);
-
-  bool compareHeap(ExecutionState &s1,
-                   ExecutionState &s2,
-                   std::set<const MemoryObject *> &mutated);
-
   bool shouldMerge(ExecutionState &s1, ExecutionState &s2);
 
   void discardState(ExecutionState *es);
@@ -93,8 +82,6 @@ public:
   bool validateMerge(std::vector<ExecutionState *> &states,
                      ExecutionState *merged);
 
-  LivenessAnalysis::Result getLivenessAnalysisResult(llvm::Function *f);
-
   class ReferenceCounter _refCount;
 
   Executor *executor;
@@ -108,8 +95,6 @@ public:
   ExecTree tree;
 
   bool canUseExecTree;
-
-  std::map<llvm::Function *, LivenessAnalysis::Result> cache;
 };
 
 }

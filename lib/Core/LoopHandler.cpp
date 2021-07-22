@@ -6,7 +6,6 @@
 #include "Searcher.h"
 #include "Memory.h"
 #include "PatternExtraction.h"
-#include "LivenessAnalysis.h"
 
 #include <list>
 
@@ -275,72 +274,6 @@ LoopHandler::~LoopHandler() {
   }
 }
 
-bool LoopHandler::isLiveAt(LivenessAnalysis::Result &result,
-                           KFunction *kf,
-                           KInstruction *kinst,
-                           unsigned reg) {
-  auto i = kf->inverseRegisterMap.find(reg);
-  if (i == kf->inverseRegisterMap.end()) {
-    return true;
-  }
-
-  set<Value *> &live = result.liveIn[kinst->inst];
-  Value *regValue = i->second;
-  if (live.find(regValue) != live.end()) {
-    return true;
-  }
-
-  return false;
-}
-
-bool LoopHandler::compareStack(ExecutionState &s1, ExecutionState &s2) {
-  StackFrame &sf1 = s1.stack.back();
-  StackFrame &sf2 = s2.stack.back();
-
-  /* identical in both states */
-  KInstruction *kinst = s1.pc;
-  KFunction *kf = sf1.kf;
-
-  auto result = getLivenessAnalysisResult(kf->function);
-
-  for (unsigned reg = 0; reg < kf->numRegisters; reg++) {
-    if (!isLiveAt(result, kf, kinst, reg)) {
-      continue;
-    }
-    ref<Expr> v1 = sf1.locals[reg].value;
-    ref<Expr> v2 = sf2.locals[reg].value;
-    if (v1.isNull() || v2.isNull()) {
-      if (!(v1.isNull() && v2.isNull())) {
-        return false;
-      }
-    } else {
-      if (*v1 != *v2) {
-        return false;
-      }
-    }
-  }
-
-  return true;
-}
-
-bool LoopHandler::compareHeap(ExecutionState &s1,
-                              ExecutionState &s2,
-                              std::set<const MemoryObject *> &mutated) {
-  for (const MemoryObject *mo : mutated) {
-    const ObjectState *os1 = s1.addressSpace.findObject(mo);
-    const ObjectState *os2 = s2.addressSpace.findObject(mo);
-    for (unsigned i = 0; i < mo->capacity; i++) {
-      ref<Expr> e1 = os1->read8(i, false);
-      ref<Expr> e2 = os2->read8(i, false);
-      if (*e1 != *e2) {
-        return false;
-      }
-    }
-  }
-
-  return true;
-}
-
 bool LoopHandler::shouldMerge(ExecutionState &s1, ExecutionState &s2) {
   std::vector<ExecutionState *> states = {&s1, &s2};
   std::set<const MemoryObject*> mutated;
@@ -348,11 +281,11 @@ bool LoopHandler::shouldMerge(ExecutionState &s1, ExecutionState &s2) {
     return false;
   }
 
-  if (!compareStack(s1, s2)) {
+  if (!ExecutionState::compareStack(s1, s2)) {
     return false;
   }
 
-  if (!compareHeap(s1, s2, mutated)) {
+  if (!ExecutionState::compareHeap(s1, s2, mutated)) {
     return false;
   }
 
@@ -481,18 +414,6 @@ bool LoopHandler::validateMerge(std::vector<ExecutionState *> &snapshots,
                                   merged,
                                   expected,
                                   !OptimizeUsingQuantifiers);
-}
-
-/* TODO: return a reference */
-LivenessAnalysis::Result LoopHandler::getLivenessAnalysisResult(Function *f) {
-  if (cache.find(f) != cache.end()) {
-    return cache[f];
-  }
-
-  LivenessAnalysis::Result result;
-  LivenessAnalysis::analyze(f, result.liveIn, result.liveOut);
-  cache[f] = result;
-  return result;
 }
 
 }

@@ -320,6 +320,22 @@ public:
                              ref<Expr> &size,
                              ref<ConstantExpr> &bound);
 
+  /* TODO: should not be here */
+  static bool isLiveAt(LivenessAnalysis::Result &result,
+                       KFunction *kf,
+                       KInstruction *kinst,
+                       unsigned reg);
+
+  /* TODO: should not be here */
+  static LivenessAnalysis::Result getLivenessAnalysisResult(llvm::Function *f);
+
+  static bool compareStack(ExecutionState &s1,
+                           ExecutionState &s2);
+
+  static bool compareHeap(ExecutionState &s1,
+                          ExecutionState &s2,
+                          std::set<const MemoryObject *> &mutated);
+
   static std::uint32_t mergeID;
 };
 
