@@ -42,7 +42,7 @@ private:
 
   std::map<llvm::Instruction *, MergeGroup> mergeGroupsByExit;
 
-  /* TODO: make signed? */
+  /* TODO: signed or unsigned? */
   int activeStates;
 
   unsigned earlyTerminated;
