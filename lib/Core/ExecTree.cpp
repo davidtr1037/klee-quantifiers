@@ -185,10 +185,14 @@ void ExecTree::dumpGML(llvm::raw_ostream &os, std::set<uint32_t> &ids) {
         os << "];\n";
 
         if (!n->isLeaf()) {
-            os << "\tn" << n << " -> n" << n->left << ";\n";
-            worklist.push_back(n->left);
-            os << "\tn" << n << " -> n" << n->right << ";\n";
-            worklist.push_back(n->right);
+            if (n->left) {
+              os << "\tn" << n << " -> n" << n->left << ";\n";
+              worklist.push_back(n->left);
+            }
+            if (n->right) {
+              os << "\tn" << n << " -> n" << n->right << ";\n";
+              worklist.push_back(n->right);
+            }
         }
     }
     os << "}\n";
