@@ -4778,8 +4778,6 @@ ExecutionState *Executor::createSnapshot(ExecutionState &state,
   }
 
   ExecutionState *snapshot = state.branch(true);
-  /* TODO: otherwise, the loop handler won't be deallocated */
-  snapshot->loopHandler = nullptr;
   transferToBasicBlock(branchInst->getSuccessor(index),
                        branchInst->getParent(),
                        *snapshot);

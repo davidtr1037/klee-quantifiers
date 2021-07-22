@@ -16,20 +16,11 @@ typedef std::map<std::uint32_t, ref<Expr>> State2Value;
 class ExecTreeNode {
 public:
 
+  /* TODO: should be private */
   ExecTreeNode(std::uint32_t stateID,
                ref<Expr> e,
                ExecutionState *snapshot,
-               std::uint32_t salt = 1) :
-    stateID(stateID),
-    e(e),
-    snapshot(snapshot),
-    left(nullptr),
-    right(nullptr),
-    parent(nullptr),
-    treeHash(0),
-    salt(salt) {
-
-  }
+               std::uint32_t salt = 1);
 
   ExecTreeNode(const ExecTreeNode &other) :
     stateID(other.stateID),
@@ -98,8 +89,6 @@ public:
 
   ExecTree(const ExecTree &other);
 
-  void addNode(ExecTreeNode *node);
-
   void extend(ExecutionState &current,
               ExecutionState &trueState,
               ExecutionState *trueSnapshot,
@@ -108,20 +97,53 @@ public:
               ref<Expr> condition,
               std::uint32_t salt);
 
+  void setLeft(ExecTreeNode *parent,
+               ExecutionState &state,
+               ref<Expr> condition,
+               ExecutionState *snapshot,
+               std::uint32_t salt = 1);
+
+  void setRight(ExecTreeNode *parent,
+                ExecutionState &state,
+                ref<Expr> condition,
+                ExecutionState *snapshot,
+                std::uint32_t salt = 1);
+
   void computeHashes();
 
   void computeNodeHashes(ExecTreeNode *n);
 
   ExecTreeNode *getNearestAncestor(ExecTreeNode *n1, ExecTreeNode *n2);
 
+  void getReachable(ExecTreeNode *src,
+                    std::vector<ExecTreeNode *> &reachable);
+
+  ref<Expr> getPC(ExecTreeNode *from, ExecTreeNode *to);
+
+  void removePathTo(ExecTreeNode *dst);
+
+  void clear();
+
   void dump();
 
   void dumpGML(llvm::raw_ostream &os, std::set<uint32_t> &ids);
 
-  void dumpGMLToFile(std::set<uint32_t> &ids, std::string &name);
+  void dumpGMLToFile(std::set<uint32_t> &ids, const std::string &name);
+
+private:
+
+  void addNode(ExecTreeNode *node);
+
+  void removeNode(ExecTreeNode *node);
+
+  void setLeft(ExecTreeNode *parent, ExecTreeNode *node);
+
+  void setRight(ExecTreeNode *parent, ExecTreeNode *node);
+
+public:
 
   ExecTreeNode *root;
-  std::vector<ExecTreeNode *> nodes;
+  std::set<ExecTreeNode *> nodes;
 };
 
 }

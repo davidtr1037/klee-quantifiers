@@ -42,7 +42,8 @@ private:
 
   std::map<llvm::Instruction *, MergeGroup> mergeGroupsByExit;
 
-  unsigned activeStates;
+  /* TODO: make signed? */
+  int activeStates;
 
   unsigned earlyTerminated;
 
@@ -79,7 +80,13 @@ public:
 
   bool shouldMerge(ExecutionState &s1, ExecutionState &s2);
 
-  void mergeIntermediateState(ExecTreeNode *target);
+  void discardState(ExecutionState *es);
+
+  void removeSubTree(ExecTreeNode *src);
+
+  void mergeNodes(ExecTreeNode *n1, ExecTreeNode *n2);
+
+  bool mergeIntermediateState(ExecTreeNode *target);
 
   void mergeIntermediateStates();
 

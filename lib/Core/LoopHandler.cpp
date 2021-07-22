@@ -229,8 +229,10 @@ void LoopHandler::releaseStates() {
     groupId++;
   }
   mergeGroupsByExit.clear();
+  tree.clear();
 }
 
+/* TODO: update openStates? */
 void LoopHandler::markEarlyTerminated(ExecutionState &state) {
   earlyTerminated++;
   assert(activeStates > 0);
@@ -266,6 +268,7 @@ LoopHandler::~LoopHandler() {
     return;
   }
 
+  assert(activeStates == 0);
   for (auto &i: mergeGroupsByExit) {
     vector<ExecutionState *> &states = i.second;
     assert(states.empty());
@@ -348,6 +351,7 @@ bool LoopHandler::shouldMerge(ExecutionState &s1, ExecutionState &s2) {
   if (!compareStack(s1, s2)) {
     return false;
   }
+
   if (!compareHeap(s1, s2, mutated)) {
     return false;
   }
@@ -355,13 +359,89 @@ bool LoopHandler::shouldMerge(ExecutionState &s1, ExecutionState &s2) {
   return true;
 }
 
-void LoopHandler::mergeIntermediateState(ExecTreeNode *target) {
+void LoopHandler::discardState(ExecutionState *es) {
+  if (std::find(openStates.begin(), openStates.end(), es) == openStates.end()) {
+    /* the state reached the loop exit (suspended) */
+    executor->mergingSearcher->continueState(*es);
+  }
+  executor->terminateStateEarly(*es, "IntermediateMerge");
+  executor->interpreterHandler->decUnmergedExploredPaths();
+}
+
+/* TODO: rename */
+void LoopHandler::removeSubTree(ExecTreeNode *src) {
+  std::set<unsigned> ids;
+  std::vector<ExecTreeNode *> nodes;
+
+  tree.getReachable(src, nodes);
+  for (ExecTreeNode *n : nodes) {
+    ids.insert(n->stateID);
+  }
+
+  for (unsigned id : ids) {
+    auto i = openStates.begin();
+    while (i != openStates.end()) {
+      ExecutionState *es = *i;
+      if (es->getID() == id) {
+        discardState(es);
+        break;
+      }
+      i++;
+    }
+    assert(i != openStates.end());
+  }
+
+  tree.removePathTo(src);
+}
+
+void LoopHandler::mergeNodes(ExecTreeNode *n1, ExecTreeNode *n2) {
+  /* TODO: use ExecutionState::mergeStatesOptimized */
+  std::vector<ExecutionState *> states = {n1->snapshot, n2->snapshot};
+  ExecutionState *merged = ExecutionState::mergeStates(states);
+  /* clone the merged state */
+  merged = merged->branch();
+
+  /* find nearest ancestor */
+  ExecTreeNode *ancestor = tree.getNearestAncestor(n1, n2);
+  ref<Expr> pc1 = tree.getPC(n1, ancestor);
+  ref<Expr> pc2 = tree.getPC(n2, ancestor);
+
+  /* remove paths to nodes */
+  removeSubTree(n1);
+  removeSubTree(n2);
+
+  if (!ancestor->left && !ancestor->right) {
+    /* should not happen */
+    assert(0);
+  }
+  if (ancestor->left && ancestor->right) {
+    /* TODO: unsupported */
+    assert(0);
+  }
+
+  /* TODO: update pc for the snapshot? */
+  ExecutionState *mergedSnapshot = merged->branch(true);
+  ref<Expr> condition = OrExpr::create(pc1, pc2);
+  if (!ancestor->left) {
+    tree.setLeft(ancestor, *merged, condition, mergedSnapshot);
+  }
+  if (!ancestor->right) {
+    tree.setRight(ancestor, *merged, condition, mergedSnapshot);
+  }
+
+  /* add new path */
+  executor->addedStates.push_back(merged);
+}
+
+bool LoopHandler::mergeIntermediateState(ExecTreeNode *target) {
   std::list<ExecTreeNode *> worklist;
 
   ExecTreeNode *n = target;
   while (n->parent) {
     ExecTreeNode *sibling = n->getSibling();
-    worklist.push_back(sibling);
+    if (sibling) {
+      worklist.push_back(sibling);
+    }
     n = n->parent;
   }
 
@@ -369,17 +449,29 @@ void LoopHandler::mergeIntermediateState(ExecTreeNode *target) {
     ExecTreeNode *n = worklist.back();
     worklist.pop_back();
     if (shouldMerge(*target->snapshot, *n->snapshot)) {
-      /* TODO: merge */
+      mergeNodes(target, n);
+      return true;
     }
   }
+
+  return false;
 }
 
+/* TODO: use the merged node to optimize the search? */
 void LoopHandler::mergeIntermediateStates() {
-  for (ExecTreeNode *n : tree.nodes) {
-    if (n != tree.root) {
-      mergeIntermediateState(n);
+  bool changed;
+
+  do {
+    changed = false;
+    for (ExecTreeNode *n : tree.nodes) {
+      if (n != tree.root) {
+        if (mergeIntermediateState(n)) {
+          changed = true;
+          break;
+        }
+      }
     }
-  }
+  } while (changed);
 }
 
 bool LoopHandler::validateMerge(std::vector<ExecutionState *> &snapshots,

@@ -11,6 +11,21 @@ using namespace llvm;
 
 namespace klee {
 
+ExecTreeNode::ExecTreeNode(std::uint32_t stateID,
+                           ref<Expr> e,
+                           ExecutionState *snapshot,
+                           std::uint32_t salt) :
+  stateID(stateID),
+  e(e),
+  snapshot(snapshot),
+  left(nullptr),
+  right(nullptr),
+  parent(nullptr),
+  treeHash(0),
+  salt(salt) {
+
+}
+
 ExecTreeNode::~ExecTreeNode() {
   if (snapshot) {
     delete snapshot;
@@ -27,9 +42,7 @@ ExecTree::ExecTree(uint32_t stateID) {
 }
 
 ExecTree::~ExecTree() {
-  for (ExecTreeNode *n : nodes) {
-    delete n;
-  }
+  clear();
 }
 
 ExecTree::ExecTree(const ExecTree &other) {
@@ -64,7 +77,50 @@ ExecTree::ExecTree(const ExecTree &other) {
 }
 
 void ExecTree::addNode(ExecTreeNode *node) {
-  nodes.push_back(node);
+  nodes.insert(node);
+}
+
+void ExecTree::removeNode(ExecTreeNode *node) {
+  auto i = nodes.find(node);
+  assert(i != nodes.end());
+  nodes.erase(i);
+  delete node;
+}
+
+void ExecTree::setLeft(ExecTreeNode *parent,
+                       ExecutionState &state,
+                       ref<Expr> condition,
+                       ExecutionState *snapshot,
+                       std::uint32_t salt) {
+  ExecTreeNode *node = new ExecTreeNode(state.getID(),
+                                        condition,
+                                        snapshot,
+                                        salt);
+  setLeft(parent, node);
+  addNode(node);
+}
+
+void ExecTree::setRight(ExecTreeNode *parent,
+                        ExecutionState &state,
+                        ref<Expr> condition,
+                        ExecutionState *snapshot,
+                        std::uint32_t salt) {
+  ExecTreeNode *node = new ExecTreeNode(state.getID(),
+                                        condition,
+                                        snapshot,
+                                        salt);
+  setRight(parent, node);
+  addNode(node);
+}
+
+void ExecTree::setLeft(ExecTreeNode *parent, ExecTreeNode *node) {
+  parent->left = node;
+  node->parent = parent;
+}
+
+void ExecTree::setRight(ExecTreeNode *parent, ExecTreeNode *node) {
+  parent->right = node;
+  node->parent = parent;
 }
 
 void ExecTree::extend(ExecutionState &current,
@@ -139,6 +195,89 @@ ExecTreeNode *ExecTree::getNearestAncestor(ExecTreeNode *n1, ExecTreeNode *n2) {
   return nullptr;
 }
 
+void ExecTree::getReachable(ExecTreeNode *src,
+                            std::vector<ExecTreeNode *> &reachable) {
+  std::list<ExecTreeNode *> worklist;
+  worklist.push_back(src);
+
+  while (!worklist.empty()) {
+    ExecTreeNode *n = worklist.back();
+    worklist.pop_back();
+
+    reachable.push_back(n);
+
+    if (n->left) {
+      worklist.push_back(n->left);
+    }
+    if (n->right) {
+      worklist.push_back(n->right);
+    }
+  }
+}
+
+/* from the child to the parent */
+ref<Expr> ExecTree::getPC(ExecTreeNode *from, ExecTreeNode *to) {
+  std::list<ref<Expr>> conditions;
+  ExecTreeNode *n = from;
+  while (n && n != to) {
+    conditions.push_front(n->e);
+    n = n->parent;
+  }
+  assert(n);
+
+  ref<Expr> pc = ConstantExpr::create(1, Expr::Bool);
+  for (ref<Expr> e : conditions) {
+    pc = AndExpr::create(pc, e);
+  }
+  return pc;
+}
+
+/* TODO: check when the root is to be deleted (and assert) */
+/* TODO: rename (removeSubTree) */
+void ExecTree::removePathTo(ExecTreeNode *dst) {
+  /* remove the reachable nodes */
+  std::vector<ExecTreeNode *> reachable;
+  /* TODO: don't compute twice */
+  getReachable(dst, reachable);
+  for (ExecTreeNode *n : reachable) {
+    if (n != dst) {
+      removeNode(n);
+    }
+  }
+
+  ExecTreeNode *current = dst;
+  while (current) {
+    /* we don't want to delet the root */
+    assert(current->parent);
+
+    /* call before updating the parent */
+    ExecTreeNode *sibling = current->getSibling();
+
+    /* update the parent */
+    if (current->parent->right == current) {
+      current->parent->right = nullptr;
+    }
+    if (current->parent->left == current) {
+      current->parent->left = nullptr;
+    }
+
+    ExecTreeNode *next = current->parent;
+    removeNode(current);
+    current = next;
+    if (sibling) {
+      /* the parent can't be deleted */
+      break;
+    }
+  }
+}
+
+void ExecTree::clear() {
+  for (ExecTreeNode *n : nodes) {
+    delete n;
+  }
+  nodes.clear();
+}
+
 void ExecTree::dump() {
   std::vector<ExecTreeNode *> worklist;
   worklist.push_back(root);
@@ -198,7 +337,7 @@ void ExecTree::dumpGML(llvm::raw_ostream &os, std::set<uint32_t> &ids) {
     os << "}\n";
 }
 
-void ExecTree::dumpGMLToFile(std::set<uint32_t> &ids, std::string &name) {
+void ExecTree::dumpGMLToFile(std::set<uint32_t> &ids, const std::string &name) {
   static int mergeID = 0;
   char path[1000] = {0,};
   sprintf(path, "/tmp/exectree_%s_%u.dot", name.data(), mergeID++);

@@ -144,7 +144,8 @@ ExecutionState::ExecutionState(KFunction *kf) :
     instsSinceCovNew(0),
     coveredNew(false),
     forkDisabled(false),
-    loopHandler(nullptr) {
+    loopHandler(nullptr),
+    isSnapshot(false) {
   pushFrame(nullptr, kf);
   setID();
 }
@@ -156,7 +157,7 @@ ExecutionState::~ExecutionState() {
   for (ref<LoopHandler> handler : openLoopHandlerStack){
     handler->removeOpenState(this);
   }
-  if (!loopHandler.isNull()) {
+  if (!loopHandler.isNull() && !isSnapshot) {
     /* TODO: mark here as incomplete execution? */
     loopHandler->removeOpenState(this);
   }
@@ -188,7 +189,8 @@ ExecutionState::ExecutionState(const ExecutionState& state, bool isSnapshot):
     taintedExprs(state.taintedExprs),
     size2addr(state.size2addr),
     loopHandler(state.loopHandler),
-    suffixConstraints(state.suffixConstraints) {
+    suffixConstraints(state.suffixConstraints),
+    isSnapshot(isSnapshot) {
   for (const auto &cur_mergehandler: openMergeStack) {
     cur_mergehandler->addOpenState(this);
   }
