@@ -211,7 +211,6 @@ ref<Expr> ExecTree::getPC(ExecTreeNode *from, ExecTreeNode *to) {
   return pc;
 }
 
-/* TODO: check when the root is to be deleted (and assert) */
 void ExecTree::removeSubTree(ExecTreeNode *dst) {
   /* remove the reachable nodes */
   std::vector<ExecTreeNode *> reachable;
