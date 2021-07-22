@@ -14,7 +14,10 @@ class ExecutionState;
 typedef std::map<std::uint32_t, ref<Expr>> State2Value;
 
 class ExecTreeNode {
-public:
+
+friend class ExecTree;
+
+private:
 
   /* TODO: should be private */
   ExecTreeNode(std::uint32_t stateID,
@@ -33,6 +36,8 @@ public:
     salt(other.salt) {
 
   }
+
+public:
 
   ~ExecTreeNode();
 

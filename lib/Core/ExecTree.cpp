@@ -76,17 +76,6 @@ ExecTree::ExecTree(const ExecTree &other) {
   }
 }
 
-void ExecTree::addNode(ExecTreeNode *node) {
-  nodes.insert(node);
-}
-
-void ExecTree::removeNode(ExecTreeNode *node) {
-  auto i = nodes.find(node);
-  assert(i != nodes.end());
-  nodes.erase(i);
-  delete node;
-}
-
 void ExecTree::setLeft(ExecTreeNode *parent,
                        ExecutionState &state,
                        ref<Expr> condition,
@@ -111,16 +100,6 @@ void ExecTree::setRight(ExecTreeNode *parent,
                                         salt);
   setRight(parent, node);
   addNode(node);
-}
-
-void ExecTree::setLeft(ExecTreeNode *parent, ExecTreeNode *node) {
-  parent->left = node;
-  node->parent = parent;
-}
-
-void ExecTree::setRight(ExecTreeNode *parent, ExecTreeNode *node) {
-  parent->right = node;
-  node->parent = parent;
 }
 
 void ExecTree::extend(ExecutionState &current,
@@ -347,6 +326,27 @@ void ExecTree::dumpGMLToFile(std::set<uint32_t> &ids, const std::string &name) {
     dumpGML(*f, ids);
     f->close();
   }
+}
+
+void ExecTree::addNode(ExecTreeNode *node) {
+  nodes.insert(node);
+}
+
+void ExecTree::removeNode(ExecTreeNode *node) {
+  auto i = nodes.find(node);
+  assert(i != nodes.end());
+  nodes.erase(i);
+  delete node;
+}
+
+void ExecTree::setLeft(ExecTreeNode *parent, ExecTreeNode *node) {
+  parent->left = node;
+  node->parent = parent;
+}
+
+void ExecTree::setRight(ExecTreeNode *parent, ExecTreeNode *node) {
+  parent->right = node;
+  node->parent = parent;
 }
 
 }
