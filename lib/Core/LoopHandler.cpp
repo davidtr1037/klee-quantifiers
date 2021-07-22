@@ -409,6 +409,7 @@ void LoopHandler::mergeNodes(ExecTreeNode *n1, ExecTreeNode *n2) {
   discardSubTree(n1);
   discardSubTree(n2);
 
+  /* check some properties after the transformation... */
   if (!ancestor->left && !ancestor->right) {
     /* should not happen */
     assert(0);
