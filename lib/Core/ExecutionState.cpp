@@ -919,8 +919,14 @@ ref<Expr> ExecutionState::mergeValuesFromNode(ExecTreeNode *n,
   }
 
   /* TODO: left/right or right/left? */
-  ref<Expr> lv = mergeValuesFromNode(n->left, valuesMap);
-  ref<Expr> rv = mergeValuesFromNode(n->right, valuesMap);
+  ref<Expr> lv = nullptr, rv = nullptr;
+  if (n->left) {
+    lv = mergeValuesFromNode(n->left, valuesMap);
+  }
+  if (n->right) {
+    rv = mergeValuesFromNode(n->right, valuesMap);
+  }
+
   if (lv.isNull()) {
     if (rv.isNull()) {
       return nullptr;
@@ -1144,8 +1150,18 @@ std::pair<ref<Expr>, bool> ExecutionState::buildMergedConstraintFromNode(ExecTre
   }
 
   /* TODO: left/right or right/left? */
-  auto lp = buildMergedConstraintFromNode(n->left, ids);
-  auto rp = buildMergedConstraintFromNode(n->right, ids);
+  std::pair<ref<Expr>, bool> lp, rp;
+  if (n->left) {
+    lp = buildMergedConstraintFromNode(n->left, ids);
+  } else {
+    lp = std::make_pair(nullptr, false);
+  }
+  if (n->right) {
+    rp = buildMergedConstraintFromNode(n->right, ids);
+  } else {
+    rp = std::make_pair(nullptr, false);
+  }
+
   ref<Expr> lv = lp.first;
   ref<Expr> rv = rp.first;
 
