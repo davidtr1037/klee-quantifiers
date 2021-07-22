@@ -19,7 +19,6 @@ friend class ExecTree;
 
 private:
 
-  /* TODO: should be private */
   ExecTreeNode(std::uint32_t stateID,
                ref<Expr> e,
                ExecutionState *snapshot,
