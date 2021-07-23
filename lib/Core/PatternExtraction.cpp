@@ -215,12 +215,16 @@ void klee::traverse(ExecTree &t,
     Symbol s(n->getHash());
     w.append(s);
 
-    if (!n->isLeaf()) {
-      worklist.push_back(std::make_pair(n->left, w));
-      worklist.push_back(std::make_pair(n->right, w));
-    } else {
+    if (n->isLeaf()) {
       if (ids.find(n->stateID) != ids.end()) {
         result.push_back(TreePath(w, n->stateID));
+      }
+    } else {
+      if (n->left) {
+        worklist.push_back(std::make_pair(n->left, w));
+      }
+      if (n->right) {
+        worklist.push_back(std::make_pair(n->right, w));
       }
     }
   }
