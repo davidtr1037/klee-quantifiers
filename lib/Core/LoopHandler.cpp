@@ -52,8 +52,13 @@ cl::opt<bool> UseForwardExtract(
     cl::desc(""),
     cl::cat(klee::LoopCat));
 
-cl::opt<bool> UseIntermediateMerge(
-    "use-intermediate-merge", cl::init(false),
+cl::opt<bool> UseMergeTransformation(
+    "use-merge-transformation", cl::init(false),
+    cl::desc(""),
+    cl::cat(klee::LoopCat));
+
+cl::opt<bool> UseJoinTransformation(
+    "use-join-transformation", cl::init(false),
     cl::desc(""),
     cl::cat(klee::LoopCat));
 
@@ -398,7 +403,7 @@ bool LoopHandler::mergeIntermediateState(ExecTreeNode *target) {
 
 /* TODO: use the merged node to optimize the search? */
 void LoopHandler::mergeIntermediateStates() {
-  if (!UseIntermediateMerge) {
+  if (!UseMergeTransformation) {
     return;
   }
 
