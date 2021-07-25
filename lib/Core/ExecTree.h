@@ -126,7 +126,9 @@ public:
   void getReachable(ExecTreeNode *src,
                     std::vector<ExecTreeNode *> &reachable);
 
-  ref<Expr> getPC(ExecTreeNode *from, ExecTreeNode *to);
+  ref<Expr> getPC(ExecTreeNode *parent,
+                  ExecTreeNode *child,
+                  bool inclusive = false);
 
   void removeSubTree(ExecTreeNode *dst);
 

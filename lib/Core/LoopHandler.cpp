@@ -348,8 +348,8 @@ void LoopHandler::mergeNodes(ExecTreeNode *n1, ExecTreeNode *n2) {
 
   /* find nearest ancestor */
   ExecTreeNode *ancestor = tree.getNearestAncestor(n1, n2);
-  ref<Expr> pc1 = tree.getPC(n1, ancestor);
-  ref<Expr> pc2 = tree.getPC(n2, ancestor);
+  ref<Expr> pc1 = tree.getPC(ancestor, n1);
+  ref<Expr> pc2 = tree.getPC(ancestor, n2);
 
   /* remove paths to nodes */
   discardSubTree(n1);
@@ -425,6 +425,10 @@ void LoopHandler::mergeIntermediateStates() {
 }
 
 void LoopHandler::joinIntermediateStates() {
+  if (!UseJoinTransformation) {
+    return;
+  }
+
   bool changed;
 
   do {

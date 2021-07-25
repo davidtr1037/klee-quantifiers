@@ -194,16 +194,19 @@ void ExecTree::getReachable(ExecTreeNode *src,
   }
 }
 
-/* from the child to the parent */
-ref<Expr> ExecTree::getPC(ExecTreeNode *from, ExecTreeNode *to) {
+ref<Expr> ExecTree::getPC(ExecTreeNode *parent,
+                          ExecTreeNode *child,
+                          bool inclusive) {
   std::list<ref<Expr>> conditions;
-  ExecTreeNode *n = from;
-  /* TODO: include the "to" node? */
-  while (n && n != to) {
+  ExecTreeNode *n = child;
+  while (n && n != parent) {
     conditions.push_front(n->e);
     n = n->parent;
+    assert(n);
   }
-  assert(n);
+  if (inclusive) {
+    conditions.push_front(parent->e);
+  }
 
   ref<Expr> pc = ConstantExpr::create(1, Expr::Bool);
   for (ref<Expr> e : conditions) {
@@ -253,12 +256,8 @@ bool ExecTree::join(ExecTreeNode *dst) {
   assert(dst);
   ExecTreeNode *current = dst;
   std::vector<ExecTreeNode *> toRemove;
-  /* TODO: remove/refactor */
-  std::list<ref<Expr>> conditions;
 
   while (current->parent && !current->parent->isComplete()) {
-    /* TODO: remove/refactor */
-    conditions.push_front(current->e);
     current = current->parent;
     toRemove.push_back(current);
   }
@@ -277,14 +276,7 @@ bool ExecTree::join(ExecTreeNode *dst) {
     parent->right = dst;
   }
 
-  /* TODO: remove/refactor */
-  conditions.push_front(current->e);
-  ref<Expr> c = ConstantExpr::create(1, Expr::Bool);
-  for (ref<Expr> e : conditions) {
-    c = AndExpr::create(e, c);
-  }
-
-  dst->e = c;
+  dst->e = getPC(current, dst, true);
   dst->parent = parent;
 
   for (ExecTreeNode *n : toRemove) {
