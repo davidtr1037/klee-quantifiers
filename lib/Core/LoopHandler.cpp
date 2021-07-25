@@ -244,7 +244,9 @@ void LoopHandler::releaseStates() {
     executor->mergingSearcher->continueState(*merged);
     executor->collectMergeStats(*merged);
     if (groups.size() == 1) {
-      klee_message("merged %lu states (complete = %u)", states.size(), isComplete);
+      klee_message("merged %lu states (complete = %u)",
+                   states.size(),
+                   isComplete);
     } else {
       klee_message("merged %lu states (complete = %u, group = %u)",
                    states.size(),
