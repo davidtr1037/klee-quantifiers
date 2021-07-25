@@ -40,7 +40,7 @@ public:
 
   ~ExecTreeNode();
 
-  bool isLeaf() {
+  bool isLeaf() const {
     return left == nullptr && right == nullptr;
   }
 
@@ -56,21 +56,25 @@ public:
     }
   }
 
-  uint32_t getHash() {
+  uint32_t getHash() const {
     return e->shapeHash() ^ salt;
   }
 
-  uint32_t getTreeHash() {
+  uint32_t getTreeHash() const {
     return treeHash;
   }
 
-  uint32_t getSubTreeHash() {
+  uint32_t getSubTreeHash() const {
     if (isLeaf()) {
       return 0;
     } else {
       /* excluding the root */
       return left->getTreeHash() ^ right->getTreeHash();
     }
+  }
+
+  bool isComplete() const {
+    return left && right;
   }
 
   std::uint32_t stateID;
