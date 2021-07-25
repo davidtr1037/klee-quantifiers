@@ -178,7 +178,7 @@ void LoopHandler::releaseStates() {
     if (ValidateMerge) {
       /* take snapshots before merging */
       for (ExecutionState *es : states) {
-        snapshots.push_back(es->branch());
+        snapshots.push_back(es->branch(true));
       }
     }
 
