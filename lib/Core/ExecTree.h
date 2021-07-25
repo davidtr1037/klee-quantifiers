@@ -130,6 +130,8 @@ public:
 
   void removeSubTree(ExecTreeNode *dst);
 
+  bool join(ExecTreeNode *dst);
+
   void clear();
 
   void dump();

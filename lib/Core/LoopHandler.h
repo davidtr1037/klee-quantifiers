@@ -79,6 +79,8 @@ public:
 
   void mergeIntermediateStates();
 
+  void joinIntermediateStates();
+
   bool validateMerge(std::vector<ExecutionState *> &states,
                      ExecutionState *merged);
 

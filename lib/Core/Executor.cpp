@@ -1232,6 +1232,7 @@ Executor::fork(ExecutionState &current, ref<Expr> condition, bool isInternal) {
                       condition,
                       current.prevPC->info->id);
           current.loopHandler->mergeIntermediateStates();
+          current.loopHandler->joinIntermediateStates();
         }
       }
     }

@@ -262,6 +262,7 @@ void LoopHandler::releaseStates() {
     groupId++;
   }
   mergeGroupsByExit.clear();
+  /* the snapshots hold a reference to the loop hander... */
   tree.clear();
 }
 
@@ -411,6 +412,21 @@ void LoopHandler::mergeIntermediateStates() {
           changed = true;
           break;
         }
+      }
+    }
+  } while (changed);
+}
+
+void LoopHandler::joinIntermediateStates() {
+  bool changed;
+
+  do {
+    changed = false;
+    for (ExecTreeNode *n : tree.nodes) {
+      if (n->parent && !n->parent->isComplete()) {
+        tree.join(n);
+        changed = true;
+        break;
       }
     }
   } while (changed);
