@@ -1,6 +1,8 @@
 #ifndef KLEE_EXEC_TREE_H
 #define KLEE_EXEC_TREE_H
 
+#include "PTree.h"
+
 #include <klee/Expr/Expr.h>
 
 #include <stdint.h>
@@ -22,12 +24,14 @@ private:
   ExecTreeNode(std::uint32_t stateID,
                ref<Expr> e,
                ExecutionState *snapshot,
+               PTreeNode *ptreeNode,
                std::uint32_t salt = 1);
 
   ExecTreeNode(const ExecTreeNode &other) :
     stateID(other.stateID),
     e(other.e),
     snapshot(other.snapshot),
+    ptreeNode(other.ptreeNode),
     left(other.left),
     right(other.right),
     parent(other.parent),
@@ -80,6 +84,7 @@ public:
   std::uint32_t stateID;
   ref<Expr> e;
   ExecutionState *snapshot;
+  PTreeNode *ptreeNode;
   ExecTreeNode *left;
   ExecTreeNode *right;
   ExecTreeNode *parent;

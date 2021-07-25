@@ -39,6 +39,20 @@ void PTree::attach(PTreeNode *node, ExecutionState *leftState, ExecutionState *r
   node->right = PTreeNodePtr(new PTreeNode(node, rightState), currentNodeTag);
 }
 
+void PTree::replaceNode(PTreeNode *node,
+                        ExecutionState *state) {
+  assert(node);
+  PTreeNode *parent = node->parent;
+  assert(parent && parent->state == nullptr);
+  if (parent->left.getPointer() == node) {
+    parent->left = PTreeNodePtr(new PTreeNode(parent, state));
+  }
+  if (parent->right.getPointer() == node) {
+    parent->right = PTreeNodePtr(new PTreeNode(parent, state));
+  }
+  node->parent = nullptr;
+}
+
 void PTree::remove(PTreeNode *n) {
   assert(!n->left.getPointer() && !n->right.getPointer());
   do {

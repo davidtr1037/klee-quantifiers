@@ -49,6 +49,7 @@ namespace klee {
 
     void attach(PTreeNode *node, ExecutionState *leftState,
                 ExecutionState *rightState);
+    void replaceNode(PTreeNode *node, ExecutionState *state);
     static void remove(PTreeNode *node);
     void dump(llvm::raw_ostream &os);
     std::uint8_t getNextId() {

@@ -14,10 +14,12 @@ namespace klee {
 ExecTreeNode::ExecTreeNode(std::uint32_t stateID,
                            ref<Expr> e,
                            ExecutionState *snapshot,
+                           PTreeNode *ptreeNode,
                            std::uint32_t salt) :
   stateID(stateID),
   e(e),
   snapshot(snapshot),
+  ptreeNode(ptreeNode),
   left(nullptr),
   right(nullptr),
   parent(nullptr),
@@ -34,9 +36,10 @@ ExecTreeNode::~ExecTreeNode() {
 
 /* TODO: pass a reference to ExecutionState? */
 ExecTree::ExecTree(uint32_t stateID) {
-  /* TODO: add snapshot? */
+  /* TODO: add snapshot/ptreeNode? */
   root = new ExecTreeNode(stateID,
                           ConstantExpr::create(1, Expr::Bool),
+                          nullptr,
                           nullptr);
   addNode(root);
 }
@@ -84,6 +87,7 @@ void ExecTree::setLeft(ExecTreeNode *parent,
   ExecTreeNode *node = new ExecTreeNode(state.getID(),
                                         condition,
                                         snapshot,
+                                        state.ptreeNode,
                                         salt);
   setLeft(parent, node);
   addNode(node);
@@ -97,6 +101,7 @@ void ExecTree::setRight(ExecTreeNode *parent,
   ExecTreeNode *node = new ExecTreeNode(state.getID(),
                                         condition,
                                         snapshot,
+                                        state.ptreeNode,
                                         salt);
   setRight(parent, node);
   addNode(node);
@@ -112,10 +117,12 @@ void ExecTree::extend(ExecutionState &current,
   ExecTreeNode *left = new ExecTreeNode(falseState.getID(),
                                         Expr::createIsZero(condition),
                                         falseSnapshot,
+                                        falseState.ptreeNode,
                                         salt);
   ExecTreeNode *right = new ExecTreeNode(trueState.getID(),
                                          condition,
                                          trueSnapshot,
+                                         trueState.ptreeNode,
                                          salt);
 
   for (ExecTreeNode *node : nodes) {

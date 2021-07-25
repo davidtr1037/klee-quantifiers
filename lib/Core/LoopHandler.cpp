@@ -346,6 +346,8 @@ void LoopHandler::mergeNodes(ExecTreeNode *n1, ExecTreeNode *n2) {
   /* clone the merged state */
   merged = merged->branch();
 
+  executor->processTree->replaceNode(n1->ptreeNode, merged);
+
   /* find nearest ancestor */
   ExecTreeNode *ancestor = tree.getNearestAncestor(n1, n2);
   ref<Expr> pc1 = tree.getPC(ancestor, n1);
