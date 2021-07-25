@@ -148,7 +148,8 @@ void ExecTree::computeNodeHashes(ExecTreeNode *n) {
   }
 }
 
-ExecTreeNode *ExecTree::getNearestAncestor(ExecTreeNode *n1, ExecTreeNode *n2) {
+ExecTreeNode *ExecTree::getNearestAncestor(ExecTreeNode *n1,
+                                           ExecTreeNode *n2) const {
   std::vector<ExecTreeNode *> p1;
   std::set<ExecTreeNode *> p2;
   ExecTreeNode *current;
@@ -175,7 +176,7 @@ ExecTreeNode *ExecTree::getNearestAncestor(ExecTreeNode *n1, ExecTreeNode *n2) {
 }
 
 void ExecTree::getReachable(ExecTreeNode *src,
-                            std::vector<ExecTreeNode *> &reachable) {
+                            std::vector<ExecTreeNode *> &reachable) const {
   std::list<ExecTreeNode *> worklist;
   worklist.push_back(src);
 
@@ -196,7 +197,7 @@ void ExecTree::getReachable(ExecTreeNode *src,
 
 ref<Expr> ExecTree::getPC(ExecTreeNode *parent,
                           ExecTreeNode *child,
-                          bool inclusive) {
+                          bool inclusive) const {
   std::list<ref<Expr>> conditions;
   ExecTreeNode *n = child;
   while (n && n != parent) {

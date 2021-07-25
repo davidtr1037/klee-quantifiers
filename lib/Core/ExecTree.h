@@ -121,14 +121,14 @@ public:
 
   void computeNodeHashes(ExecTreeNode *n);
 
-  ExecTreeNode *getNearestAncestor(ExecTreeNode *n1, ExecTreeNode *n2);
+  ExecTreeNode *getNearestAncestor(ExecTreeNode *n1, ExecTreeNode *n2) const;
 
   void getReachable(ExecTreeNode *src,
-                    std::vector<ExecTreeNode *> &reachable);
+                    std::vector<ExecTreeNode *> &reachable) const;
 
   ref<Expr> getPC(ExecTreeNode *parent,
                   ExecTreeNode *child,
-                  bool inclusive = false);
+                  bool inclusive = false) const;
 
   void removeSubTree(ExecTreeNode *dst);
 
