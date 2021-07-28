@@ -1231,8 +1231,8 @@ Executor::fork(ExecutionState &current, ref<Expr> condition, bool isInternal) {
                       falseSnapshot,
                       condition,
                       current.prevPC->info->id);
-          current.loopHandler->mergeIntermediateStates();
-          current.loopHandler->joinIntermediateStates();
+          /* TODO: only current? */
+          current.loopHandler->shouldTransform = true;
         }
       }
     }
@@ -3189,6 +3189,12 @@ void Executor::run(ExecutionState &initialState) {
     timers.invoke();
     if (::dumpStates) dumpStates();
     if (::dumpPTree) dumpPTree();
+
+    if (!state.loopHandler.isNull() && state.loopHandler->shouldTransform) {
+      state.loopHandler->mergeIntermediateStates();
+      state.loopHandler->joinIntermediateStates();
+      state.loopHandler->shouldTransform = false;
+    }
 
     updateStates(&state);
 

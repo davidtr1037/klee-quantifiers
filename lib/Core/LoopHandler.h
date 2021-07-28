@@ -97,6 +97,8 @@ public:
   ExecTree tree;
 
   bool canUseExecTree;
+
+  bool shouldTransform;
 };
 
 }

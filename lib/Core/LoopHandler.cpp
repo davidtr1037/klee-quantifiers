@@ -70,7 +70,8 @@ LoopHandler::LoopHandler(Executor *executor, ExecutionState *es, Loop *loop)
       solver(executor->solver),
       loop(loop),
       tree(es->getID()),
-      canUseExecTree(true) {
+      canUseExecTree(true),
+      shouldTransform(false) {
   assert(loop);
   addOpenState(es);
   for (ref<Expr> e : es->constraints) {
@@ -166,8 +167,6 @@ void LoopHandler::splitStates(std::vector<MergeGroup> &result) {
 }
 
 void LoopHandler::releaseStates() {
-  std::vector<ref<Expr>> toAdd;
-
   std::vector<MergeGroup> groups;
   splitStates(groups);
   klee_message("splitting to %lu merging groups", groups.size());
