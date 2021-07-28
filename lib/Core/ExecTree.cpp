@@ -365,11 +365,9 @@ void ExecTree::dumpGMLToFile(std::set<uint32_t> &ids, const std::string &name) {
   char path[1000] = {0,};
   sprintf(path, "/tmp/exectree_%s_%u.dot", name.data(), mergeID++);
   std::error_code ec;
-  raw_fd_ostream *f = new raw_fd_ostream(path, ec, sys::fs::F_None);
-  if (f) {
-    dumpGML(*f, ids);
-    f->close();
-  }
+  raw_fd_ostream f(path, ec, sys::fs::F_None);
+  dumpGML(f, ids);
+  f.close();
 }
 
 void ExecTree::addNode(ExecTreeNode *node) {
