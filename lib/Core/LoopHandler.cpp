@@ -255,6 +255,7 @@ void LoopHandler::releaseStates() {
 
     for (ExecutionState *es : states) {
       executor->mergingSearcher->inCloseMerge.erase(es);
+      /* TODO: why? */
       es->suffixConstraints.clear();
     }
 
