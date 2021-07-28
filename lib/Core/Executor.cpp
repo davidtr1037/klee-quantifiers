@@ -3191,8 +3191,9 @@ void Executor::run(ExecutionState &initialState) {
     if (::dumpPTree) dumpPTree();
 
     if (!state.loopHandler.isNull() && state.loopHandler->shouldTransform) {
-      state.loopHandler->mergeIntermediateStates();
-      state.loopHandler->joinIntermediateStates();
+      if (state.loopHandler->mergeIntermediateStates()) {
+        state.loopHandler->joinIntermediateStates();
+      }
       state.loopHandler->shouldTransform = false;
     }
 

@@ -424,43 +424,50 @@ bool LoopHandler::mergeIntermediateState(ExecTreeNode *target) {
 }
 
 /* TODO: use the merged node to optimize the search? */
-void LoopHandler::mergeIntermediateStates() {
+bool LoopHandler::mergeIntermediateStates() {
   if (!UseMergeTransformation) {
-    return;
+    return false;
   }
 
-  bool changed;
+  bool changed = false;
+  bool retry;
 
   do {
-    changed = false;
+    retry = false;
     for (ExecTreeNode *n : tree.nodes) {
       if (n != tree.root) {
         if (mergeIntermediateState(n)) {
+          retry = true;
           changed = true;
           break;
         }
       }
     }
-  } while (changed);
+  } while (retry);
+
+  return changed;
 }
 
-void LoopHandler::joinIntermediateStates() {
+bool LoopHandler::joinIntermediateStates() {
   if (!UseJoinTransformation) {
-    return;
+    return false;
   }
 
-  bool changed;
+  bool changed = false;
+  bool retry;
 
   do {
-    changed = false;
+    retry = false;
     for (ExecTreeNode *n : tree.nodes) {
       if (n->parent && !n->parent->isComplete()) {
         tree.join(n);
-        changed = true;
+        retry = true;
         break;
       }
     }
-  } while (changed);
+  } while (retry);
+
+  return changed;
 }
 
 bool LoopHandler::validateMerge(std::vector<ExecutionState *> &snapshots,

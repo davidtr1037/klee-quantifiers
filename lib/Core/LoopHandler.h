@@ -77,9 +77,9 @@ public:
 
   bool mergeIntermediateState(ExecTreeNode *target);
 
-  void mergeIntermediateStates();
+  bool mergeIntermediateStates();
 
-  void joinIntermediateStates();
+  bool joinIntermediateStates();
 
   bool validateMerge(std::vector<ExecutionState *> &states,
                      ExecutionState *merged);
