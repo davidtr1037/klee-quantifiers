@@ -308,6 +308,7 @@ bool LoopHandler::shouldMerge(ExecutionState &s1, ExecutionState &s2) {
 void LoopHandler::discardState(ExecutionState *es) {
   if (std::find(openStates.begin(), openStates.end(), es) == openStates.end()) {
     /* the state reached the loop exit (suspended) */
+    executor->mergingSearcher->inCloseMerge.erase(es);
     executor->mergingSearcher->continueState(*es);
   }
   executor->terminateStateEarly(*es, "IntermediateMerge");
@@ -323,17 +324,34 @@ void LoopHandler::discardSubTree(ExecTreeNode *src) {
     ids.insert(n->stateID);
   }
 
+  /* TODO: refactor */
   for (unsigned id : ids) {
-    auto i = openStates.begin();
-    while (i != openStates.end()) {
-      ExecutionState *es = *i;
+    bool found = false;
+    for (ExecutionState *es : openStates) {
       if (es->getID() == id) {
+        /* TODO: remove from openStates? */
         discardState(es);
+        found = true;
         break;
       }
-      i++;
     }
-    assert(i != openStates.end());
+    for (auto &i : mergeGroupsByExit) {
+      MergeGroup &mg = i.second;
+      auto j = mg.begin();
+      while (j != mg.end()) {
+        ExecutionState *es = *j;
+        if (es->getID() == id) {
+          discardState(es);
+          found = true;
+          break;
+        }
+        j++;
+      }
+      if (j != mg.end()) {
+        mg.erase(j);
+      }
+    }
+    assert(found);
   }
 
   tree.removeSubTree(src);
