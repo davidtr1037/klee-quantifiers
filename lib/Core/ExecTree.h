@@ -148,6 +148,11 @@ public:
 
   void dumpGMLToFile(std::set<uint32_t> &ids, const std::string &name);
 
+  void dumpGMLToFile(const std::string &name) {
+    std::set<uint32_t> ids;
+    dumpGMLToFile(ids, name);
+  }
+
 private:
 
   void addNode(ExecTreeNode *node);
