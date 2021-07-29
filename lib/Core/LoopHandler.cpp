@@ -414,9 +414,17 @@ bool LoopHandler::mergeIntermediateState(ExecTreeNode *target) {
   while (!worklist.empty()) {
     ExecTreeNode *n = worklist.back();
     worklist.pop_back();
+
     if (shouldMerge(*target->snapshot, *n->snapshot)) {
       mergeNodes(target, n);
       return true;
+    }
+
+    if (n->left) {
+      worklist.push_back(n->left);
+    }
+    if (n->right) {
+      worklist.push_back(n->right);
     }
   }
 
