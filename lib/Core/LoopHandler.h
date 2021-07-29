@@ -71,7 +71,8 @@ public:
 
   void discardState(ExecutionState *es);
 
-  void discardSubTree(ExecTreeNode *src);
+  void discardSubTree(ExecTreeNode *src,
+                      ExecTreeNode *ancestor);
 
   void mergeNodes(ExecTreeNode *n1, ExecTreeNode *n2);
 

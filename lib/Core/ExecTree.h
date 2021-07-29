@@ -135,7 +135,8 @@ public:
                   ExecTreeNode *child,
                   bool inclusive = false) const;
 
-  void removeSubTree(ExecTreeNode *dst);
+  void removeSubTree(ExecTreeNode *dst,
+                     ExecTreeNode *stopAt);
 
   bool join(ExecTreeNode *dst);
 

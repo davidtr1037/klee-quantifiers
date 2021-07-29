@@ -223,7 +223,8 @@ ref<Expr> ExecTree::getPC(ExecTreeNode *parent,
   return pc;
 }
 
-void ExecTree::removeSubTree(ExecTreeNode *dst) {
+void ExecTree::removeSubTree(ExecTreeNode *dst,
+                             ExecTreeNode *stopAt) {
   /* remove the reachable nodes */
   std::vector<ExecTreeNode *> reachable;
   /* TODO: don't compute twice */
@@ -235,7 +236,7 @@ void ExecTree::removeSubTree(ExecTreeNode *dst) {
   }
 
   ExecTreeNode *current = dst;
-  while (current) {
+  while (current && current != stopAt) {
     /* we don't want to delet the root */
     assert(current->parent);
 
@@ -252,11 +253,12 @@ void ExecTree::removeSubTree(ExecTreeNode *dst) {
 
     ExecTreeNode *next = current->parent;
     removeNode(current);
-    current = next;
     if (sibling) {
       /* the parent can't be deleted */
       break;
     }
+
+    current = next;
   }
 }
 

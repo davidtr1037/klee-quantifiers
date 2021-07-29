@@ -315,7 +315,8 @@ void LoopHandler::discardState(ExecutionState *es) {
   executor->interpreterHandler->decUnmergedExploredPaths();
 }
 
-void LoopHandler::discardSubTree(ExecTreeNode *src) {
+void LoopHandler::discardSubTree(ExecTreeNode *src,
+                                 ExecTreeNode *ancestor) {
   std::set<unsigned> ids;
   std::vector<ExecTreeNode *> nodes;
 
@@ -354,7 +355,7 @@ void LoopHandler::discardSubTree(ExecTreeNode *src) {
     assert(found);
   }
 
-  tree.removeSubTree(src);
+  tree.removeSubTree(src, ancestor);
 }
 
 void LoopHandler::mergeNodes(ExecTreeNode *n1, ExecTreeNode *n2) {
@@ -372,27 +373,19 @@ void LoopHandler::mergeNodes(ExecTreeNode *n1, ExecTreeNode *n2) {
   ref<Expr> pc2 = tree.getPC(ancestor, n2);
 
   /* remove paths to nodes */
-  discardSubTree(n1);
-  discardSubTree(n2);
-
-  /* check some properties after the transformation... */
-  if (!ancestor->left && !ancestor->right) {
-    /* should not happen */
-    assert(0);
-  }
-  if (ancestor->left && ancestor->right) {
-    /* TODO: unsupported */
-    assert(0);
-  }
+  discardSubTree(n1, ancestor);
+  discardSubTree(n2, ancestor);
 
   /* TODO: update pc for the snapshot? */
   ExecutionState *mergedSnapshot = merged->branch(true);
   ref<Expr> condition = OrExpr::create(pc1, pc2);
   if (!ancestor->left) {
     tree.setLeft(ancestor, *merged, condition, mergedSnapshot);
-  }
-  if (!ancestor->right) {
+  } else if (!ancestor->right) {
     tree.setRight(ancestor, *merged, condition, mergedSnapshot);
+  } else {
+    /* TODO: unsupported */
+    assert(0);
   }
 
   /* add new path */
