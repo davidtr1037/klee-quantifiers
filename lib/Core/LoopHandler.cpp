@@ -358,9 +358,12 @@ void LoopHandler::discardSubTree(ExecTreeNode *src,
   tree.removeSubTree(src, ancestor);
 }
 
-void LoopHandler::mergeNodes(ExecTreeNode *n1, ExecTreeNode *n2) {
+void LoopHandler::mergeNodes(ExecTreeNode *n1,
+                             ExecTreeNode *n2,
+                             ExecutionState *s1,
+                             ExecutionState *s2) {
   /* TODO: use ExecutionState::mergeStatesOptimized */
-  std::vector<ExecutionState *> states = {n1->snapshot, n2->snapshot};
+  std::vector<ExecutionState *> states = {s1, s2};
   ExecutionState *merged = ExecutionState::mergeStates(states);
   /* clone the merged state */
   merged = merged->branch();
@@ -392,6 +395,19 @@ void LoopHandler::mergeNodes(ExecTreeNode *n1, ExecTreeNode *n2) {
   executor->addedStates.push_back(merged);
 }
 
+bool LoopHandler::mergeNodes(ExecTreeNode *n1, ExecTreeNode *n2) {
+  for (ExecutionState *s1 : n1->snapshots) {
+    for (ExecutionState *s2 : n2->snapshots) {
+      if (shouldMerge(*s1, *s2)) {
+        mergeNodes(n1, n2, s1, s2);
+        return true;
+      }
+    }
+  }
+
+  return false;
+}
+
 bool LoopHandler::mergeIntermediateState(ExecTreeNode *target) {
   std::list<ExecTreeNode *> worklist;
 
@@ -408,8 +424,7 @@ bool LoopHandler::mergeIntermediateState(ExecTreeNode *target) {
     ExecTreeNode *n = worklist.back();
     worklist.pop_back();
 
-    if (shouldMerge(*target->snapshot, *n->snapshot)) {
-      mergeNodes(target, n);
+    if (mergeNodes(target, n)) {
       return true;
     }
 

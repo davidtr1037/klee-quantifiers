@@ -74,7 +74,12 @@ public:
   void discardSubTree(ExecTreeNode *src,
                       ExecTreeNode *ancestor);
 
-  void mergeNodes(ExecTreeNode *n1, ExecTreeNode *n2);
+  void mergeNodes(ExecTreeNode *n1,
+                  ExecTreeNode *n2,
+                  ExecutionState *s1,
+                  ExecutionState *s2);
+
+  bool mergeNodes(ExecTreeNode *n1, ExecTreeNode *n2);
 
   bool mergeIntermediateState(ExecTreeNode *target);
 

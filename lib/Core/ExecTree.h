@@ -30,7 +30,7 @@ private:
   ExecTreeNode(const ExecTreeNode &other) :
     stateID(other.stateID),
     e(other.e),
-    snapshot(other.snapshot),
+    snapshots(other.snapshots),
     ptreeNode(other.ptreeNode),
     left(other.left),
     right(other.right),
@@ -83,7 +83,7 @@ public:
 
   std::uint32_t stateID;
   ref<Expr> e;
-  ExecutionState *snapshot;
+  std::vector<ExecutionState *> snapshots;
   PTreeNode *ptreeNode;
   ExecTreeNode *left;
   ExecTreeNode *right;

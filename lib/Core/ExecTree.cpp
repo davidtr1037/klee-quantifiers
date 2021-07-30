@@ -18,18 +18,19 @@ ExecTreeNode::ExecTreeNode(std::uint32_t stateID,
                            std::uint32_t salt) :
   stateID(stateID),
   e(e),
-  snapshot(snapshot),
   ptreeNode(ptreeNode),
   left(nullptr),
   right(nullptr),
   parent(nullptr),
   treeHash(0),
   salt(salt) {
-
+  if (snapshot) {
+    snapshots.push_back(snapshot);
+  }
 }
 
 ExecTreeNode::~ExecTreeNode() {
-  if (snapshot) {
+  for (ExecutionState *snapshot : snapshots) {
     delete snapshot;
   }
 }
