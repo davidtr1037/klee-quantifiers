@@ -4,6 +4,8 @@
 #include "ExecTree.h"
 #include "Pattern.h"
 
+#include <list>
+
 namespace klee {
 
 class ExecTreeIterator {
@@ -25,6 +27,24 @@ private:
 
   ExecTree &t;
   ExecTreeNode *current;
+};
+
+class ExecTreeBFSIterator {
+public:
+
+  ExecTreeBFSIterator(ExecTree &t, ExecTreeNode *start = nullptr) : t(t) {
+    ExecTreeNode *initial = start ? start : t.root;
+    worklist.push_back(initial);
+  }
+
+  ExecTreeNode *next();
+
+  bool hasNext() const;
+
+private:
+
+  ExecTree &t;
+  std::list<ExecTreeNode *> worklist;
 };
 
 }

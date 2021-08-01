@@ -33,3 +33,25 @@ bool ExecTreeIterator::hasNext() const {
 ExecTreeNode *ExecTreeIterator::getCurrent() const {
   return current;
 }
+
+ExecTreeNode *ExecTreeBFSIterator::next() {
+  if (!hasNext()) {
+    return nullptr;
+  }
+
+  ExecTreeNode *n = worklist.front();
+  worklist.pop_front();
+
+  if (n->left) {
+    worklist.push_back(n->left);
+  }
+  if (n->right) {
+    worklist.push_back(n->right);
+  }
+
+  return n;
+}
+
+bool ExecTreeBFSIterator::hasNext() const {
+  return !worklist.empty();
+}
