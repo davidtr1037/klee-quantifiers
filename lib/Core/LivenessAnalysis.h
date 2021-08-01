@@ -29,6 +29,8 @@ public:
                            LiveSet &liveIn,
                            LiveSet &liveOut);
 
+  static bool shouldIgnore(llvm::Instruction *inst);
+
   static void gen(llvm::Instruction *inst,
                   std::set<llvm::Value *> &variables);
 

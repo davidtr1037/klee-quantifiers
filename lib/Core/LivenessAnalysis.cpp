@@ -64,17 +64,6 @@ bool LivenessAnalysis::runIteration(Function *f,
       }
     }
 
-    if (isa<CallInst>(inst)) {
-      CallInst *callInst = dyn_cast<CallInst>(inst);
-      Function *f = callInst->getCalledFunction();
-      if (f) {
-        if (f->isIntrinsic()) {
-          klee_warning_once(0, "ignoring function: %s", f->getName().data());
-          continue;
-        }
-      }
-    }
-
     set<Value *> toKill, toGen;
     gen(inst, toGen);
     kill(inst, toKill);
@@ -120,8 +109,27 @@ bool LivenessAnalysis::runIteration(Function *f,
   return changed;
 }
 
+bool LivenessAnalysis::shouldIgnore(llvm::Instruction *inst) {
+  if (isa<CallInst>(inst)) {
+    CallInst *callInst = dyn_cast<CallInst>(inst);
+    Function *f = callInst->getCalledFunction();
+    if (f) {
+      if (f->isIntrinsic()) {
+        klee_warning_once(0, "ignoring function: %s", f->getName().data());
+        return true;
+      }
+    }
+  }
+
+  return false;
+}
+
 void LivenessAnalysis::gen(Instruction *inst,
                            set<Value *> &variables) {
+  if (shouldIgnore(inst)) {
+    return;
+  }
+
   for (unsigned i = 0; i < inst->getNumOperands(); i++) {
     Value *v = inst->getOperand(i);
     if (isa<Instruction>(v) || isa<Argument>(v)) {
@@ -133,6 +141,9 @@ void LivenessAnalysis::gen(Instruction *inst,
 void LivenessAnalysis::kill(Instruction *inst,
                             set<Value *> &variables) {
   if (inst->getType()->isVoidTy()) {
+    return;
+  }
+  if (shouldIgnore(inst)) {
     return;
   }
 
