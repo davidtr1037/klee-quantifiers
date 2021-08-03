@@ -94,6 +94,8 @@ public:
   bool validateMerge(std::vector<ExecutionState *> &states,
                      ExecutionState *merged);
 
+  void dumpStats() const;
+
   class ReferenceCounter _refCount;
 
   Executor *executor;
@@ -109,6 +111,10 @@ public:
   bool canUseExecTree;
 
   bool shouldTransform;
+  
+  /* statistics */
+  uint64_t mergeCount;
+  uint64_t joinCount;
 };
 
 }

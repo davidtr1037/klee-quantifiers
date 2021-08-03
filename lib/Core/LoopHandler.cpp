@@ -72,7 +72,9 @@ LoopHandler::LoopHandler(Executor *executor, ExecutionState *es, Loop *loop)
       loop(loop),
       tree(es->getID()),
       canUseExecTree(true),
-      shouldTransform(false) {
+      shouldTransform(false),
+      mergeCount(0),
+      joinCount(0) {
   assert(loop);
   addOpenState(es);
   for (ref<Expr> e : es->constraints) {
@@ -171,6 +173,7 @@ void LoopHandler::releaseStates() {
   std::vector<MergeGroup> groups;
   splitStates(groups);
   klee_message("splitting to %lu merging groups", groups.size());
+  dumpStats();
 
   unsigned groupId = 0;
   for (MergeGroup &states: groups) {
@@ -461,6 +464,7 @@ bool LoopHandler::mergeIntermediateStates() {
       ExecTreeNode *n = iter.next();
       if (n != tree.root) {
         if (mergeIntermediateState(n)) {
+          mergeCount++;
           retry = true;
           changed = true;
           break;
@@ -484,7 +488,9 @@ bool LoopHandler::joinIntermediateStates() {
     retry = false;
     for (ExecTreeNode *n : tree.nodes) {
       if (n->parent && !n->parent->isComplete()) {
-        tree.join(n);
+        if (tree.join(n)) {
+          joinCount++;
+        }
         retry = true;
         break;
       }
@@ -513,6 +519,11 @@ bool LoopHandler::validateMerge(std::vector<ExecutionState *> &snapshots,
                                   merged,
                                   expected,
                                   !OptimizeUsingQuantifiers);
+}
+
+void LoopHandler::dumpStats() const {
+  klee_message("merge transformations: %lu", mergeCount);
+  klee_message("join transformations: %lu", joinCount);
 }
 
 }
