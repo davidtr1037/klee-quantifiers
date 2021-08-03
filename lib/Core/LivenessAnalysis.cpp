@@ -80,8 +80,7 @@ bool LivenessAnalysis::runIteration(Function *f,
     }
     for (Instruction *s : successors) {
       for (Value *v : liveIn[s]) {
-        auto r = liveOut[inst].insert(v);
-        if (r.second) {
+        if (updateOutSet(inst, s, liveOut, v)) {
           changed = true;
         }
       }
@@ -149,6 +148,14 @@ void LivenessAnalysis::kill(Instruction *inst,
 
   Value *v = (Value *)(inst);
   variables.insert(v);
+}
+
+bool LivenessAnalysis::updateOutSet(Instruction *inst,
+                                    Instruction *successor,
+                                    LiveSet &liveOut,
+                                    Value *v) {
+  auto r = liveOut[inst].insert(v);
+  return r.second;
 }
 
 void LivenessAnalysis::dumpLiveSet(LiveSet &ls) {

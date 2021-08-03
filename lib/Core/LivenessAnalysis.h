@@ -37,6 +37,11 @@ public:
   static void kill(llvm::Instruction *inst,
                    std::set<llvm::Value *> &variables);
 
+  static bool updateOutSet(llvm::Instruction *inst,
+                           llvm::Instruction *successor,
+                           LiveSet &liveOut,
+                           llvm::Value *v);
+
   static void dumpLiveSet(LiveSet &ls);
 
 };
