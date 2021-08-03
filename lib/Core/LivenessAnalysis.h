@@ -3,6 +3,7 @@
 
 #include <set>
 #include <map>
+#include <tuple>
 
 #include <llvm/IR/Value.h>
 #include <llvm/IR/Instruction.h>
@@ -10,11 +11,33 @@
 
 namespace klee {
 
+struct GuardedValue {
+  llvm::Value *v;
+  llvm::BasicBlock *bb;
+
+  GuardedValue() : v(nullptr), bb(nullptr) {
+
+  }
+
+  GuardedValue(llvm::Value *v, llvm::BasicBlock *bb) : v(v), bb(bb) {
+
+  }
+
+  bool operator==(const GuardedValue& other) const {
+    return v == other.v && bb == other.bb;
+  }
+
+  bool operator<(const GuardedValue& other) const {
+    return std::tie(v, bb) < std::tie(other.v, other.bb);
+  }
+
+};
+
 class LivenessAnalysis {
 
 public:
 
-  typedef std::map<llvm::Instruction *, std::set<llvm::Value *>> LiveSet;
+  typedef std::map<llvm::Instruction *, std::set<GuardedValue>> LiveSet;
 
   struct Result {
       LiveSet liveIn;
@@ -32,15 +55,15 @@ public:
   static bool shouldIgnore(llvm::Instruction *inst);
 
   static void gen(llvm::Instruction *inst,
-                  std::set<llvm::Value *> &variables);
+                  std::set<GuardedValue> &variables);
 
   static void kill(llvm::Instruction *inst,
-                   std::set<llvm::Value *> &variables);
+                   std::set<GuardedValue> &variables);
 
   static bool updateOutSet(llvm::Instruction *inst,
                            llvm::Instruction *successor,
                            LiveSet &liveOut,
-                           llvm::Value *v);
+                           const GuardedValue &v);
 
   static void dumpLiveSet(LiveSet &ls);
 

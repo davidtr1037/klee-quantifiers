@@ -64,7 +64,7 @@ bool LivenessAnalysis::runIteration(Function *f,
       }
     }
 
-    set<Value *> toKill, toGen;
+    set<GuardedValue> toKill, toGen;
     gen(inst, toGen);
     kill(inst, toKill);
 
@@ -79,7 +79,7 @@ bool LivenessAnalysis::runIteration(Function *f,
       successors.push_back(inst->getNextNode());
     }
     for (Instruction *s : successors) {
-      for (Value *v : liveIn[s]) {
+      for (const GuardedValue &v : liveIn[s]) {
         if (updateOutSet(inst, s, liveOut, v)) {
           changed = true;
         }
@@ -87,14 +87,22 @@ bool LivenessAnalysis::runIteration(Function *f,
     }
 
     /* live-in */
-    for (Value *v : toGen) {
+    for (const GuardedValue &v : toGen) {
       auto r = liveIn[inst].insert(v);
       if (r.second) {
         changed = true;
       }
     }
-    for (Value *v : liveOut[inst]) {
-      if (toKill.find(v) == toKill.end()) {
+    for (const GuardedValue &v : liveOut[inst]) {
+      bool found = false;
+      for (const GuardedValue &w : toKill) {
+        if (w.v == v.v) {
+          found = true;
+          break;
+        }
+      }
+
+      if (!found) {
         auto r = liveIn[inst].insert(v);
         if (r.second) {
           changed = true;
@@ -124,21 +132,33 @@ bool LivenessAnalysis::shouldIgnore(llvm::Instruction *inst) {
 }
 
 void LivenessAnalysis::gen(Instruction *inst,
-                           set<Value *> &variables) {
+                           set<GuardedValue> &variables) {
   if (shouldIgnore(inst)) {
+    return;
+  }
+
+  if (isa<PHINode>(inst)) {
+    PHINode *phi = dyn_cast<PHINode>(inst);
+    for (unsigned i = 0; i < phi->getNumIncomingValues(); i++) {
+      Value *v = phi->getIncomingValue(i);
+      if (isa<Instruction>(v) || isa<Argument>(v)) {
+        BasicBlock *bb = phi->getIncomingBlock(i);
+        variables.insert(GuardedValue(v, bb));
+      }
+    }
     return;
   }
 
   for (unsigned i = 0; i < inst->getNumOperands(); i++) {
     Value *v = inst->getOperand(i);
     if (isa<Instruction>(v) || isa<Argument>(v)) {
-      variables.insert(v);
+      variables.insert(GuardedValue(v, nullptr));
     }
   }
 }
 
 void LivenessAnalysis::kill(Instruction *inst,
-                            set<Value *> &variables) {
+                            set<GuardedValue> &variables) {
   if (inst->getType()->isVoidTy()) {
     return;
   }
@@ -147,13 +167,22 @@ void LivenessAnalysis::kill(Instruction *inst,
   }
 
   Value *v = (Value *)(inst);
-  variables.insert(v);
+  variables.insert(GuardedValue(v, nullptr));
 }
 
 bool LivenessAnalysis::updateOutSet(Instruction *inst,
                                     Instruction *successor,
                                     LiveSet &liveOut,
-                                    Value *v) {
+                                    const GuardedValue &v) {
+  /* TODO: a better solution? */
+  if (v.bb && inst->getParent() != successor->getParent()) {
+    if (v.bb == inst->getParent()) {
+      auto r = liveOut[inst].insert(GuardedValue(v.v, nullptr));
+      return r.second;
+    } else {
+      return false;
+    }
+  }
   auto r = liveOut[inst].insert(v);
   return r.second;
 }
@@ -162,8 +191,8 @@ void LivenessAnalysis::dumpLiveSet(LiveSet &ls) {
   errs() << "--- live set ---\n";
   for (auto i : ls) {
     errs() << "instruction: " << *i.first << "\n";
-    for (Value *v : i.second) {
-      errs() << "-- live: " << *v << "\n";
+    for (const GuardedValue &v : i.second) {
+      errs() << "-- live: " << *v.v << "\n";
     }
   }
 }
