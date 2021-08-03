@@ -141,6 +141,19 @@ void ExecTree::extend(ExecutionState &current,
   assert(false);
 }
 
+/* TODO: rename to addSnapshot */
+void ExecTree::setSnapshot(ExecutionState &state,
+                           ExecutionState *snapshot) {
+  for (ExecTreeNode *node : nodes) {
+    if (node->stateID == state.getID() && node->isLeaf()) {
+      node->snapshots.push_back(snapshot);
+      return;
+    }
+  }
+
+  assert(0);
+}
+
 /* currently unused */
 void ExecTree::computeHashes() {
   computeNodeHashes(root);

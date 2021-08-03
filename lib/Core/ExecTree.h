@@ -110,6 +110,9 @@ public:
               ref<Expr> condition,
               std::uint32_t salt);
 
+  void setSnapshot(ExecutionState &state,
+                   ExecutionState *snapshot);
+
   void setLeft(ExecTreeNode *parent,
                ExecutionState &state,
                ref<Expr> condition,
