@@ -202,6 +202,9 @@ public:
 
   bool isSnapshot;
 
+  /* TODO: add docs */
+  bool hasPendingSnapshot;
+
 public:
   #ifdef KLEE_UNITTEST
   // provide this function only in the context of unittests

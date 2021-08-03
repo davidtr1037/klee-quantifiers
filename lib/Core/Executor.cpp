@@ -1138,6 +1138,8 @@ Executor::fork(ExecutionState &current, ref<Expr> condition, bool isInternal) {
     return StatePair(0, &current);
   } else {
     dumpForkStats(current, condition);
+    /* TODO: add docs */
+    current.hasPendingSnapshot = false;
 
     if (UseLoopMerge) {
       if (current.stack.back().isExecutingLoop && current.isTaintedExpr(condition)) {
@@ -1216,23 +1218,17 @@ Executor::fork(ExecutionState &current, ref<Expr> condition, bool isInternal) {
     if (UseLoopMerge && !current.loopHandler.isNull()) {
       if (OptimizeITEUsingExecTree || OptimizeArrayITEUsingExecTree) {
         if (current.loopHandler->canUseExecTree) {
-          ExecutionState *trueSnapshot = nullptr;
-          ExecutionState *falseSnapshot = nullptr;
-          if (CreateSnapshots) {
-            trueSnapshot = createSnapshot(*trueState, 0);
-            falseSnapshot = createSnapshot(*falseState, 1);
-          }
-
+          /* TODO: add option for adding in-place snapshot? */
           ExecTree &tree = current.loopHandler->tree;
           tree.extend(current,
                       *trueState,
-                      trueSnapshot,
+                      nullptr,
                       *falseState,
-                      falseSnapshot,
+                      nullptr,
                       condition,
                       current.prevPC->info->id);
-          /* TODO: only current? */
-          current.loopHandler->shouldTransform = true;
+          trueState->hasPendingSnapshot = true;
+          falseState->hasPendingSnapshot = true;
         }
       }
     }
@@ -3184,6 +3180,11 @@ void Executor::run(ExecutionState &initialState) {
       }
     }
 
+    if (ki->inst == &ki->inst->getParent()->front()) {
+      /* must be called before stepInstruction */
+      onBasicBlockEntry(state, ki);
+    }
+
     stepInstruction(state);
     executeInstruction(state, ki);
     timers.invoke();
@@ -3191,6 +3192,7 @@ void Executor::run(ExecutionState &initialState) {
     if (::dumpPTree) dumpPTree();
 
     if (!state.loopHandler.isNull() && state.loopHandler->shouldTransform) {
+      /* TODO: put in LoopHandler::transform */
       if (state.loopHandler->mergeIntermediateStates()) {
         state.loopHandler->joinIntermediateStates();
       }
@@ -4790,6 +4792,19 @@ ExecutionState *Executor::createSnapshot(ExecutionState &state,
                        branchInst->getParent(),
                        *snapshot);
   return snapshot;
+}
+
+void Executor::onBasicBlockEntry(ExecutionState &state,
+                                 KInstruction *ki) {
+  if (state.loopHandler.isNull()) {
+    return;
+  }
+
+  if (state.hasPendingSnapshot) {
+    ExecutionState *snapshot = state.branch(true);
+    state.loopHandler->tree.setSnapshot(state, snapshot);
+    state.loopHandler->shouldTransform = true;
+  }
 }
 
 ///

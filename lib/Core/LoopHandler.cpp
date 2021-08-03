@@ -1,4 +1,5 @@
 #include "LoopHandler.h"
+#include "ExecTreeIterator.h"
 
 #include "CoreStats.h"
 #include "ExecutionState.h"
@@ -231,6 +232,8 @@ void LoopHandler::releaseStates() {
 
       /* TODO: refactor... */
       continue;
+    } else {
+      merged->hasPendingSnapshot = false;
     }
 
     if (ValidateMerge) {
@@ -352,7 +355,9 @@ void LoopHandler::discardSubTree(ExecTreeNode *src,
         mg.erase(j);
       }
     }
-    assert(found);
+    if (!found) {
+      /* TODO: make sure it's not a leaf node */
+    }
   }
 
   tree.removeSubTree(src, ancestor);
@@ -415,24 +420,20 @@ bool LoopHandler::mergeIntermediateState(ExecTreeNode *target) {
   while (n->parent) {
     ExecTreeNode *sibling = n->getSibling();
     if (sibling) {
-      worklist.push_back(sibling);
+      /* prioritize earlier states */
+      worklist.push_front(sibling);
     }
     n = n->parent;
   }
 
-  while (!worklist.empty()) {
-    ExecTreeNode *n = worklist.back();
-    worklist.pop_back();
-
-    if (mergeNodes(target, n)) {
-      return true;
-    }
-
-    if (n->left) {
-      worklist.push_back(n->left);
-    }
-    if (n->right) {
-      worklist.push_back(n->right);
+  for (ExecTreeNode *start : worklist) {
+    /* prioritize earlier states */
+    ExecTreeBFSIterator iter(tree, start);
+    while (iter.hasNext()) {
+      ExecTreeNode *n = iter.next();
+      if (mergeNodes(target, n)) {
+        return true;
+      }
     }
   }
 
@@ -450,7 +451,9 @@ bool LoopHandler::mergeIntermediateStates() {
 
   do {
     retry = false;
-    for (ExecTreeNode *n : tree.nodes) {
+    ExecTreeBFSIterator iter(tree);
+    while (iter.hasNext()) {
+      ExecTreeNode *n = iter.next();
       if (n != tree.root) {
         if (mergeIntermediateState(n)) {
           retry = true;

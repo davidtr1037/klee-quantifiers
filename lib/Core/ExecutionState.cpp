@@ -146,7 +146,8 @@ ExecutionState::ExecutionState(KFunction *kf) :
     coveredNew(false),
     forkDisabled(false),
     loopHandler(nullptr),
-    isSnapshot(false) {
+    isSnapshot(false),
+    hasPendingSnapshot(false) {
   pushFrame(nullptr, kf);
   setID();
 }
@@ -191,7 +192,8 @@ ExecutionState::ExecutionState(const ExecutionState& state, bool isSnapshot):
     size2addr(state.size2addr),
     loopHandler(state.loopHandler),
     suffixConstraints(state.suffixConstraints),
-    isSnapshot(isSnapshot) {
+    isSnapshot(isSnapshot),
+    hasPendingSnapshot(false) {
   for (const auto &cur_mergehandler: openMergeStack) {
     cur_mergehandler->addOpenState(this);
   }
@@ -200,6 +202,10 @@ ExecutionState::ExecutionState(const ExecutionState& state, bool isSnapshot):
   }
   if (!loopHandler.isNull() && !isSnapshot) {
     loopHandler->addOpenState(this);
+  }
+  if (!isSnapshot) {
+    /* make sure we don't have unexpected forks */
+    assert(!state.hasPendingSnapshot);
   }
 }
 

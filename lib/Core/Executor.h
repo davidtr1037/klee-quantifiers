@@ -502,6 +502,8 @@ private:
   ExecutionState *createSnapshot(ExecutionState &state,
                                  unsigned index);
 
+  void onBasicBlockEntry(ExecutionState &state, KInstruction *ki);
+
 public:
   Executor(llvm::LLVMContext &ctx, const InterpreterOptions &opts,
       InterpreterHandler *ie);
