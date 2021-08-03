@@ -71,6 +71,8 @@ public:
 
   void discardState(ExecutionState *es);
 
+  bool discardStateByID(unsigned id);
+
   void discardSubTree(ExecTreeNode *src,
                       ExecTreeNode *ancestor);
 

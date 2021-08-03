@@ -318,6 +318,34 @@ void LoopHandler::discardState(ExecutionState *es) {
   executor->interpreterHandler->decUnmergedExploredPaths();
 }
 
+bool LoopHandler::discardStateByID(unsigned id) {
+  /* search in the open states */
+  for (ExecutionState *es : openStates) {
+    if (es->getID() == id) {
+      /* TODO: remove from openStates? */
+      discardState(es);
+      return true;
+    }
+  }
+
+  /* search in the closed states */
+  for (auto &i : mergeGroupsByExit) {
+    MergeGroup &group = i.second;
+    auto j = group.begin();
+    while (j != group.end()) {
+      ExecutionState *es = *j;
+      if (es->getID() == id) {
+        discardState(es);
+        group.erase(j);
+        return true;
+      }
+      j++;
+    }
+  }
+
+  return false;
+}
+
 void LoopHandler::discardSubTree(ExecTreeNode *src,
                                  ExecTreeNode *ancestor) {
   std::set<unsigned> ids;
@@ -325,39 +353,16 @@ void LoopHandler::discardSubTree(ExecTreeNode *src,
 
   tree.getReachable(src, nodes);
   for (ExecTreeNode *n : nodes) {
-    ids.insert(n->stateID);
+    if (n->isLeaf()) {
+      /* an intermediate state is not associated with an active state */
+      ids.insert(n->stateID);
+    }
   }
 
-  /* TODO: refactor */
+  /* remove the active states */
   for (unsigned id : ids) {
-    bool found = false;
-    for (ExecutionState *es : openStates) {
-      if (es->getID() == id) {
-        /* TODO: remove from openStates? */
-        discardState(es);
-        found = true;
-        break;
-      }
-    }
-    for (auto &i : mergeGroupsByExit) {
-      MergeGroup &mg = i.second;
-      auto j = mg.begin();
-      while (j != mg.end()) {
-        ExecutionState *es = *j;
-        if (es->getID() == id) {
-          discardState(es);
-          found = true;
-          break;
-        }
-        j++;
-      }
-      if (j != mg.end()) {
-        mg.erase(j);
-      }
-    }
-    if (!found) {
-      /* TODO: make sure it's not a leaf node */
-    }
+    bool found = discardStateByID(id);
+    assert(found);
   }
 
   tree.removeSubTree(src, ancestor);
