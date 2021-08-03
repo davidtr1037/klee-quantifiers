@@ -1379,10 +1379,13 @@ bool ExecutionState::isLiveAt(LivenessAnalysis::Result &result,
     return true;
   }
 
-  std::set<Value *> &live = result.liveIn[kinst->inst];
+  std::set<GuardedValue> &live = result.liveIn[kinst->inst];
   Value *regValue = i->second;
-  if (live.find(regValue) != live.end()) {
-    return true;
+  /* TODO: add API? */
+  for (const GuardedValue &v : live) {
+    if (v.v == regValue) {
+      return true;
+    }
   }
 
   return false;
