@@ -111,7 +111,7 @@ public:
   bool canUseExecTree;
 
   bool shouldTransform;
-  
+
   /* statistics */
   uint64_t mergeCount;
   uint64_t joinCount;
