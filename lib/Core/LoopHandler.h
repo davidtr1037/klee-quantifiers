@@ -87,6 +87,8 @@ public:
 
   bool joinIntermediateStates();
 
+  bool transform();
+
   bool validateMerge(std::vector<ExecutionState *> &states,
                      ExecutionState *merged);
 

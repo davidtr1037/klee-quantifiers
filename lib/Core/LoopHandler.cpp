@@ -489,6 +489,18 @@ bool LoopHandler::joinIntermediateStates() {
   return changed;
 }
 
+bool LoopHandler::transform() {
+  bool changed = false;
+
+  if (mergeIntermediateStates()) {
+    changed = true;
+    joinIntermediateStates();
+  }
+
+  shouldTransform = false;
+  return changed;
+}
+
 bool LoopHandler::validateMerge(std::vector<ExecutionState *> &snapshots,
                                 ExecutionState *merged) {
   ExecutionState *expected = ExecutionState::mergeStates(snapshots);

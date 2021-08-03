@@ -3192,11 +3192,7 @@ void Executor::run(ExecutionState &initialState) {
     if (::dumpPTree) dumpPTree();
 
     if (!state.loopHandler.isNull() && state.loopHandler->shouldTransform) {
-      /* TODO: put in LoopHandler::transform */
-      if (state.loopHandler->mergeIntermediateStates()) {
-        state.loopHandler->joinIntermediateStates();
-      }
-      state.loopHandler->shouldTransform = false;
+      state.loopHandler->transform();
     }
 
     updateStates(&state);
