@@ -4674,7 +4674,9 @@ void Executor::setLoopHandler(ExecutionState &state) {
     state.loopHandler = new LoopHandler(this, &state, kloop.loop);
   } else {
     KInstruction *ki = state.prevPC;
-    klee_warning("unsupported loop: %s:%u", ki->info->file.data(), ki->info->line);
+    klee_warning("unsupported loop: %s:%u",
+                 ki->info->file.data(),
+                 ki->info->line);
   }
 }
 
