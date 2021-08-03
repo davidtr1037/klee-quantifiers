@@ -4804,7 +4804,7 @@ void Executor::onBasicBlockEntry(ExecutionState &state,
 
   if (state.hasPendingSnapshot) {
     ExecutionState *snapshot = state.branch(true);
-    state.loopHandler->tree.setSnapshot(state, snapshot);
+    state.loopHandler->tree.addSnapshot(state, snapshot);
     state.loopHandler->shouldTransform = true;
   }
 }

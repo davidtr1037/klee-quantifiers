@@ -141,8 +141,7 @@ void ExecTree::extend(ExecutionState &current,
   assert(false);
 }
 
-/* TODO: rename to addSnapshot */
-void ExecTree::setSnapshot(ExecutionState &state,
+void ExecTree::addSnapshot(ExecutionState &state,
                            ExecutionState *snapshot) {
   for (ExecTreeNode *node : nodes) {
     if (node->stateID == state.getID() && node->isLeaf()) {
