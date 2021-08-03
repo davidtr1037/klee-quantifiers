@@ -379,7 +379,7 @@ void ExecTree::dumpGML(llvm::raw_ostream &os, std::set<uint32_t> &ids) {
 void ExecTree::dumpGMLToFile(std::set<uint32_t> &ids, const std::string &name) {
   static int mergeID = 0;
   char path[1000] = {0,};
-  sprintf(path, "/tmp/exectree_%s_%u.dot", name.data(), mergeID++);
+  sprintf(path, "/tmp/exectree_%04u_%s.dot", mergeID++, name.data());
   std::error_code ec;
   raw_fd_ostream f(path, ec, sys::fs::F_None);
   dumpGML(f, ids);
