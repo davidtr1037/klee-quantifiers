@@ -380,6 +380,9 @@ void LoopHandler::mergeNodes(ExecTreeNode *n1,
   /* TODO: use ExecutionState::mergeStatesOptimized */
   std::vector<ExecutionState *> states = {s1, s2};
   ExecutionState *merged = ExecutionState::mergeStates(states);
+  /* TODO: add docs */
+  merged->hasPendingSnapshot = true;
+
   /* clone the merged state */
   merged = merged->branch();
 
