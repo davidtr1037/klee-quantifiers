@@ -380,11 +380,11 @@ void LoopHandler::mergeNodes(ExecTreeNode *n1,
   /* TODO: use ExecutionState::mergeStatesOptimized */
   std::vector<ExecutionState *> states = {s1, s2};
   ExecutionState *merged = ExecutionState::mergeStates(states);
+
+  /* clone the merged state (to avoid using the snapshots) */
+  merged = merged->branch();
   /* TODO: add docs */
   merged->hasPendingSnapshot = true;
-
-  /* clone the merged state */
-  merged = merged->branch();
 
   executor->processTree->replaceNode(n1->ptreeNode, merged);
 
