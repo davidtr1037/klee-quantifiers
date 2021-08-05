@@ -913,22 +913,31 @@ ref<Expr> ExecutionState::mergeValues(std::vector<ref<Expr>> &suffixes,
 ref<Expr> ExecutionState::mergeValuesUsingExecTree(State2Value &valuesMap,
                                                    LoopHandler *loopHandler) {
   ExecTreeNode *n = loopHandler->tree.root;
-  return mergeValuesFromNode(n, valuesMap);
+  MergedValue v = mergeValuesFromNode(n, valuesMap);
+  return v.value;
 }
 
-ref<Expr> ExecutionState::mergeValuesFromNode(ExecTreeNode *n,
-                                              State2Value &valuesMap) {
+ExecutionState::MergedValue ExecutionState::mergeValuesFromNode(ExecTreeNode *n,
+                                                                State2Value &valuesMap) {
+  ref<Expr> condition;
+  if (n->parent && !n->hasSibling()) {
+    /* in this case, we need to propagate the condition up */
+    condition = n->e;
+  } else {
+    condition = ConstantExpr::create(1, Expr::Bool);
+  }
+
   if (n->isLeaf()) {
     auto i = valuesMap.find(n->stateID);
     if (i == valuesMap.end()) {
-      return nullptr;
+      return MergedValue();
     } else {
-      return i->second;
+      return MergedValue(i->second, condition);
     }
   }
 
   /* TODO: left/right or right/left? */
-  ref<Expr> lv = nullptr, rv = nullptr;
+  MergedValue lv, rv;
   if (n->left) {
     lv = mergeValuesFromNode(n->left, valuesMap);
   }
@@ -936,17 +945,33 @@ ref<Expr> ExecutionState::mergeValuesFromNode(ExecTreeNode *n,
     rv = mergeValuesFromNode(n->right, valuesMap);
   }
 
-  if (lv.isNull()) {
-    if (rv.isNull()) {
-      return nullptr;
+  if (lv.value.isNull()) {
+    if (rv.value.isNull()) {
+      return MergedValue();
     } else {
-      return rv;
+      return MergedValue(
+        rv.value,
+        AndExpr::create(condition, rv.condition)
+      );
     }
   } else {
-    if (rv.isNull()) {
-      return lv;
+    if (rv.value.isNull()) {
+      return MergedValue(
+        lv.value,
+        AndExpr::create(condition, lv.condition)
+      );
     } else {
-      return SelectExpr::create(n->left->e, lv, rv);
+      return MergedValue(
+        SelectExpr::create(
+          AndExpr::create(
+            n->left->e,
+            lv.condition
+          ),
+          lv.value,
+          rv.value
+        ),
+        ConstantExpr::create(1, Expr::Bool)
+      );
     }
   }
 }

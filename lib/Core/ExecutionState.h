@@ -101,6 +101,21 @@ class ExecutionState {
     }
   };
 
+  struct MergedValue {
+    ref<Expr> value;
+    ref<Expr> condition;
+
+    MergedValue(ref<Expr> value, ref<Expr> condition) :
+      value(value), condition(condition) {
+
+    }
+
+    MergedValue() :
+      value(nullptr), condition(nullptr) {
+
+    }
+  };
+
 #ifdef KLEE_UNITTEST
 public:
 #else
@@ -276,8 +291,8 @@ public:
   static ref<Expr> mergeValuesUsingExecTree(State2Value &valuesMap,
                                             LoopHandler *loopHandler);
 
-  static ref<Expr> mergeValuesFromNode(ExecTreeNode *n,
-                                       State2Value &valuesMap);
+  static MergedValue mergeValuesFromNode(ExecTreeNode *n,
+                                         State2Value &valuesMap);
 
   static ref<Expr> mergeValuesUsingPattern(State2Value &valuesMap,
                                            LoopHandler *loopHandler,
