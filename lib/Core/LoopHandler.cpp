@@ -492,10 +492,8 @@ bool LoopHandler::joinIntermediateStates() {
   do {
     retry = false;
     for (ExecTreeNode *n : tree.nodes) {
-      if (n->parent && !n->parent->isComplete()) {
-        if (tree.join(n)) {
-          joinCount++;
-        }
+      if (tree.join(n)) {
+        joinCount++;
         retry = true;
         break;
       }

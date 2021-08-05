@@ -276,13 +276,13 @@ void ExecTree::removeSubTree(ExecTreeNode *dst,
 }
 
 bool ExecTree::join(ExecTreeNode *dst) {
-  assert(dst);
   ExecTreeNode *current = dst;
   std::vector<ExecTreeNode *> toRemove;
 
-  while (current->parent && !current->parent->isComplete()) {
-    current = current->parent;
-    toRemove.push_back(current);
+  ExecTreeNode *parent = current->parent;
+  while (parent && parent != root && !parent->isComplete()) {
+    current = parent;
+    parent = parent->parent;
   }
 
   if (current == dst) {
@@ -290,8 +290,7 @@ bool ExecTree::join(ExecTreeNode *dst) {
     return false;
   }
 
-  ExecTreeNode *parent = current->parent;
-  assert(parent->isComplete());
+  assert(parent && (parent->isComplete() || parent == root));
   if (parent->left == current) {
     parent->left = dst;
   }
@@ -334,6 +333,7 @@ void ExecTree::dump() {
   }
 }
 
+/* TODO: indentation */
 void ExecTree::dumpGML(llvm::raw_ostream &os, std::set<uint32_t> &ids) {
     os << "digraph G {\n";
     os << "\tsize=\"10,7.5\";\n";
