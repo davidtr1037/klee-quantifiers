@@ -281,6 +281,7 @@ bool ExecTree::join(ExecTreeNode *dst) {
 
   ExecTreeNode *parent = current->parent;
   while (parent && parent != root && !parent->isComplete()) {
+    toRemove.push_back(parent);
     current = parent;
     parent = parent->parent;
   }
