@@ -60,6 +60,10 @@ public:
     }
   }
 
+  bool hasSibling() const {
+    return getSibling() != nullptr;
+  }
+
   uint32_t getHash() const {
     return e->shapeHash() ^ salt;
   }
