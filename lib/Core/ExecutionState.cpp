@@ -512,7 +512,13 @@ ExprVisitor::Action TaintVisitor::visitRead(const ReadExpr &e) {
     visit(un->value);
   }
 
-  const std::string &name = e.updates.root->getName();
+  const Array *array = e.updates.root;
+  if (array->isAuxVariable) {
+    isTainted = true;
+    return Action::skipChildren();
+  }
+
+  const std::string &name = array->getName();
   if (state.hasTaintedExpr(name, e.index)) {
     isTainted = true;
     return Action::skipChildren();

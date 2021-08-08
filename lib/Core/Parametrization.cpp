@@ -17,10 +17,14 @@ static ArrayCache cache;
 /* TODO: the size probably shouldn't be a parameter */
 const Array *klee::getArray(const std::string &name,
                             uint64_t size,
-                            bool isBoundVariable) {
+                            bool isBoundVariable,
+                            bool isAuxVariable) {
   const Array *array = cache.CreateArray(name, size);
   if (isBoundVariable) {
     array->isBoundVariable = isBoundVariable;
+  }
+  if (isAuxVariable) {
+    array->isAuxVariable = isAuxVariable;
   }
   return array;
 }

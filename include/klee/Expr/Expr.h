@@ -547,6 +547,9 @@ public:
   mutable bool isBoundVariable;
 
   /* TODO: add docs */
+  mutable bool isAuxVariable;
+
+  /* TODO: add docs */
   uint64_t id;
 
 private:
