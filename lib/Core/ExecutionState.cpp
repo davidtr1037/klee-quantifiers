@@ -992,6 +992,7 @@ ref<Expr> ExecutionState::mergeValuesUsingPattern(State2Value &valuesMap,
                            mergeID,
                            *loopHandler->solver,
                            solution)) {
+    klee_warning("failed to generate the merged value");
     return nullptr;
   }
 
