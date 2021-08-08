@@ -29,7 +29,7 @@ ref<Expr> generateForallPremise(ref<Expr> bound, ref<Expr> parameter) {
   );
 }
 
-ref<Expr> generateRangeConstraint(PatternMatch &pm, const Array *array) {
+ref<Expr> generateRangeConstraint(PatternMatch &pm, ref<Expr> aux) {
   unsigned min = -1, max = 0;
   for (StateMatch &sm : pm.matches) {
     if (sm.count >= max) {
@@ -40,22 +40,18 @@ ref<Expr> generateRangeConstraint(PatternMatch &pm, const Array *array) {
     }
   }
 
-  Expr::Width w = QuantifiedExpr::AUX_VARIABLE_WIDTH;
-  assert(array->size * 8 >= w);
-
-  ref<Expr> maxExpr = ConstantExpr::create(max, w);
-  ref<Expr> minExpr = ConstantExpr::create(min, w);
-  ref<Expr> parameter = getSymbolicValue(array, w / 8);
+  ref<Expr> maxExpr = ConstantExpr::create(max, aux->getWidth());
+  ref<Expr> minExpr = ConstantExpr::create(min, aux->getWidth());
 
   if (max == min) {
-    return EqExpr::create(parameter, maxExpr);
+    return EqExpr::create(aux, maxExpr);
   }
 
   /* TODO: handle missing values */
   assert((max - min + 1) == pm.matches.size());
   return AndExpr::create(
-    UgeExpr::create(parameter, minExpr),
-    UleExpr::create(parameter, maxExpr)
+    UgeExpr::create(aux, minExpr),
+    UleExpr::create(aux, maxExpr)
   );
 }
 
@@ -74,11 +70,12 @@ void generateForall(PatternMatch &pm,
   /* TODO: reuse the array from other module */
   const Array *array_m = getArray("m_" + llvm::utostr(mergeID), auxArraySize);
 
+  /* the introduced variable */
+  ref<Expr> aux = getSymbolicValue(array_m, array_m->size);
   /* outside of the forall expression */
-  rangeExpr = generateRangeConstraint(pm, array_m);
+  rangeExpr = generateRangeConstraint(pm, aux);
 
   ref<Expr> bound = getSymbolicValue(array_i, array_i->size);
-  ref<Expr> aux = getSymbolicValue(array_m, array_m->size);
   ref<Expr> premise = generateForallPremise(bound, aux);
 
   ref<Expr> coreExpr = ConstantExpr::create(1, Expr::Bool);
