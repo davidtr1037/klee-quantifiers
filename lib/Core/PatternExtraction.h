@@ -29,6 +29,9 @@ struct StateMatch {
 
 struct PatternMatch {
 
+  /* TODO: avoid? */
+  PatternMatch();
+
   PatternMatch(const PatternInstance &pi);
 
   void addStateMatch(const StateMatch &sm);

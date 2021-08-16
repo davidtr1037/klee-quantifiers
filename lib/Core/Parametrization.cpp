@@ -379,10 +379,9 @@ bool klee::solveEquationSystem(SMTEquationSystem &system,
   assert(!system.empty());
 
   if (system.size() == 1) {
-    /* no parameter here */
+    /* TODO: return ParametrizedExpr without parameter/array? */
     klee_message("system has only one equation");
-    result = ParametrizedExpr(system[0].e, nullptr, nullptr);
-    return true;
+    return false;
   }
 
   SMTEquation eq1, eq2;

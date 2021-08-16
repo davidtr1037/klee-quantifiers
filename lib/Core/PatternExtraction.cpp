@@ -9,6 +9,10 @@ static bool compare(StateMatch &sm1, StateMatch &sm2) {
   return sm1.count < sm2.count;
 }
 
+PatternMatch::PatternMatch() {
+
+}
+
 PatternMatch::PatternMatch(const PatternInstance &pi) {
   pattern = Pattern(pi.prefix, pi.core, pi.suffix);
 }
@@ -20,6 +24,7 @@ void PatternMatch::addStateMatch(const StateMatch &sm) {
     assert(matches.empty());
   }
 
+  /* TODO: check inconsistencies? */
   matches.push_back(sm);
 }
 
@@ -119,6 +124,42 @@ static void handleLeaf(ExecTreeNode *n,
   addPattern(matches, pi, n->stateID);
 }
 
+/* TODO: add const */
+static bool hasCommonBoundaries(const PatternMatch &pm1,
+                                const PatternMatch &pm2,
+                                PatternMatch &unified) {
+  assert(!pm1.pattern.hasCore() && !pm2.pattern.hasCore());
+
+  Word w1, w2;
+  if (pm1.pattern.prefix.size() > pm2.pattern.prefix.size()) {
+    w1 = pm2.pattern.prefix;
+    w2 = pm1.pattern.prefix;
+  } else {
+    w1 = pm1.pattern.prefix;
+    w2 = pm2.pattern.prefix;
+  }
+
+  Word prefix, core, suffix;
+  prefix = Word::getCommonPrefix(w1, w2);
+  suffix = Word::getCommonSuffix(w1, w2);
+
+  unsigned boundarySize = prefix.size() + suffix.size();
+  if (boundarySize > 0 && boundarySize < w2.size()) {
+    for (unsigned i = prefix.size(); i < w2.size() - suffix.size(); i++) {
+      core.append(w2[i]);
+    }
+    unified.pattern = Pattern(prefix, core, suffix);
+
+    uint32_t id1 = pm1.matches[0].stateID;
+    uint32_t id2 = pm2.matches[0].stateID;
+    unified.addStateMatch(StateMatch(id1, pm1.pattern.prefix == w1 ? 0 : 1));
+    unified.addStateMatch(StateMatch(id2, pm1.pattern.prefix == w1 ? 1 : 0));
+    return true;
+  }
+
+  return false;
+}
+
 /* TODO: do we need a fixpoint algorithm here? */
 static void unifyMatches(std::vector<PatternMatch> &matches,
                          std::vector<PatternMatch> &result) {
@@ -142,12 +183,21 @@ static void unifyMatches(std::vector<PatternMatch> &matches,
       }
 
       if (pm1->matches.size() <= pm2->matches.size()) {
-        std::vector<StateMatch> sms;
-        if (pm1->canBeMergedTo(*pm2, sms)) {
-          for (StateMatch &sm : sms) {
+        std::vector<StateMatch> mergable;
+        if (pm1->canBeMergedTo(*pm2, mergable)) {
+          for (StateMatch &sm : mergable) {
             pm2->addStateMatch(sm);
           }
           i1.second = true;
+          break;
+        }
+      }
+
+      PatternMatch unified;
+      if (!pm1->pattern.hasCore() && !pm2->pattern.hasCore()) {
+        if (hasCommonBoundaries(*pm1, *pm2, unified)) {
+          i1.second = i2.second = true;
+          result.push_back(unified);
           break;
         }
       }
