@@ -172,7 +172,7 @@ static void unifyMatches(std::vector<PatternMatch> &matches,
   for (auto &i1 : worklist) {
     PatternMatch *pm1 = i1.first;
     for (auto &i2 : worklist) {
-      if (i2.second) {
+      if (i1.second || i2.second) {
         /* already merged */
         continue;
       }
