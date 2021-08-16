@@ -73,6 +73,24 @@ Word Word::reversed() const {
   return w;
 }
 
+Word Word::getCommonPrefix(const Word &w1, const Word &w2) {
+  Word prefix;
+  for (unsigned i = 0; i < w1.size() && i < w2.size(); i++) {
+    if (w1[i] == w2[i]) {
+      prefix.append(w1[i]);
+    } else {
+      break;
+    }
+  }
+
+  return prefix;
+}
+
+Word Word::getCommonSuffix(const Word &w1, const Word &w2) {
+  Word prefix = Word::getCommonPrefix(w1.reversed(), w2.reversed());
+  return prefix.reversed();
+}
+
 bool Pattern::hasCore() const {
   return !core.isEmpty();
 }
