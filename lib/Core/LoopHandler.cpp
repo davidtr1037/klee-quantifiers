@@ -172,7 +172,14 @@ void LoopHandler::splitStates(std::vector<MergeGroup> &result) {
 void LoopHandler::releaseStates() {
   std::vector<MergeGroup> groups;
   splitStates(groups);
-  klee_message("splitting to %lu merging groups", groups.size());
+
+  size_t total = 0;
+  for (MergeGroup &states: groups) {
+    total += states.size();
+  }
+  klee_message("splitting %lu states to %lu merging groups",
+               total,
+               groups.size());
 
   if (UseMergeTransformation || UseJoinTransformation) {
     dumpStats();
