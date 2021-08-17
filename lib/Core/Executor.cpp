@@ -422,7 +422,9 @@ cl::opt<bool> DebugTaint("debug-taint", cl::init(false), cl::desc(""));
 cl::opt<bool> DebugLoopForks("debug-loop-forks", cl::init(false), cl::desc(""));
 cl::opt<bool> CollectLoopStats("collect-loop-stats", cl::init(false), cl::desc(""));
 cl::opt<bool> CollectMergeStats("collect-merge-stats", cl::init(false), cl::desc(""));
+/* TODO: remove */
 cl::opt<bool> PartitionLargeObjects("partition-large-objects", cl::init(false), cl::desc(""));
+/* TODO: remove */
 cl::opt<unsigned> MaxPartitionSize("max-partition-size", cl::init(100), cl::desc(""));
 cl::opt<unsigned> TerminateStatesOnMemoryLimit("terminate-states-on-memory-limit", cl::init(true), cl::desc(""));
 
