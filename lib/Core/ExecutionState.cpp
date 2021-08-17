@@ -621,7 +621,7 @@ ExecutionState *ExecutionState::mergeStatesOptimized(std::vector<ExecutionState 
                                             mergeID,
                                             *loopHandler->solver);
       if (orExpr.isNull()) {
-        klee_warning("failed to generate the merged constraint");
+        klee_message("failed to generate the merged constraint");
       } else {
         usingQuantifiers = true;
       }
@@ -992,7 +992,7 @@ ref<Expr> ExecutionState::mergeValuesUsingPattern(State2Value &valuesMap,
                            mergeID,
                            *loopHandler->solver,
                            solution)) {
-    klee_warning("failed to generate the merged value");
+    klee_message("failed to generate the merged value");
     return nullptr;
   }
 
