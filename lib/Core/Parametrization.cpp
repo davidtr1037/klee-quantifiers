@@ -380,6 +380,7 @@ bool klee::solveEquationSystem(SMTEquationSystem &system,
 
   if (system.size() == 1) {
     /* TODO: return ParametrizedExpr without parameter/array? */
+    /* TODO: remove log? */
     klee_message("system has only one equation");
     return false;
   }
