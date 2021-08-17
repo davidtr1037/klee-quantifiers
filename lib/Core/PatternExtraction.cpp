@@ -160,33 +160,25 @@ static bool hasCommonBoundaries(const PatternMatch &pm1,
   return false;
 }
 
-/* TODO: do we need a fixpoint algorithm here? */
-static void unifyMatches(std::vector<PatternMatch> &matches,
-                         std::vector<PatternMatch> &result) {
-  /* we can first sort, and then do the unification */
-  std::vector<std::pair<PatternMatch *, bool>> worklist;
-  for (PatternMatch &pm : matches) {
-    worklist.push_back(std::make_pair(&pm, false));
-  }
-
+static bool unifyMatches(std::vector<std::pair<PatternMatch, bool>> &worklist) {
   for (auto &i1 : worklist) {
-    PatternMatch *pm1 = i1.first;
+    PatternMatch &pm1 = i1.first;
     for (auto &i2 : worklist) {
       if (i1.second || i2.second) {
         /* already merged */
         continue;
       }
 
-      PatternMatch *pm2 = i2.first;
-      if (*pm1 == *pm2) {
+      PatternMatch &pm2 = i2.first;
+      if (pm1 == pm2) {
         continue;
       }
 
-      if (pm1->matches.size() <= pm2->matches.size()) {
+      if (pm1.matches.size() <= pm2.matches.size()) {
         std::vector<StateMatch> mergable;
-        if (pm1->canBeMergedTo(*pm2, mergable)) {
+        if (pm1.canBeMergedTo(pm2, mergable)) {
           for (StateMatch &sm : mergable) {
-            pm2->addStateMatch(sm);
+            pm2.addStateMatch(sm);
           }
           i1.second = true;
           break;
@@ -194,17 +186,37 @@ static void unifyMatches(std::vector<PatternMatch> &matches,
       }
 
       PatternMatch unified;
-      if (!pm1->pattern.hasCore() && !pm2->pattern.hasCore()) {
-        if (hasCommonBoundaries(*pm1, *pm2, unified)) {
+      if (!pm1.pattern.hasCore() && !pm2.pattern.hasCore()) {
+        if (hasCommonBoundaries(pm1, pm2, unified)) {
           i1.second = i2.second = true;
-          result.push_back(unified);
-          break;
+          worklist.push_back(std::make_pair(unified, false));
+          return true;
         }
       }
     }
-    if (!i1.second) {
-      /* if not merged, add */
-      result.push_back(*pm1);
+  }
+
+  return false;
+}
+
+/* TODO: do we need a fixpoint algorithm here? */
+static void unifyMatches(std::vector<PatternMatch> &matches,
+                         std::vector<PatternMatch> &result) {
+  /* we can first sort, and then do the unification */
+  std::vector<std::pair<PatternMatch, bool>> worklist;
+  for (PatternMatch &pm : matches) {
+    worklist.push_back(std::make_pair(pm, false));
+  }
+
+  bool changed;
+  do {
+    changed = unifyMatches(worklist);
+  } while (changed);
+
+  for (auto &i : worklist) {
+    /* add if not merged */
+    if (!i.second) {
+      result.push_back(i.first);
     }
   }
 }
