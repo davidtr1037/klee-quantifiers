@@ -124,7 +124,6 @@ static void handleLeaf(ExecTreeNode *n,
   addPattern(matches, pi, n->stateID);
 }
 
-/* TODO: add const */
 static bool hasCommonBoundaries(const PatternMatch &pm1,
                                 const PatternMatch &pm2,
                                 PatternMatch &unified) {
