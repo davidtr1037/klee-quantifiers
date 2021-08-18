@@ -185,16 +185,17 @@ static bool findDistinctTerms(ref<Expr> e1,
   return false;
 }
 
-/* TODO: must pass both e1 and e2? */
 static ref<Expr> replaceDistinctTerms(ref<Expr> e1,
                                       ref<Expr> e2,
                                       ref<Expr> placeHolder) {
+  /* TODO: remove */
   if (*e1 == *e2) {
     assert(false);
   }
 
   if (e1->getKind() != e2->getKind()) {
-    assert(false);
+    /* the expressions have different shape */
+    return nullptr;
   }
 
   if (isa<ConstantExpr>(e1)) {
