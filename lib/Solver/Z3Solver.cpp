@@ -47,6 +47,11 @@ llvm::cl::opt<unsigned>
     Z3VerbosityLevel("debug-z3-verbosity", llvm::cl::init(0),
                      llvm::cl::desc("Z3 verbosity level (default=0)"),
                      llvm::cl::cat(klee::SolvingCat));
+
+llvm::cl::opt<bool> Z3SetLogic("z3-set-logic",
+                               llvm::cl::init(false),
+                               llvm::cl::desc("Z3 set logic"),
+                               llvm::cl::cat(klee::SolvingCat));
 }
 
 #include "llvm/Support/ErrorHandling.h"
@@ -257,7 +262,13 @@ bool Z3SolverImpl::internalRunSolver(
   //
   // TODO: Investigate using a custom tactic as described in
   // https://github.com/klee/klee/issues/653
-  Z3_solver theSolver = Z3_mk_solver(builder->ctx);
+  Z3_solver theSolver;
+  if (Z3SetLogic) {
+    Z3_symbol logic = Z3_mk_string_symbol(builder->ctx, "QF_ABV");
+    theSolver = Z3_mk_solver_for_logic(builder->ctx, logic);
+  } else {
+    theSolver = Z3_mk_solver(builder->ctx);
+  }
   Z3_solver_inc_ref(builder->ctx, theSolver);
   Z3_solver_set_params(builder->ctx, theSolver, solverParameters);
 
