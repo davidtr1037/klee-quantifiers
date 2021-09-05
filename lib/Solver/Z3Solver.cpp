@@ -305,18 +305,26 @@ bool Z3SolverImpl::internalRunSolver(
       builder->ctx, theSolver,
       Z3ASTHandle(Z3_mk_not(builder->ctx, z3QueryExpr), builder->ctx));
 
+  time::Point startTime;
   if (dumpedQueriesFile) {
+    startTime = time::getWallTime();
     *dumpedQueriesFile << "; start Z3 query\n";
     *dumpedQueriesFile << Z3_solver_to_string(builder->ctx, theSolver);
     *dumpedQueriesFile << "(check-sat)\n";
     *dumpedQueriesFile << "(reset)\n";
-    *dumpedQueriesFile << "; end Z3 query\n\n";
+    *dumpedQueriesFile << "; end Z3 query\n";
     dumpedQueriesFile->flush();
   }
 
   ::Z3_lbool satisfiable = Z3_solver_check(builder->ctx, theSolver);
   runStatusCode = handleSolverResponse(theSolver, satisfiable, objects, values,
                                        hasSolution);
+
+  if (dumpedQueriesFile) {
+    time::Span elapsed = time::getWallTime() - startTime;
+    *dumpedQueriesFile << "; Elapsed " << elapsed << "\n\n";
+    dumpedQueriesFile->flush();
+  }
 
   Z3_solver_dec_ref(builder->ctx, theSolver);
   // Clear the builder's cache to prevent memory usage exploding.
