@@ -127,6 +127,9 @@ namespace {
                        KLEE_LLVM_CL_VAL_END),
             cl::init(LoopLimitNoCall),
             cl::cat(ModuleCat));
+
+  cl::opt<bool>
+  UseCFGPass("use-cfg-pass", cl::desc(""), cl::init(false), cl::cat(ModuleCat));
 }
 
 /***/
@@ -302,7 +305,10 @@ void KModule::optimiseAndPrepare(
   // going to be unresolved. We really need to handle the intrinsics
   // directly I think?
   legacy::PassManager pm3;
-  pm3.add(createCFGSimplificationPass());
+  if (UseCFGPass) {
+    /* TODO: this might make incremental merging hard, check... */
+    pm3.add(createCFGSimplificationPass());
+  }
   switch(SwitchType) {
   case eSwitchTypeInternal: break;
   case eSwitchTypeSimple: pm3.add(new LowerSwitchPass()); break;
