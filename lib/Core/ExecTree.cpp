@@ -22,6 +22,7 @@ ExecTreeNode::ExecTreeNode(std::uint32_t stateID,
   left(nullptr),
   right(nullptr),
   parent(nullptr),
+  isJoined(false),
   treeHash(0),
   salt(salt) {
   if (snapshot) {
@@ -301,6 +302,7 @@ bool ExecTree::join(ExecTreeNode *dst) {
 
   dst->e = getPC(current, dst, true);
   dst->parent = parent;
+  dst->isJoined = true;
 
   for (ExecTreeNode *n : toRemove) {
     removeNode(n);

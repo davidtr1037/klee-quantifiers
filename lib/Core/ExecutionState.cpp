@@ -1186,7 +1186,8 @@ std::pair<ref<Expr>, bool> ExecutionState::buildMergedConstraintFromNode(ExecTre
     if (i == ids.end()) {
       return std::make_pair(nullptr, false);
     } else {
-      return std::make_pair(n->e, true);
+      /* a joined node corresponds to an incomplete subtree */
+      return std::make_pair(n->e, !n->isJoined);
     }
   }
 

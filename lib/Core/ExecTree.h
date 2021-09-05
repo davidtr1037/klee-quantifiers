@@ -35,6 +35,7 @@ private:
     left(other.left),
     right(other.right),
     parent(other.parent),
+    isJoined(other.isJoined),
     treeHash(other.treeHash),
     salt(other.salt) {
 
@@ -92,6 +93,7 @@ public:
   ExecTreeNode *left;
   ExecTreeNode *right;
   ExecTreeNode *parent;
+  bool isJoined;
   /* TODO: remove */
   unsigned treeHash;
   std::uint32_t salt;
