@@ -213,7 +213,7 @@ static ref<Expr> replaceDistinctTerms(ref<Expr> e1,
     } else {
       if (replaced) {
         /* TODO: use several placeholder terms? */
-        klee_warning("multiple distinct children expressions");
+        klee_message("multiple distinct children expressions");
       }
 
       ref<Expr> replacedKid = replaceDistinctTerms(k1, k2, placeHolder);
