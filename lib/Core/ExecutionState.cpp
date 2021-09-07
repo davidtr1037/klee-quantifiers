@@ -925,58 +925,67 @@ ref<Expr> ExecutionState::mergeValuesUsingExecTree(State2Value &valuesMap,
 
 ExecutionState::MergedValue ExecutionState::mergeValuesFromNode(ExecTreeNode *n,
                                                                 State2Value &valuesMap) {
-  ref<Expr> condition;
-  if (n->parent && !n->hasSibling()) {
-    /* in this case, we need to propagate the condition up */
-    condition = n->e;
-  } else {
-    condition = ConstantExpr::create(1, Expr::Bool);
+  if (!n) {
+    /* if the node is missing, then we have an incomplete subtree */
+    return MergedValue(nullptr, false, nullptr);
   }
 
+  ref<Expr> trueExpr = ConstantExpr::create(1, Expr::Bool);
   if (n->isLeaf()) {
     auto i = valuesMap.find(n->stateID);
+    /* a joined node corresponds to an incomplete subtree */
+    bool isComplete = !n->isJoined;
     if (i == valuesMap.end()) {
-      return MergedValue();
+      return MergedValue(nullptr, isComplete, nullptr);
     } else {
-      return MergedValue(i->second, condition);
+      return MergedValue(i->second, isComplete, trueExpr);
     }
   }
 
   /* TODO: left/right or right/left? */
-  MergedValue lv, rv;
-  if (n->left) {
-    lv = mergeValuesFromNode(n->left, valuesMap);
-  }
-  if (n->right) {
-    rv = mergeValuesFromNode(n->right, valuesMap);
-  }
+  MergedValue lv = mergeValuesFromNode(n->left, valuesMap);
+  MergedValue rv = mergeValuesFromNode(n->right, valuesMap);
 
+  bool isComplete = lv.isComplete && rv.isComplete;
+
+  /* TODO: order of conditions? */
   if (lv.value.isNull()) {
     if (rv.value.isNull()) {
-      return MergedValue();
+      return MergedValue(nullptr, isComplete, nullptr);
     } else {
       return MergedValue(
         rv.value,
-        AndExpr::create(condition, rv.condition)
+        isComplete,
+        isComplete ? trueExpr : AndExpr::create(n->right->e, rv.guard)
       );
     }
   } else {
     if (rv.value.isNull()) {
       return MergedValue(
         lv.value,
-        AndExpr::create(condition, lv.condition)
+        isComplete,
+        isComplete ? trueExpr : AndExpr::create(n->left->e, lv.guard)
       );
     } else {
+      ref<Expr> guard;
+      if (isComplete) {
+        guard = trueExpr;
+      } else {
+        /* TODO: can avoid n->right->e? */
+        guard = OrExpr::create(
+          AndExpr::create(n->left->e, lv.guard),
+          AndExpr::create(n->right->e, rv.guard)
+        );
+      }
+
       return MergedValue(
         SelectExpr::create(
-          AndExpr::create(
-            n->left->e,
-            lv.condition
-          ),
+          AndExpr::create(n->left->e, lv.guard),
           lv.value,
           rv.value
         ),
-        ConstantExpr::create(1, Expr::Bool)
+        isComplete,
+        guard
       );
     }
   }

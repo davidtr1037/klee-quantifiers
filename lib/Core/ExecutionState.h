@@ -103,15 +103,17 @@ class ExecutionState {
 
   struct MergedValue {
     ref<Expr> value;
-    ref<Expr> condition;
+    /* TODO: rename? */
+    bool isComplete;
+    /* TODO: rename? */
+    ref<Expr> guard;
 
-    MergedValue(ref<Expr> value, ref<Expr> condition) :
-      value(value), condition(condition) {
-
-    }
-
-    MergedValue() :
-      value(nullptr), condition(nullptr) {
+    MergedValue(ref<Expr> value,
+                bool isComplete,
+                ref<Expr> guard) :
+      value(value),
+      isComplete(isComplete),
+      guard(guard) {
 
     }
   };
