@@ -150,8 +150,10 @@ void klee::extractEquationsForValue(ExecTree &t,
 
     uint32_t stateID = iter.getCurrent()->stateID;
     auto i = valuesMap.find(stateID);
-    assert(i != valuesMap.end());
-    system.push_back(SMTEquation(i->second, sm.count));
+    /* if a state is not mapped, its value should be ignored */
+    if (i != valuesMap.end()) {
+      system.push_back(SMTEquation(i->second, sm.count));
+    }
   }
 }
 
