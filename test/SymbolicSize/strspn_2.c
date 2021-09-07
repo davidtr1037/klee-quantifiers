@@ -8,8 +8,7 @@
 #define MAX_SIZE (10)
 
 int main(int argc, char *argv[]) {
-    KLEE_MAKE_SYMBOLIC_SIZE_NON_ZERO(n, size_t, MAX_SIZE);
-    KLEE_MAKE_SYMBOLIC_STR2(s, n);
+    KLEE_MAKE_SYMBOLIC_STR_AND_LEN(s, n, MAX_SIZE);
 
     size_t k = strspn(s, " \t\r");
 
