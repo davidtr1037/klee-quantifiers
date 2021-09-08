@@ -11,9 +11,9 @@ void ExecTreeIterator::next(const Symbol &s) {
     /* TODO: remove later? */
     assert(hasNext());
 
-    if (current->left->getHash() == s.hash) {
+    if (current->left && current->left->getHash() == s.hash) {
       current = current->left;
-    } else if (current->right->getHash() == s.hash) {
+    } else if (current->right && current->right->getHash() == s.hash) {
       current = current->right;
     } else {
       assert(0);
