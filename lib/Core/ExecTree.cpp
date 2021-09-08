@@ -23,7 +23,6 @@ ExecTreeNode::ExecTreeNode(std::uint32_t stateID,
   right(nullptr),
   parent(nullptr),
   isJoined(false),
-  treeHash(0),
   salt(salt) {
   if (snapshot) {
     snapshots.push_back(snapshot);
@@ -152,21 +151,6 @@ void ExecTree::addSnapshot(ExecutionState &state,
   }
 
   assert(0);
-}
-
-/* currently unused */
-void ExecTree::computeHashes() {
-  computeNodeHashes(root);
-}
-
-void ExecTree::computeNodeHashes(ExecTreeNode *n) {
-  if (n->isLeaf()) {
-    n->treeHash = n->getHash();
-  } else {
-    computeNodeHashes(n->left);
-    computeNodeHashes(n->right);
-    n->treeHash = n->getHash() + n->left->treeHash + n->right->treeHash;
-  }
 }
 
 ExecTreeNode *ExecTree::getNearestAncestor(ExecTreeNode *n1,

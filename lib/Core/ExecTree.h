@@ -36,7 +36,6 @@ private:
     right(other.right),
     parent(other.parent),
     isJoined(other.isJoined),
-    treeHash(other.treeHash),
     salt(other.salt) {
 
   }
@@ -69,19 +68,6 @@ public:
     return e->shapeHash() ^ salt;
   }
 
-  uint32_t getTreeHash() const {
-    return treeHash;
-  }
-
-  uint32_t getSubTreeHash() const {
-    if (isLeaf()) {
-      return 0;
-    } else {
-      /* excluding the root */
-      return left->getTreeHash() ^ right->getTreeHash();
-    }
-  }
-
   bool isComplete() const {
     return left && right;
   }
@@ -94,8 +80,6 @@ public:
   ExecTreeNode *right;
   ExecTreeNode *parent;
   bool isJoined;
-  /* TODO: remove */
-  unsigned treeHash;
   std::uint32_t salt;
 };
 
