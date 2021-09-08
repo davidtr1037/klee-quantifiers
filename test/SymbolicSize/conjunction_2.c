@@ -5,7 +5,7 @@
 #include <string.h>
 #include "common.h"
 
-#define MAX_SIZE (4)
+#define MAX_SIZE (10)
 
 int main(int argc, char *argv[]) {
     KLEE_MAKE_SYMBOLIC_STR_AND_LEN(s, n, MAX_SIZE);
