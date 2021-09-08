@@ -1351,4 +1351,5 @@ CMPCREATE(UleExpr, Ule)
 CMPCREATE(SltExpr, Slt)
 CMPCREATE(SleExpr, Sle)
 
+/* TODO: support smaller width? */
 const Expr::Width QuantifiedExpr::AUX_VARIABLE_WIDTH = 64;

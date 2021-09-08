@@ -264,7 +264,6 @@ ref<Expr> klee::getSymbolicValue(const Array *array, unsigned size) {
 static ref<Expr> getConstantExpr(std::vector<unsigned char> &v,
                                  unsigned size) {
   assert(v.size() >= size);
-
   ref<Expr> r = nullptr;
   uint64_t n = 0;
   for (unsigned i = 0; i < size; i++) {
