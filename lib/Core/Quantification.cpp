@@ -44,15 +44,35 @@ ref<Expr> generateRangeConstraint(PatternMatch &pm, ref<Expr> aux) {
   ref<Expr> minExpr = ConstantExpr::create(min, aux->getWidth());
 
   if (max == min) {
+    /* there is only one path */
     return EqExpr::create(aux, maxExpr);
   }
 
-  /* TODO: handle missing values */
-  assert((max - min + 1) == pm.matches.size());
-  return AndExpr::create(
+  ref<Expr> range = AndExpr::create(
     UgeExpr::create(aux, minExpr),
     UleExpr::create(aux, maxExpr)
   );
+
+  if ((max - min + 1) != pm.matches.size()) {
+    for (unsigned i = min; i < max; i++) {
+      bool missing = true;
+      for (StateMatch &sm : pm.matches) {
+        if (i == sm.count) {
+          missing = false;
+          break;
+        }
+      }
+      if (missing) {
+        ref<Expr> countExpr = ConstantExpr::create(i, aux->getWidth());
+        range = AndExpr::create(
+          range,
+          Expr::createIsZero(EqExpr::create(aux, countExpr))
+        );
+      }
+    }
+  }
+
+  return range;
 }
 
 void generateForall(PatternMatch &pm,
