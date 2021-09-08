@@ -128,21 +128,6 @@ ref<Expr> klee::generateQuantifiedConstraint(PatternMatch &pm,
     suffixExpr = AndExpr::create(suffixExpr, pe.e);
   }
 
-  //errs() << "prefix:\n";
-  //prefix->dump();
-  //errs() << "core premise:\n";
-  //premise->dump();
-  //errs() << "core:\n";
-  //for (const ParametrizedExpr &pe : coreSolutions) {
-  //  pe.e->dump();
-  //}
-  //errs() << "suffix:\n";
-  //for (const ParametrizedExpr &pe : suffixSolutions) {
-  //  pe.e->dump();
-  //}
-  //errs() << "range:\n";
-  //rangeExpr->dump();
-
   return AndExpr::create(
     prefix,
     AndExpr::create(
