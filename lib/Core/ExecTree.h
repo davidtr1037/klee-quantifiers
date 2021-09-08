@@ -115,10 +115,6 @@ public:
                 ExecutionState *snapshot,
                 std::uint32_t salt = 1);
 
-  void computeHashes();
-
-  void computeNodeHashes(ExecTreeNode *n);
-
   ExecTreeNode *getNearestAncestor(ExecTreeNode *n1, ExecTreeNode *n2) const;
 
   void getReachable(ExecTreeNode *src,
