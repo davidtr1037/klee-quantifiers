@@ -385,8 +385,8 @@ void LoopHandler::mergeNodes(ExecTreeNode *n1,
                              ExecTreeNode *n2,
                              ExecutionState *s1,
                              ExecutionState *s2) {
-  /* TODO: use ExecutionState::mergeStatesOptimized */
   std::vector<ExecutionState *> states = {s1, s2};
+  /* TODO: use ExecutionState::mergeStatesOptimized? */
   ExecutionState *merged = ExecutionState::mergeStates(states);
 
   /* clone the merged state (to avoid using the snapshots) */

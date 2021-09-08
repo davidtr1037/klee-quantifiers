@@ -612,7 +612,7 @@ ExecutionState *ExecutionState::mergeStatesOptimized(std::vector<ExecutionState 
     m.addConstraint(e);
   }
 
-  bool usingQuantifiers = false;
+  bool isEncodedWithABV = false;
   if (!isComplete) {
     ref<Expr> orExpr = nullptr;
     if (usePattern && matches.size() == 1) {
@@ -621,9 +621,9 @@ ExecutionState *ExecutionState::mergeStatesOptimized(std::vector<ExecutionState 
                                             mergeID,
                                             *loopHandler->solver);
       if (orExpr.isNull()) {
-        klee_message("failed to generate the merged constraint");
+        klee_message("failed to generate the merged constraint (ABV)");
       } else {
-        usingQuantifiers = true;
+        isEncodedWithABV = true;
       }
     }
     if (orExpr.isNull()) {
@@ -645,7 +645,7 @@ ExecutionState *ExecutionState::mergeStatesOptimized(std::vector<ExecutionState 
                  states,
                  suffixes,
                  loopHandler,
-                 usingQuantifiers,
+                 isEncodedWithABV,
                  matches);
 
   /* heap */
@@ -654,7 +654,7 @@ ExecutionState *ExecutionState::mergeStatesOptimized(std::vector<ExecutionState 
             suffixes,
             mutated,
             loopHandler,
-            usingQuantifiers,
+            isEncodedWithABV,
             matches);
 
   if (OptimizeArrayValuesUsingITERewrite) {
@@ -726,7 +726,7 @@ void ExecutionState::mergeLocalVars(ExecutionState *merged,
                                     std::vector<ExecutionState *> &states,
                                     std::vector<ref<Expr>> &suffixes,
                                     LoopHandler *loopHandler,
-                                    bool usingQuantifiers,
+                                    bool isEncodedWithABV,
                                     std::vector<PatternMatch> &matches) {
   for (unsigned i = 0; i < merged->stack.size(); i++) {
     StackFrame &sf = merged->stack[i];
@@ -762,7 +762,7 @@ void ExecutionState::mergeLocalVars(ExecutionState *merged,
         v = mergeValues(suffixes, values);
       }
 
-      if (OptimizeUsingQuantifiers && usingQuantifiers) {
+      if (OptimizeUsingQuantifiers && isEncodedWithABV) {
         if (isa<SelectExpr>(v)) {
           ref<Expr> e = mergeValuesUsingPattern(valuesMap,
                                                 loopHandler,
@@ -782,7 +782,7 @@ void ExecutionState::mergeHeap(ExecutionState *merged,
                                std::vector<ref<Expr>> &suffixes,
                                std::set<const MemoryObject*> &mutated,
                                LoopHandler *loopHandler,
-                               bool usingQuantifiers,
+                               bool isEncodedWithABV,
                                std::vector<PatternMatch> &matches) {
   for (const MemoryObject *mo : mutated) {
     const ObjectState *os = merged->addressSpace.findObject(mo);
@@ -867,7 +867,7 @@ void ExecutionState::mergeHeap(ExecutionState *merged,
           v = mergeValues(neededSuffixes, values);
         }
 
-        if (OptimizeUsingQuantifiers && usingQuantifiers) {
+        if (OptimizeUsingQuantifiers && isEncodedWithABV) {
           if (isa<SelectExpr>(v)) {
             ref<Expr> e = mergeValuesUsingPattern(valuesMap,
                                                   loopHandler,
