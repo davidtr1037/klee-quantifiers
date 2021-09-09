@@ -322,7 +322,7 @@ void LoopHandler::discardState(ExecutionState *es) {
     executor->mergingSearcher->inCloseMerge.erase(es);
     executor->mergingSearcher->continueState(*es);
   }
-  executor->terminateStateEarly(*es, "IntermediateMerge");
+  executor->terminateStateEarly(*es, "Incremental Merge");
   executor->interpreterHandler->decUnmergedExploredPaths();
 }
 
