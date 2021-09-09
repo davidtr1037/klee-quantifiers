@@ -23,11 +23,6 @@ cl::opt<bool> UseLoopMerge(
     cl::desc(""),
     cl::cat(klee::LoopCat));
 
-cl::opt<bool> DebugLoopHandler(
-    "debug-loop-handler", cl::init(false),
-    cl::desc(""),
-    cl::cat(klee::LoopCat));
-
 cl::opt<bool> UseOptimizedMerge(
     "use-optimized-merge", cl::init(false),
     cl::desc(""),
