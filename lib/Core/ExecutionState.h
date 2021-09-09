@@ -101,6 +101,19 @@ class ExecutionState {
     }
   };
 
+  struct MergedConstraint {
+    ref<Expr> constraint;
+    /* true iff all the reachable nodes belong to the same merging group */
+    bool isFull;
+
+    MergedConstraint(ref<Expr> constraint, bool isFull) :
+      constraint(constraint),
+      isFull(isFull) {
+
+    }
+  };
+
+
   struct MergedValue {
     ref<Expr> value;
     /* TODO: rename? */
@@ -108,9 +121,7 @@ class ExecutionState {
     /* TODO: rename? */
     ref<Expr> guard;
 
-    MergedValue(ref<Expr> value,
-                bool isComplete,
-                ref<Expr> guard) :
+    MergedValue(ref<Expr> value, bool isComplete, ref<Expr> guard) :
       value(value),
       isComplete(isComplete),
       guard(guard) {
@@ -315,13 +326,13 @@ public:
                                  ref<Expr> v,
                                  TimingSolver *solver);
 
-  static ref<Expr> buildMergedConstraint(std::vector<ExecutionState *> &states);
+  static ref<Expr> mergeConstraints(std::vector<ExecutionState *> &states);
 
-  static ref<Expr> buildMergedConstraintWithExecTree(LoopHandler *loopHandler,
-                                              std::vector<ExecutionState *> &states);
+  static ref<Expr> mergeConstraintsWithExecTree(LoopHandler *loopHandler,
+                                                std::vector<ExecutionState *> &states);
 
-  static std::pair<ref<Expr>, bool> buildMergedConstraintFromNode(ExecTreeNode *n,
-                                                                 std::set<uint32_t> &ids);
+  static MergedConstraint mergeConstraintsFromNode(ExecTreeNode *n,
+                                                   std::set<uint32_t> &ids);
 
   bool isValidOffset(TimingSolver *solver,
                      const MemoryObject *mo,

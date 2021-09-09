@@ -628,9 +628,9 @@ ExecutionState *ExecutionState::mergeStatesOptimized(std::vector<ExecutionState 
     }
     if (orExpr.isNull()) {
       if (OptimizeITEUsingExecTree && loopHandler->canUseExecTree) {
-        orExpr = buildMergedConstraintWithExecTree(loopHandler, states);
+        orExpr = mergeConstraintsWithExecTree(loopHandler, states);
       } else {
-        orExpr = buildMergedConstraint(states);
+        orExpr = mergeConstraints(states);
       }
     }
 
@@ -1156,7 +1156,7 @@ ref<Expr> ExecutionState::simplifyArrayElement(const MemoryObject *mo,
   return v;
 }
 
-ref<Expr> ExecutionState::buildMergedConstraint(std::vector<ExecutionState *> &states) {
+ref<Expr> ExecutionState::mergeConstraints(std::vector<ExecutionState *> &states) {
   ref<Expr> orExpr = ConstantExpr::create(0, Expr::Bool);
   for (ExecutionState *es : states) {
     /* build suffix conjunction */
@@ -1172,65 +1172,60 @@ ref<Expr> ExecutionState::buildMergedConstraint(std::vector<ExecutionState *> &s
   return orExpr;
 }
 
-ref<Expr> ExecutionState::buildMergedConstraintWithExecTree(LoopHandler *loopHandler,
-                                                            std::vector<ExecutionState *> &states) {
+ref<Expr> ExecutionState::mergeConstraintsWithExecTree(LoopHandler *loopHandler,
+                                                       std::vector<ExecutionState *> &states) {
   std::set<uint32_t> ids;
   for (ExecutionState *es : states) {
     ids.insert(es->getID());
   }
 
   ExecTreeNode *n = loopHandler->tree.root;
-  auto p = buildMergedConstraintFromNode(n, ids);
-  return p.first;
+  auto p = mergeConstraintsFromNode(n, ids);
+  return p.constraint;
 }
 
 /*
  * we can use the solver to reduce 'and' expression to rv/lv (in some cases),
  * but it doesn't seem to be that helpful in practice...
  */
-std::pair<ref<Expr>, bool> ExecutionState::buildMergedConstraintFromNode(ExecTreeNode *n,
-                                                                         std::set<uint32_t> &ids) {
+ExecutionState::MergedConstraint ExecutionState::mergeConstraintsFromNode(ExecTreeNode *n,
+                                                                          std::set<uint32_t> &ids) {
+  if (!n) {
+    return MergedConstraint(nullptr, false);
+  }
+
   if (n->isLeaf()) {
     auto i = ids.find(n->stateID);
     if (i == ids.end()) {
-      return std::make_pair(nullptr, false);
+      return MergedConstraint(nullptr, false);
     } else {
       /* a joined node corresponds to an incomplete subtree */
-      return std::make_pair(n->e, !n->isJoined);
+      return MergedConstraint(n->e, !n->isJoined);
     }
   }
 
   /* TODO: left/right or right/left? */
-  std::pair<ref<Expr>, bool> lp, rp;
-  if (n->left) {
-    lp = buildMergedConstraintFromNode(n->left, ids);
-  } else {
-    lp = std::make_pair(nullptr, false);
-  }
-  if (n->right) {
-    rp = buildMergedConstraintFromNode(n->right, ids);
-  } else {
-    rp = std::make_pair(nullptr, false);
-  }
+  MergedConstraint lp = mergeConstraintsFromNode(n->left, ids);
+  MergedConstraint rp = mergeConstraintsFromNode(n->right, ids);
 
-  ref<Expr> lv = lp.first;
-  ref<Expr> rv = rp.first;
+  ref<Expr> lv = lp.constraint;
+  ref<Expr> rv = rp.constraint;
 
   if (lv.isNull()) {
     if (rv.isNull()) {
-      return std::make_pair(nullptr, false);
+      return MergedConstraint(nullptr, false);
     } else {
-      return std::make_pair(AndExpr::create(n->e, rv), false);
+      return MergedConstraint(AndExpr::create(n->e, rv), false);
     }
   } else {
     if (rv.isNull()) {
-      return std::make_pair(AndExpr::create(n->e, lv), false);
+      return MergedConstraint(AndExpr::create(n->e, lv), false);
     } else {
-      if (lp.second && rp.second) {
-        return std::make_pair(n->e, true);
+      if (lp.isFull && rp.isFull) {
+        return MergedConstraint(n->e, true);
       } else {
         /* TODO: encode as or(and, and)? */
-        return std::make_pair(AndExpr::create(n->e, OrExpr::create(lv, rv)), false);
+        return MergedConstraint(AndExpr::create(n->e, OrExpr::create(lv, rv)), false);
       }
     }
   }
