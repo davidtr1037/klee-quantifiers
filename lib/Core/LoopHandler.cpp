@@ -102,6 +102,11 @@ void LoopHandler::removeOpenState(ExecutionState *es) {
   openStates.pop_back();
 }
 
+void LoopHandler::resumeClosedState(ExecutionState *es) {
+  executor->mergingSearcher->inCloseMerge.erase(es);
+  executor->mergingSearcher->continueState(*es);
+}
+
 void LoopHandler::discardOpenState(ExecutionState *es, const char *reason) {
   executor->terminateStateEarly(*es, reason);
   executor->interpreterHandler->decUnmergedExploredPaths();
@@ -254,9 +259,8 @@ void LoopHandler::releaseStates() {
       klee_warning("%s", msg);
 
       for (ExecutionState *es : states) {
-        executor->mergingSearcher->inCloseMerge.erase(es);
         es->suffixConstraints.clear();
-        executor->mergingSearcher->continueState(*es);
+        resumeClosedState(es);
       }
 
       /* TODO: refactor... */
@@ -272,8 +276,6 @@ void LoopHandler::releaseStates() {
       }
     }
 
-    executor->mergingSearcher->inCloseMerge.erase(merged);
-    executor->mergingSearcher->continueState(*merged);
     executor->collectMergeStats(*merged);
     if (groups.size() == 1) {
       klee_message("merged %lu states (complete = %u)",
@@ -285,6 +287,8 @@ void LoopHandler::releaseStates() {
                    isComplete,
                    groupId);
     }
+
+    resumeClosedState(merged);
 
     /* TODO: why? */
     for (ExecutionState *es : states) {
