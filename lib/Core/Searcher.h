@@ -281,6 +281,26 @@ namespace klee {
     }
   };
 
+  class SplitMergingSearcher : public MergingSearcher {
+    friend class LoopHandler;
+
+    public:
+
+    SplitMergingSearcher(Searcher *_baseSearcher);
+
+    ~SplitMergingSearcher();
+
+    ExecutionState& selectState();
+
+    bool empty();
+
+    void printName(llvm::raw_ostream &os);
+
+    private:
+
+    Searcher *internalSearcher;
+  };
+
   class BatchingSearcher : public Searcher {
     Searcher *baseSearcher;
     time::Span timeBudget;

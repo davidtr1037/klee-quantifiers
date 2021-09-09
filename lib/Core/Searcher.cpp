@@ -381,6 +381,31 @@ ExecutionState& MergingSearcher::selectState() {
   return baseSearcher->selectState();
 }
 
+SplitMergingSearcher::SplitMergingSearcher(Searcher *baseSearcher) :
+  MergingSearcher(baseSearcher) {
+  internalSearcher = new BFSSearcher();
+}
+
+SplitMergingSearcher::~SplitMergingSearcher() {
+  delete internalSearcher;
+}
+
+ExecutionState& SplitMergingSearcher::selectState() {
+  if (!internalSearcher->empty()) {
+    return internalSearcher->selectState();
+  } else {
+    return MergingSearcher::selectState();
+  }
+}
+
+bool SplitMergingSearcher::empty() {
+  return MergingSearcher::empty() && internalSearcher->empty();
+}
+
+void SplitMergingSearcher::printName(llvm::raw_ostream &os) {
+  os << "SplitMergingSearcher\n";
+}
+
 ///
 
 BatchingSearcher::BatchingSearcher(Searcher *_baseSearcher,
