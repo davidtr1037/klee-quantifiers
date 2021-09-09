@@ -56,6 +56,12 @@ public:
 
   void removeOpenState(ExecutionState *es);
 
+  void discardOpenState(ExecutionState *es, const char *reason);
+
+  void discardClosedState(ExecutionState *es, const char *reason);
+
+  void discardState(ExecutionState *es, const char *reason);
+
   void addClosedState(ExecutionState *es, llvm::Instruction *mp);
 
   void splitStates(std::vector<MergeGroup> &result);
@@ -67,8 +73,6 @@ public:
   unsigned getEarlyTerminated();
 
   bool shouldMerge(ExecutionState &s1, ExecutionState &s2);
-
-  void discardState(ExecutionState *es);
 
   bool discardStateByID(unsigned id);
 

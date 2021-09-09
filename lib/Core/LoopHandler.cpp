@@ -102,6 +102,27 @@ void LoopHandler::removeOpenState(ExecutionState *es) {
   openStates.pop_back();
 }
 
+void LoopHandler::discardOpenState(ExecutionState *es, const char *reason) {
+  executor->terminateStateEarly(*es, reason);
+  executor->interpreterHandler->decUnmergedExploredPaths();
+}
+
+void LoopHandler::discardClosedState(ExecutionState *es, const char *reason) {
+  executor->mergingSearcher->inCloseMerge.erase(es);
+  executor->mergingSearcher->continueState(*es);
+  executor->terminateStateEarly(*es, reason);
+  executor->interpreterHandler->decUnmergedExploredPaths();
+}
+
+void LoopHandler::discardState(ExecutionState *es, const char *reason) {
+  if (std::find(openStates.begin(), openStates.end(), es) == openStates.end()) {
+    /* the state reached the loop exit (suspended) */
+    discardClosedState(es, reason);
+  } else {
+    discardOpenState(es, reason);
+  }
+}
+
 void LoopHandler::addClosedState(ExecutionState *es,
                                  Instruction *mp) {
   ++closedStateCount;
@@ -251,6 +272,7 @@ void LoopHandler::releaseStates() {
       }
     }
 
+    executor->mergingSearcher->inCloseMerge.erase(merged);
     executor->mergingSearcher->continueState(*merged);
     executor->collectMergeStats(*merged);
     if (groups.size() == 1) {
@@ -264,17 +286,14 @@ void LoopHandler::releaseStates() {
                    groupId);
     }
 
+    /* TODO: why? */
     for (ExecutionState *es : states) {
-      executor->mergingSearcher->inCloseMerge.erase(es);
-      /* TODO: why? */
       es->suffixConstraints.clear();
     }
 
     for (unsigned i = 1; i < states.size(); i++) {
       ExecutionState *es = states[i];
-      executor->mergingSearcher->continueState(*es);
-      executor->terminateStateEarly(*es, "Merge");
-      executor->interpreterHandler->decUnmergedExploredPaths();
+      discardClosedState(es, "Merge");
     }
 
     groupId++;
@@ -316,22 +335,12 @@ bool LoopHandler::shouldMerge(ExecutionState &s1, ExecutionState &s2) {
   return true;
 }
 
-void LoopHandler::discardState(ExecutionState *es) {
-  if (std::find(openStates.begin(), openStates.end(), es) == openStates.end()) {
-    /* the state reached the loop exit (suspended) */
-    executor->mergingSearcher->inCloseMerge.erase(es);
-    executor->mergingSearcher->continueState(*es);
-  }
-  executor->terminateStateEarly(*es, "Incremental Merge");
-  executor->interpreterHandler->decUnmergedExploredPaths();
-}
-
 bool LoopHandler::discardStateByID(unsigned id) {
   /* search in the open states */
   for (ExecutionState *es : openStates) {
     if (es->getID() == id) {
       /* TODO: remove from openStates? */
-      discardState(es);
+      discardState(es, "Incremental Merge");
       return true;
     }
   }
@@ -343,7 +352,7 @@ bool LoopHandler::discardStateByID(unsigned id) {
     while (j != group.end()) {
       ExecutionState *es = *j;
       if (es->getID() == id) {
-        discardState(es);
+        discardState(es, "Incremental Merge");
         group.erase(j);
         return true;
       }
