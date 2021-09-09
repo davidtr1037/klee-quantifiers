@@ -156,9 +156,6 @@ ExecutionState::~ExecutionState() {
   for (const auto &cur_mergehandler: openMergeStack){
     cur_mergehandler->removeOpenState(this);
   }
-  for (ref<LoopHandler> handler : openLoopHandlerStack){
-    handler->removeOpenState(this);
-  }
   if (!loopHandler.isNull() && !isSnapshot) {
     /* TODO: mark here as incomplete execution? */
     loopHandler->removeOpenState(this);
@@ -182,7 +179,6 @@ ExecutionState::ExecutionState(const ExecutionState& state, bool isSnapshot):
     symbolics(state.symbolics),
     arrayNames(state.arrayNames),
     openMergeStack(state.openMergeStack),
-    openLoopHandlerStack(state.openLoopHandlerStack),
     steppedInstructions(state.steppedInstructions),
     instsSinceCovNew(state.instsSinceCovNew),
     coveredNew(state.coveredNew),
@@ -196,9 +192,6 @@ ExecutionState::ExecutionState(const ExecutionState& state, bool isSnapshot):
     hasPendingSnapshot(false) {
   for (const auto &cur_mergehandler: openMergeStack) {
     cur_mergehandler->addOpenState(this);
-  }
-  for (ref<LoopHandler> handler : openLoopHandlerStack) {
-    handler->addOpenState(this);
   }
   if (!loopHandler.isNull() && !isSnapshot) {
     loopHandler->addOpenState(this);
