@@ -71,10 +71,7 @@ LoopHandler::LoopHandler(Executor *executor, ExecutionState *es, Loop *loop)
       mergeCount(0),
       joinCount(0) {
   assert(loop);
-  addOpenState(es);
-  for (ref<Expr> e : es->constraints) {
-    initialConstraints.push_back(e);
-  }
+  addInitialState(es);
 }
 
 LoopHandler::~LoopHandler() {
@@ -87,6 +84,13 @@ LoopHandler::~LoopHandler() {
   for (auto &i: mergeGroupsByExit) {
     vector<ExecutionState *> &states = i.second;
     assert(states.empty());
+  }
+}
+
+void LoopHandler::addInitialState(ExecutionState *es) {
+  addOpenState(es);
+  for (ref<Expr> e : es->constraints) {
+    initialConstraints.push_back(e);
   }
 }
 

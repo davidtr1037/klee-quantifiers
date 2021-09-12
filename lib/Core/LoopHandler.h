@@ -52,6 +52,8 @@ public:
 
   ~LoopHandler();
 
+  void addInitialState(ExecutionState *es);
+
   void addOpenState(ExecutionState *es);
 
   void removeOpenState(ExecutionState *es);
