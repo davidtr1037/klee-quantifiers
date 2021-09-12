@@ -255,6 +255,10 @@ public:
 
   void addConstraint(ref<Expr> e);
 
+  void addSuffixConstraint(ref<Expr> e);
+
+  void clearSuffixConstraints();
+
   bool merge(const ExecutionState &b);
   void dumpStack(llvm::raw_ostream &out) const;
 

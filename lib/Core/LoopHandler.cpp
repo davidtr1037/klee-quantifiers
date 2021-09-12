@@ -432,6 +432,23 @@ void LoopHandler::discardSubTree(ExecTreeNode *src,
   tree.removeSubTree(src, ancestor);
 }
 
+void LoopHandler::setSuffixConstraints(ExecutionState *merged,
+                                       ExecTreeNode *ancestor,
+                                       ref<Expr> condition) {
+  std::list<ref<Expr>> prefixConditions;
+  ExecTreeNode *n = ancestor;
+  while (n) {
+    prefixConditions.push_front(n->e);
+    n = n->parent;
+  }
+
+  merged->clearSuffixConstraints();
+  for (ref<Expr> e : prefixConditions) {
+    merged->addSuffixConstraint(e);
+  }
+  merged->addSuffixConstraint(condition);
+}
+
 void LoopHandler::mergeNodes(ExecTreeNode *n1,
                              ExecTreeNode *n2,
                              ExecutionState *s1,
@@ -451,6 +468,9 @@ void LoopHandler::mergeNodes(ExecTreeNode *n1,
   ExecTreeNode *ancestor = tree.getNearestAncestor(n1, n2);
   ref<Expr> pc1 = tree.getPC(ancestor, n1);
   ref<Expr> pc2 = tree.getPC(ancestor, n2);
+  ref<Expr> condition = OrExpr::create(pc1, pc2);
+
+  setSuffixConstraints(merged, ancestor, condition);
 
   /* remove paths to nodes */
   discardSubTree(n1, ancestor);
@@ -458,7 +478,6 @@ void LoopHandler::mergeNodes(ExecTreeNode *n1,
 
   /* TODO: update pc for the snapshot? */
   ExecutionState *mergedSnapshot = merged->branch(true);
-  ref<Expr> condition = OrExpr::create(pc1, pc2);
   if (!ancestor->left) {
     tree.setLeft(ancestor, *merged, condition, mergedSnapshot);
   } else if (!ancestor->right) {

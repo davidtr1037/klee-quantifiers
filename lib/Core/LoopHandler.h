@@ -92,6 +92,10 @@ public:
   void discardSubTree(ExecTreeNode *src,
                       ExecTreeNode *ancestor);
 
+  void setSuffixConstraints(ExecutionState *merged,
+                            ExecTreeNode *ancestor,
+                            ref<Expr> condition);
+
   void mergeNodes(ExecTreeNode *n1,
                   ExecTreeNode *n2,
                   ExecutionState *s1,

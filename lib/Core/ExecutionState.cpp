@@ -457,13 +457,21 @@ void ExecutionState::addConstraint(ref<Expr> e) {
   if (!loopHandler.isNull()) {
     /* we don't expect forks after the state is paused */
     assert(stack.back().isExecutingLoop);
-    ConstraintManager m(suffixConstraints);
-    m.addConstraint(e);
+    addSuffixConstraint(e);
   }
 
   if (OptimizeArrayValuesUsingUpperBound) {
     inferSizeConstraint(e);
   }
+}
+
+void ExecutionState::addSuffixConstraint(ref<Expr> e) {
+  ConstraintManager m(suffixConstraints);
+  m.addConstraint(e);
+}
+
+void ExecutionState::clearSuffixConstraints() {
+  suffixConstraints.clear();
 }
 
 void ExecutionState::addTaintedExpr(std::string name, ref<Expr> offset) {
