@@ -61,6 +61,8 @@ public:
 
   void removeOpenState(ExecutionState *es);
 
+  void pauseOpenState(ExecutionState *es);
+
   void resumeClosedState(ExecutionState *es);
 
   void discardOpenState(ExecutionState *es, const char *reason);

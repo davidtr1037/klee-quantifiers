@@ -114,6 +114,17 @@ void LoopHandler::removeOpenState(ExecutionState *es) {
   openStates.pop_back();
 }
 
+void LoopHandler::pauseOpenState(ExecutionState *es) {
+  if (useIncrementalMergingSearch) {
+    Searcher *internalSearcher = executor->incrementalMergingSearcher->internalSearcher;
+    internalSearcher->removeState(es);
+  } else {
+    assert(executor->mergingSearcher->inCloseMerge.find(es) == executor->mergingSearcher->inCloseMerge.end());
+    executor->mergingSearcher->inCloseMerge.insert(es);
+    executor->mergingSearcher->pauseState(*es);
+  }
+}
+
 void LoopHandler::resumeClosedState(ExecutionState *es) {
   if (useIncrementalMergingSearch) {
     executor->incrementalMergingSearcher->baseSearcher->addState(es);
@@ -161,6 +172,7 @@ void LoopHandler::addClosedState(ExecutionState *es,
                                  Instruction *mp) {
   ++closedStateCount;
   removeOpenState(es);
+  pauseOpenState(es);
 
   auto i = mergeGroupsByExit.find(mp);
   if (i == mergeGroupsByExit.end()) {
@@ -168,16 +180,6 @@ void LoopHandler::addClosedState(ExecutionState *es,
   } else {
     MergeGroup &states = i->second;
     states.push_back(es);
-  }
-
-  /* TODO: add a function */
-  if (useIncrementalMergingSearch) {
-    Searcher *internalSearcher = executor->incrementalMergingSearcher->internalSearcher;
-    internalSearcher->removeState(es);
-  } else {
-    assert(executor->mergingSearcher->inCloseMerge.find(es) == executor->mergingSearcher->inCloseMerge.end());
-    executor->mergingSearcher->inCloseMerge.insert(es);
-    executor->mergingSearcher->pauseState(*es);
   }
 
   /* otherwise, a state sneaked out somehow */
