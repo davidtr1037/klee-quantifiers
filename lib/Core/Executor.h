@@ -77,6 +77,7 @@ namespace klee {
   class TreeStreamWriter;
   class MergeHandler;
   class MergingSearcher;
+  class IncrementalMergingSearcher;
   class LoopHandler;
   template<class T> class ref;
 
@@ -220,6 +221,9 @@ private:
   /// Points to the merging searcher of the searcher chain,
   /// `nullptr` if merging is disabled
   MergingSearcher *mergingSearcher = nullptr;
+
+  /* TODO: add docs */
+  IncrementalMergingSearcher *incrementalMergingSearcher = nullptr;
 
   std::unordered_map<ExecutionContext, uint64_t, ExecutionContextHash> loopStats;
 
@@ -576,6 +580,10 @@ public:
 
   MergingSearcher *getMergingSearcher() const { return mergingSearcher; };
   void setMergingSearcher(MergingSearcher *ms) { mergingSearcher = ms; };
+
+  void setIncrementalMergingSearcher(IncrementalMergingSearcher *s) {
+    incrementalMergingSearcher = s;
+  };
 };
   
 } // End klee namespace

@@ -381,29 +381,41 @@ ExecutionState& MergingSearcher::selectState() {
   return baseSearcher->selectState();
 }
 
-SplitMergingSearcher::SplitMergingSearcher(Searcher *baseSearcher) :
-  MergingSearcher(baseSearcher) {
+IncrementalMergingSearcher::IncrementalMergingSearcher(Searcher *baseSearcher) :
+  baseSearcher(baseSearcher) {
   internalSearcher = new BFSSearcher();
 }
 
-SplitMergingSearcher::~SplitMergingSearcher() {
+IncrementalMergingSearcher::~IncrementalMergingSearcher() {
   delete internalSearcher;
+  delete baseSearcher;
 }
 
-ExecutionState& SplitMergingSearcher::selectState() {
+void IncrementalMergingSearcher::update(ExecutionState *current,
+                                        const std::vector<ExecutionState *> &addedStates,
+                                        const std::vector<ExecutionState *> &removedStates) {
   if (!internalSearcher->empty()) {
-    return internalSearcher->selectState();
+    internalSearcher->update(current, addedStates, removedStates);
   } else {
-    return MergingSearcher::selectState();
+    baseSearcher->update(current, addedStates, removedStates);
   }
 }
 
-bool SplitMergingSearcher::empty() {
-  return MergingSearcher::empty() && internalSearcher->empty();
+ExecutionState& IncrementalMergingSearcher::selectState() {
+  assert(!empty());
+  if (!internalSearcher->empty()) {
+    return internalSearcher->selectState();
+  } else {
+    return baseSearcher->selectState();
+  }
 }
 
-void SplitMergingSearcher::printName(llvm::raw_ostream &os) {
-  os << "SplitMergingSearcher\n";
+bool IncrementalMergingSearcher::empty() {
+  return baseSearcher->empty() && internalSearcher->empty();
+}
+
+void IncrementalMergingSearcher::printName(llvm::raw_ostream &os) {
+  os << "IncrementalMergingSearcher\n";
 }
 
 ///

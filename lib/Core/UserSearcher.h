@@ -10,9 +10,13 @@
 #ifndef KLEE_USERSEARCHER_H
 #define KLEE_USERSEARCHER_H
 
+#include "llvm/Support/CommandLine.h"
+
 namespace klee {
   class Executor;
   class Searcher;
+
+  extern llvm::cl::opt<bool> UseIncrementalMergingSearch;
 
   // XXX gross, should be on demand?
   bool userSearcherRequiresMD2U();

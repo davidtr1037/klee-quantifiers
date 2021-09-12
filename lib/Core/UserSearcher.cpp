@@ -83,6 +83,12 @@ cl::opt<std::string> BatchTime(
 
 } // namespace
 
+cl::opt<bool> klee::UseIncrementalMergingSearch(
+    "use-incremental-merging-search",
+    cl::desc(""),
+    cl::init(false),
+    cl::cat(SearchCat));
+
 void klee::initializeSearchOptions() {
   // default values
   if (CoreSearch.empty()) {
@@ -154,10 +160,15 @@ Searcher *klee::constructUserSearcher(Executor &executor) {
                  "another search strategy");
     }
 
-    auto *ms = new MergingSearcher(searcher);
-    executor.setMergingSearcher(ms);
-
-    searcher = ms;
+    if (UseIncrementalMergingSearch) {
+      IncrementalMergingSearcher *ms = new IncrementalMergingSearcher(searcher);
+      executor.setIncrementalMergingSearcher(ms);
+      searcher = ms;
+    } else {
+      MergingSearcher *ms = new MergingSearcher(searcher);
+      executor.setMergingSearcher(ms);
+      searcher = ms;
+    }
   }
 
   llvm::raw_ostream &os = executor.getHandler().getInfoStream();

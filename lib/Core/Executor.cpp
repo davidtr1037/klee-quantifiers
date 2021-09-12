@@ -4658,8 +4658,6 @@ void Executor::onLoopExit(ExecutionState &state, KInstruction *ki, bool &paused)
     return;
   }
 
-  assert(mergingSearcher->inCloseMerge.find(&state) == mergingSearcher->inCloseMerge.end());
-  mergingSearcher->inCloseMerge.insert(&state);
   state.loopHandler->addClosedState(&state, ki->inst);
   state.loopHandler = nullptr;
   paused = true;
@@ -4669,7 +4667,10 @@ void Executor::setLoopHandler(ExecutionState &state) {
   /* TODO: collect loop stats? */
   const KLoop &kloop = state.stack.back().loop;
   if (kloop.isSupported) {
-    state.loopHandler = new LoopHandler(this, &state, kloop.loop);
+    state.loopHandler = new LoopHandler(this,
+                                        &state,
+                                        kloop.loop,
+                                        UseIncrementalMergingSearch);
   } else {
     KInstruction *ki = state.prevPC;
     klee_warning("unsupported loop: %s:%u",

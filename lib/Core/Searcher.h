@@ -281,14 +281,18 @@ namespace klee {
     }
   };
 
-  class SplitMergingSearcher : public MergingSearcher {
+  class IncrementalMergingSearcher : public Searcher {
     friend class LoopHandler;
 
     public:
 
-    SplitMergingSearcher(Searcher *_baseSearcher);
+    IncrementalMergingSearcher(Searcher *_baseSearcher);
 
-    ~SplitMergingSearcher();
+    ~IncrementalMergingSearcher();
+
+    void update(ExecutionState *current,
+                const std::vector<ExecutionState *> &addedStates,
+                const std::vector<ExecutionState *> &removedStates);
 
     ExecutionState& selectState();
 
@@ -296,8 +300,7 @@ namespace klee {
 
     void printName(llvm::raw_ostream &os);
 
-    private:
-
+    Searcher *baseSearcher;
     Searcher *internalSearcher;
   };
 

@@ -48,7 +48,10 @@ private:
 
 public:
 
-  LoopHandler(Executor *executor, ExecutionState *es, llvm::Loop *loop);
+  LoopHandler(Executor *executor,
+              ExecutionState *es,
+              llvm::Loop *loop,
+              bool useIncrementalMergingSearch = true);
 
   ~LoopHandler();
 
@@ -62,9 +65,13 @@ public:
 
   void discardOpenState(ExecutionState *es, const char *reason);
 
-  void discardClosedState(ExecutionState *es, const char *reason);
+  void discardClosedState(ExecutionState *es,
+                          const char *reason,
+                          bool isFullyExplored);
 
-  void discardState(ExecutionState *es, const char *reason);
+  void discardState(ExecutionState *es,
+                    const char *reason,
+                    bool isFullyExplored);
 
   void addClosedState(ExecutionState *es, llvm::Instruction *mp);
 
@@ -118,6 +125,8 @@ public:
   bool canUseExecTree;
 
   bool shouldTransform;
+
+  bool useIncrementalMergingSearch;
 
   /* statistics */
   uint64_t mergeCount;
