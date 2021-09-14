@@ -615,6 +615,7 @@ ExecutionState *ExecutionState::mergeStatesOptimized(std::vector<ExecutionState 
 
   bool isEncodedWithABV = false;
   if (!isComplete) {
+    /* TODO: rename to mergedConstraint? */
     ref<Expr> orExpr = nullptr;
     if (usePattern && matches.size() == 1) {
       orExpr = generateQuantifiedConstraint(matches[0],
