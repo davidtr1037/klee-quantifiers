@@ -488,7 +488,6 @@ void LoopHandler::mergeNodes(ExecTreeNode *n1,
   } else if (!ancestor->right) {
     tree.setRight(ancestor, *merged, condition, mergedSnapshot);
   } else {
-    /* TODO: unsupported */
     assert(0);
   }
 
