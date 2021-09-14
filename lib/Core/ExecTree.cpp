@@ -295,6 +295,19 @@ bool ExecTree::join(ExecTreeNode *dst) {
   return true;
 }
 
+/* TODO: rename */
+bool ExecTree::isSinglePath(ExecTreeNode *node, ExecTreeNode *ancestor) {
+  ExecTreeNode *current = node->parent;
+  while (current && current != ancestor) {
+    if (current->isComplete()) {
+      return false;
+    }
+    current = current->parent;
+  }
+
+  return true;
+}
+
 void ExecTree::clear() {
   for (ExecTreeNode *n : nodes) {
     delete n;

@@ -129,6 +129,8 @@ public:
 
   bool join(ExecTreeNode *dst);
 
+  bool isSinglePath(ExecTreeNode *node, ExecTreeNode *ancestor);
+
   void clear();
 
   void dump();

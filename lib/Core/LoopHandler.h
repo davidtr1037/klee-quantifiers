@@ -85,6 +85,8 @@ public:
 
   unsigned getEarlyTerminated();
 
+  bool canMergeNodes(ExecTreeNode *n1, ExecTreeNode *n2);
+
   bool shouldMerge(ExecutionState &s1, ExecutionState &s2);
 
   bool discardStateByID(unsigned id);

@@ -364,6 +364,11 @@ unsigned LoopHandler::getEarlyTerminated() {
   return earlyTerminated;
 }
 
+bool LoopHandler::canMergeNodes(ExecTreeNode *n1, ExecTreeNode *n2) {
+  ExecTreeNode *ancestor = tree.getNearestAncestor(n1, n2);
+  return tree.isSinglePath(n1, ancestor) || tree.isSinglePath(n2, ancestor);
+}
+
 bool LoopHandler::shouldMerge(ExecutionState &s1, ExecutionState &s2) {
   std::vector<ExecutionState *> states = {&s1, &s2};
   std::set<const MemoryObject*> mutated;
@@ -492,6 +497,10 @@ void LoopHandler::mergeNodes(ExecTreeNode *n1,
 }
 
 bool LoopHandler::mergeNodes(ExecTreeNode *n1, ExecTreeNode *n2) {
+  if (!canMergeNodes(n1, n2)) {
+    return false;
+  }
+
   for (ExecutionState *s1 : n1->snapshots) {
     for (ExecutionState *s2 : n2->snapshots) {
       if (shouldMerge(*s1, *s2)) {
