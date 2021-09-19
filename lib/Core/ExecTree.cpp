@@ -11,6 +11,11 @@ using namespace llvm;
 
 namespace klee {
 
+cl::opt<bool> DumpNodeCondition(
+    "dump-node-condition",
+    cl::init(false),
+    cl::desc(""));
+
 ExecTreeNode::ExecTreeNode(std::uint32_t stateID,
                            ref<Expr> e,
                            ExecutionState *snapshot,
@@ -353,7 +358,11 @@ void ExecTree::dumpGML(llvm::raw_ostream &os, std::set<uint32_t> &ids) {
         if (n->e.isNull()) {
             os << "label=\"\"";
         } else {
-            os << "label=\"" << n->getHash();
+            if (DumpNodeCondition) {
+              os << "label=\"" << *n->e;
+            } else {
+              os << "label=\"" << n->getHash();
+            }
             os << "\",shape=square";
         }
         if (n->isLeaf() && ids.find(n->stateID) != ids.end()) {

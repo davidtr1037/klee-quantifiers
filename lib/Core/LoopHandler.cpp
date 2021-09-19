@@ -58,6 +58,11 @@ cl::opt<bool> UseJoinTransformation(
     cl::desc(""),
     cl::cat(klee::LoopCat));
 
+cl::opt<bool> DebugMergeTransformation(
+    "debug-merge-transformation", cl::init(false),
+    cl::desc(""),
+    cl::cat(klee::LoopCat));
+
 LoopHandler::LoopHandler(Executor *executor,
                          ExecutionState *es,
                          Loop *loop,
@@ -458,6 +463,10 @@ void LoopHandler::mergeNodes(ExecTreeNode *n1,
                              ExecTreeNode *n2,
                              ExecutionState *s1,
                              ExecutionState *s2) {
+  if (DebugMergeTransformation) {
+    tree.dumpGMLToFile("before-merge");
+  }
+
   std::vector<ExecutionState *> states = {s1, s2};
   /* TODO: use ExecutionState::mergeStatesOptimized? */
   ExecutionState *merged = ExecutionState::mergeStates(states);
@@ -493,6 +502,10 @@ void LoopHandler::mergeNodes(ExecTreeNode *n1,
 
   /* add new path */
   executor->addedStates.push_back(merged);
+
+  if (DebugMergeTransformation) {
+    tree.dumpGMLToFile("after-merge");
+  }
 }
 
 bool LoopHandler::mergeNodes(ExecTreeNode *n1, ExecTreeNode *n2) {
