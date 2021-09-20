@@ -4801,9 +4801,19 @@ void Executor::takeSnapshotIfNeeded(ExecutionState &state,
   }
 
   if (state.hasPendingSnapshot) {
-    if (isa<PHINode>(ki->inst)) {
+    /* TODO: cache? */
+    Instruction *firstNonPHI = nullptr;
+    for (Instruction &inst : *ki->inst->getParent()) {
+      if (!isa<PHINode>(&inst)) {
+        firstNonPHI = &inst;
+        break;
+      }
+    }
+
+    if (ki->inst != firstNonPHI) {
       return;
     }
+
     ExecutionState *snapshot = state.branch(true);
     state.loopHandler->tree.addSnapshot(state, snapshot);
     state.loopHandler->shouldTransform = true;
