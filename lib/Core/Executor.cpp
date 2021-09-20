@@ -3182,10 +3182,8 @@ void Executor::run(ExecutionState &initialState) {
       }
     }
 
-    if (ki->inst == &ki->inst->getParent()->front()) {
-      /* must be called before stepInstruction */
-      onBasicBlockEntry(state, ki);
-    }
+    /* must be called before stepInstruction */
+    takeSnapshotIfNeeded(state, ki);
 
     stepInstruction(state);
     executeInstruction(state, ki);
@@ -4795,13 +4793,17 @@ ExecutionState *Executor::createSnapshot(ExecutionState &state,
   return snapshot;
 }
 
-void Executor::onBasicBlockEntry(ExecutionState &state,
-                                 KInstruction *ki) {
+/* TODO: rename due to PHI workaround */
+void Executor::takeSnapshotIfNeeded(ExecutionState &state,
+                                    KInstruction *ki) {
   if (state.loopHandler.isNull()) {
     return;
   }
 
   if (state.hasPendingSnapshot) {
+    if (isa<PHINode>(ki->inst)) {
+      return;
+    }
     ExecutionState *snapshot = state.branch(true);
     state.loopHandler->tree.addSnapshot(state, snapshot);
     state.loopHandler->shouldTransform = true;

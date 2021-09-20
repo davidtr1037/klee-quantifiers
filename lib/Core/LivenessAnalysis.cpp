@@ -96,7 +96,7 @@ bool LivenessAnalysis::runIteration(Function *f,
     for (const GuardedValue &v : liveOut[inst]) {
       bool found = false;
       for (const GuardedValue &w : toKill) {
-        if (w.v == v.v) {
+        if (w.value == v.value) {
           found = true;
           break;
         }
@@ -177,7 +177,7 @@ bool LivenessAnalysis::updateOutSet(Instruction *inst,
   /* TODO: a better solution? */
   if (v.bb && inst->getParent() != successor->getParent()) {
     if (v.bb == inst->getParent()) {
-      auto r = liveOut[inst].insert(GuardedValue(v.v, nullptr));
+      auto r = liveOut[inst].insert(GuardedValue(v.value, nullptr));
       return r.second;
     } else {
       return false;
@@ -187,14 +187,46 @@ bool LivenessAnalysis::updateOutSet(Instruction *inst,
   return r.second;
 }
 
+bool LivenessAnalysis::isLiveAt(const Result &result,
+                                Instruction *at,
+                                Value *value,
+                                BasicBlock *src) {
+  auto i = result.liveIn.find(at);
+  if (i == result.liveIn.end()) {
+    assert(false);
+  }
+
+  const std::set<GuardedValue> &variables = i->second;
+  for (const GuardedValue &v : variables) {
+    if (v.value == value) {
+      return src ? v.bb == src : true;
+    }
+  }
+
+  return false;
+}
+
 void LivenessAnalysis::dumpLiveSet(LiveSet &ls) {
   errs() << "--- live set ---\n";
   for (auto i : ls) {
     errs() << "instruction: " << *i.first << "\n";
     for (const GuardedValue &v : i.second) {
-      errs() << "-- live: " << *v.v << "\n";
+      errs() << "-- live: " << *v.value << "\n";
     }
   }
+}
+
+const LivenessAnalysis::Result &LivenessAnalysis::analyzeCached(Function *f) {
+  static std::map<llvm::Function *, Result> cache;
+  auto i = cache.find(f);
+  if (i != cache.end()) {
+    return i->second;
+  }
+
+  Result result;
+  analyze(f, result.liveIn, result.liveOut);
+  auto p = cache.insert(std::make_pair(f, result));
+  return p.first->second;
 }
 
 }

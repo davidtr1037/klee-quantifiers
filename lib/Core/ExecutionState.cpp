@@ -1402,38 +1402,18 @@ bool ExecutionState::extractSizeConstraint(ref<Expr> condition,
   return false;
 }
 
-/* TODO: return a reference */
-LivenessAnalysis::Result ExecutionState::getLivenessAnalysisResult(Function *f) {
-  static std::map<llvm::Function *, LivenessAnalysis::Result> cache;
-  if (cache.find(f) != cache.end()) {
-    return cache[f];
-  }
-
-  LivenessAnalysis::Result result;
-  LivenessAnalysis::analyze(f, result.liveIn, result.liveOut);
-  cache[f] = result;
-  return result;
-}
-
-bool ExecutionState::isLiveAt(LivenessAnalysis::Result &result,
-                           KFunction *kf,
-                           KInstruction *kinst,
-                           unsigned reg) {
+bool ExecutionState::isLiveRegAt(const LivenessAnalysis::Result &result,
+                                 KFunction *kf,
+                                 KInstruction *kinst,
+                                 unsigned reg) {
   auto i = kf->inverseRegisterMap.find(reg);
   if (i == kf->inverseRegisterMap.end()) {
+    /* TODO: why? */
     return true;
   }
 
-  std::set<GuardedValue> &live = result.liveIn[kinst->inst];
   Value *regValue = i->second;
-  /* TODO: add API? */
-  for (const GuardedValue &v : live) {
-    if (v.v == regValue) {
-      return true;
-    }
-  }
-
-  return false;
+  return LivenessAnalysis::isLiveAt(result, kinst->inst, regValue, nullptr);
 }
 
 bool ExecutionState::compareStack(ExecutionState &s1,
@@ -1445,12 +1425,13 @@ bool ExecutionState::compareStack(ExecutionState &s1,
   KInstruction *kinst = s1.pc;
   KFunction *kf = sf1.kf;
 
-  auto result = getLivenessAnalysisResult(kf->function);
+  auto result = LivenessAnalysis::analyzeCached(kf->function);
 
   for (unsigned reg = 0; reg < kf->numRegisters; reg++) {
-    if (!isLiveAt(result, kf, kinst, reg)) {
+    if (!isLiveRegAt(result, kf, kinst, reg)) {
       continue;
     }
+
     ref<Expr> v1 = sf1.locals[reg].value;
     ref<Expr> v2 = sf2.locals[reg].value;
     if (v1.isNull() || v2.isNull()) {

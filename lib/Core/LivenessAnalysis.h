@@ -12,23 +12,24 @@
 namespace klee {
 
 struct GuardedValue {
-  llvm::Value *v;
+  llvm::Value *value;
   llvm::BasicBlock *bb;
 
-  GuardedValue() : v(nullptr), bb(nullptr) {
+  GuardedValue() : value(nullptr), bb(nullptr) {
 
   }
 
-  GuardedValue(llvm::Value *v, llvm::BasicBlock *bb) : v(v), bb(bb) {
+  GuardedValue(llvm::Value *value, llvm::BasicBlock *bb) :
+    value(value), bb(bb) {
 
   }
 
   bool operator==(const GuardedValue& other) const {
-    return v == other.v && bb == other.bb;
+    return value == other.value && bb == other.bb;
   }
 
   bool operator<(const GuardedValue& other) const {
-    return std::tie(v, bb) < std::tie(other.v, other.bb);
+    return std::tie(value, bb) < std::tie(other.value, other.bb);
   }
 
 };
@@ -65,8 +66,14 @@ public:
                            LiveSet &liveOut,
                            const GuardedValue &v);
 
+  static bool isLiveAt(const Result &result,
+                       llvm::Instruction *at,
+                       llvm::Value *value,
+                       llvm::BasicBlock *src);
+
   static void dumpLiveSet(LiveSet &ls);
 
+  static const Result &analyzeCached(llvm::Function *f);
 };
 
 }
