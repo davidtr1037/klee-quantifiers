@@ -102,7 +102,7 @@ void LoopHandler::addInitialState(ExecutionState *es) {
     initialConstraints.push_back(e);
   }
   if (useIncrementalMergingSearch) {
-    executor->incrementalMergingSearcher->baseSearcher->removeState(es);
+    executor->incrementalMergingSearcher->removeState(es);
     executor->incrementalMergingSearcher->internalSearcher->addState(es);
   }
 }
@@ -132,7 +132,7 @@ void LoopHandler::pauseOpenState(ExecutionState *es) {
 
 void LoopHandler::resumeClosedState(ExecutionState *es) {
   if (useIncrementalMergingSearch) {
-    executor->incrementalMergingSearcher->baseSearcher->addState(es);
+    executor->incrementalMergingSearcher->addState(es);
   } else {
     executor->mergingSearcher->inCloseMerge.erase(es);
     executor->mergingSearcher->continueState(*es);
@@ -150,7 +150,7 @@ void LoopHandler::discardClosedState(ExecutionState *es,
   if (useIncrementalMergingSearch) {
     if (isFullyExplored) {
       /* TODO: add docs */
-      executor->incrementalMergingSearcher->baseSearcher->addState(es);
+      executor->incrementalMergingSearcher->addState(es);
     } else {
       executor->incrementalMergingSearcher->internalSearcher->addState(es);
     }

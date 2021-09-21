@@ -281,7 +281,7 @@ namespace klee {
     }
   };
 
-  class IncrementalMergingSearcher : public Searcher {
+  class IncrementalMergingSearcher : public MergingSearcher {
     friend class LoopHandler;
 
     public:
@@ -300,7 +300,6 @@ namespace klee {
 
     void printName(llvm::raw_ostream &os);
 
-    Searcher *baseSearcher;
     Searcher *internalSearcher;
   };
 

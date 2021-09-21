@@ -162,6 +162,7 @@ Searcher *klee::constructUserSearcher(Executor &executor) {
 
     if (UseIncrementalMergingSearch) {
       IncrementalMergingSearcher *ms = new IncrementalMergingSearcher(searcher);
+      executor.setMergingSearcher(ms);
       executor.setIncrementalMergingSearcher(ms);
       searcher = ms;
     } else {

@@ -382,13 +382,12 @@ ExecutionState& MergingSearcher::selectState() {
 }
 
 IncrementalMergingSearcher::IncrementalMergingSearcher(Searcher *baseSearcher) :
-  baseSearcher(baseSearcher) {
+  MergingSearcher(baseSearcher) {
   internalSearcher = new BFSSearcher();
 }
 
 IncrementalMergingSearcher::~IncrementalMergingSearcher() {
   delete internalSearcher;
-  delete baseSearcher;
 }
 
 void IncrementalMergingSearcher::update(ExecutionState *current,
@@ -397,7 +396,7 @@ void IncrementalMergingSearcher::update(ExecutionState *current,
   if (!internalSearcher->empty()) {
     internalSearcher->update(current, addedStates, removedStates);
   } else {
-    baseSearcher->update(current, addedStates, removedStates);
+    MergingSearcher::update(current, addedStates, removedStates);
   }
 }
 
@@ -406,12 +405,12 @@ ExecutionState& IncrementalMergingSearcher::selectState() {
   if (!internalSearcher->empty()) {
     return internalSearcher->selectState();
   } else {
-    return baseSearcher->selectState();
+    return MergingSearcher::selectState();
   }
 }
 
 bool IncrementalMergingSearcher::empty() {
-  return baseSearcher->empty() && internalSearcher->empty();
+  return MergingSearcher::empty() && internalSearcher->empty();
 }
 
 void IncrementalMergingSearcher::printName(llvm::raw_ostream &os) {
