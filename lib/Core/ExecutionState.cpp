@@ -553,8 +553,6 @@ void ExecutionContext::dump() const {
 }
 
 ExecutionState *ExecutionState::mergeStates(std::vector<ExecutionState *> &states) {
-  TimerStatIncrementer timer(stats::mergeTime);
-
   assert(!states.empty());
   ExecutionState *merged = states[0];
 
@@ -573,7 +571,6 @@ ExecutionState *ExecutionState::mergeStatesOptimized(std::vector<ExecutionState 
                                                      bool usePattern,
                                                      std::vector<PatternMatch> &matches,
                                                      LoopHandler *loopHandler) {
-  TimerStatIncrementer timer(stats::mergeTime);
   if (usePattern) {
     assert(matches.size() == 1);
   }

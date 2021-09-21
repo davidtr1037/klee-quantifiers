@@ -235,6 +235,7 @@ void LoopHandler::splitStates(std::vector<MergeGroup> &result) {
 }
 
 void LoopHandler::releaseStates() {
+  TimerStatIncrementer timer(stats::mergeTime);
   std::vector<MergeGroup> groups;
   splitStates(groups);
 
@@ -603,6 +604,7 @@ bool LoopHandler::joinIntermediateStates() {
 }
 
 bool LoopHandler::transform() {
+  TimerStatIncrementer timer(stats::mergeTime);
   bool changed = false;
 
   if (mergeIntermediateStates()) {

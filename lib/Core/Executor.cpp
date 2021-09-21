@@ -4801,6 +4801,7 @@ void Executor::takeSnapshotIfNeeded(ExecutionState &state,
   }
 
   if (state.hasPendingSnapshot) {
+    TimerStatIncrementer timer(stats::mergeTime);
     /* TODO: cache? */
     Instruction *firstNonPHI = nullptr;
     for (Instruction &inst : *ki->inst->getParent()) {
