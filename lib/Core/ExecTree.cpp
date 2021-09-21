@@ -151,6 +151,7 @@ void ExecTree::addSnapshot(ExecutionState &state,
   for (ExecTreeNode *node : nodes) {
     if (node->stateID == state.getID() && node->isLeaf()) {
       node->snapshots.push_back(snapshot);
+      nodesToMerge.insert(node);
       return;
     }
   }
@@ -396,6 +397,9 @@ void ExecTree::dumpGMLToFile(std::set<uint32_t> &ids, const std::string &name) {
 
 void ExecTree::addNode(ExecTreeNode *node) {
   nodes.insert(node);
+  if (!node->snapshots.empty()) {
+    nodesToMerge.insert(node);
+  }
 }
 
 void ExecTree::removeNode(ExecTreeNode *node) {

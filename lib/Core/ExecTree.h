@@ -158,6 +158,7 @@ public:
 
   ExecTreeNode *root;
   std::set<ExecTreeNode *> nodes;
+  std::set<ExecTreeNode *> nodesToMerge;
 };
 
 }

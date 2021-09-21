@@ -107,9 +107,11 @@ public:
 
   bool mergeIntermediateState(ExecTreeNode *target);
 
-  bool mergeIntermediateStates();
+  bool runMergeTransformationNaive();
 
-  bool joinIntermediateStates();
+  bool runMergeTransformation();
+
+  bool runJoinTransformation();
 
   bool transform();
 

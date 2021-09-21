@@ -514,6 +514,7 @@ bool LoopHandler::mergeNodes(ExecTreeNode *n1, ExecTreeNode *n2) {
     return false;
   }
 
+  /* TODO: check only the last snapshot of s1? */
   for (ExecutionState *s1 : n1->snapshots) {
     for (ExecutionState *s2 : n2->snapshots) {
       if (shouldMerge(*s1, *s2)) {
@@ -553,8 +554,7 @@ bool LoopHandler::mergeIntermediateState(ExecTreeNode *target) {
   return false;
 }
 
-/* TODO: use the merged node to optimize the search? */
-bool LoopHandler::mergeIntermediateStates() {
+bool LoopHandler::runMergeTransformationNaive() {
   if (!UseMergeTransformation) {
     return false;
   }
@@ -581,7 +581,25 @@ bool LoopHandler::mergeIntermediateStates() {
   return changed;
 }
 
-bool LoopHandler::joinIntermediateStates() {
+bool LoopHandler::runMergeTransformation() {
+  if (!UseMergeTransformation) {
+    return false;
+  }
+
+  bool changed = false;
+
+  for (ExecTreeNode *n : tree.nodesToMerge) {
+    if (mergeIntermediateState(n)) {
+      mergeCount++;
+      changed = true;
+    }
+  }
+  tree.nodesToMerge.clear();
+
+  return changed;
+}
+
+bool LoopHandler::runJoinTransformation() {
   if (!UseJoinTransformation) {
     return false;
   }
@@ -607,9 +625,9 @@ bool LoopHandler::transform() {
   TimerStatIncrementer timer(stats::mergeTime);
   bool changed = false;
 
-  if (mergeIntermediateStates()) {
+  if (runMergeTransformation()) {
     changed = true;
-    joinIntermediateStates();
+    runJoinTransformation();
   }
 
   shouldTransform = false;
