@@ -931,11 +931,6 @@ void Executor::branch(ExecutionState &state,
     result.push_back(&state);
     for (unsigned i=1; i<N; ++i) {
       ExecutionState *es = result[theRNG.getInt32() % i];
-      ExecutionState *ns = es->branch();
-      addedStates.push_back(ns);
-      result.push_back(ns);
-      processTree->attach(es->ptreeNode, ns, es);
-
       if (UseLoopMerge && !es->loopHandler.isNull()) {
         if (OptimizeITEUsingExecTree || OptimizeArrayITEUsingExecTree) {
           if (es->loopHandler->canUseExecTree) {
@@ -944,6 +939,11 @@ void Executor::branch(ExecutionState &state,
           }
         }
       }
+
+      ExecutionState *ns = es->branch();
+      addedStates.push_back(ns);
+      result.push_back(ns);
+      processTree->attach(es->ptreeNode, ns, es);
     }
   }
 
@@ -4797,6 +4797,11 @@ ExecutionState *Executor::createSnapshot(ExecutionState &state,
 void Executor::takeSnapshotIfNeeded(ExecutionState &state,
                                     KInstruction *ki) {
   if (state.loopHandler.isNull()) {
+    return;
+  }
+
+  if (!state.loopHandler->canUseExecTree) {
+    /* incremental state merging is not applied in this case */
     return;
   }
 

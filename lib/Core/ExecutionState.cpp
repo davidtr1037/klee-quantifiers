@@ -198,7 +198,9 @@ ExecutionState::ExecutionState(const ExecutionState& state, bool isSnapshot):
   }
   if (!isSnapshot) {
     /* make sure we don't have unexpected forks */
-    assert(!state.hasPendingSnapshot);
+    if (state.hasPendingSnapshot) {
+      assert(!loopHandler.isNull() && !loopHandler->canUseExecTree);
+    }
   }
 }
 
