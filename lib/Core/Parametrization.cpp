@@ -201,8 +201,7 @@ static ref<Expr> replaceDistinctTerms(ref<Expr> e1,
   }
 
   if (isa<ConstantExpr>(e1)) {
-    assert(placeHolder->getWidth() == e1->getWidth());
-    return placeHolder;
+    return placeHolder->getWidth() == e1->getWidth() ? placeHolder : nullptr;
   }
 
   bool replaced = false;
