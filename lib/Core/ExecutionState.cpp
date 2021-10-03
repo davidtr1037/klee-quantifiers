@@ -97,6 +97,12 @@ cl::opt<bool> klee::CreateSnapshots(
     cl::desc(""),
     cl::cat(MergeCat));
 
+cl::opt<bool> UseLocalMergeID(
+    "use-local-merge-id",
+    cl::init(true),
+    cl::desc(""),
+    cl::cat(MergeCat));
+
 /***/
 
 std::uint32_t ExecutionState::nextID = 1;
@@ -1469,4 +1475,8 @@ bool ExecutionState::compareHeap(ExecutionState &s1,
   }
 
   return true;
+}
+
+std::uint32_t ExecutionState::getMergeID() const {
+  return UseLocalMergeID ? localMergeID : mergeID;
 }

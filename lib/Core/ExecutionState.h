@@ -368,9 +368,7 @@ public:
                           ExecutionState &s2,
                           std::set<const MemoryObject *> &mutated);
 
-  std::uint32_t getMergeID() const {
-    return mergeID;
-  }
+  std::uint32_t getMergeID() const;
 
 private:
   static std::uint32_t mergeID;
