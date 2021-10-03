@@ -147,7 +147,8 @@ ExecutionState::ExecutionState(KFunction *kf) :
     forkDisabled(false),
     loopHandler(nullptr),
     isSnapshot(false),
-    hasPendingSnapshot(false) {
+    hasPendingSnapshot(false),
+    localMergeID(0) {
   pushFrame(nullptr, kf);
   setID();
 }
@@ -189,7 +190,8 @@ ExecutionState::ExecutionState(const ExecutionState& state, bool isSnapshot):
     loopHandler(state.loopHandler),
     suffixConstraints(state.suffixConstraints),
     isSnapshot(isSnapshot),
-    hasPendingSnapshot(false) {
+    hasPendingSnapshot(false),
+    localMergeID(state.localMergeID) {
   for (const auto &cur_mergehandler: openMergeStack) {
     cur_mergehandler->addOpenState(this);
   }
@@ -619,7 +621,7 @@ ExecutionState *ExecutionState::mergeStatesOptimized(std::vector<ExecutionState 
     if (usePattern && matches.size() == 1) {
       orExpr = generateQuantifiedConstraint(matches[0],
                                             loopHandler->tree,
-                                            mergeID,
+                                            merged->getMergeID(),
                                             *loopHandler->solver);
       if (orExpr.isNull()) {
         klee_message("failed to generate the merged constraint (ABV)");
@@ -663,6 +665,7 @@ ExecutionState *ExecutionState::mergeStatesOptimized(std::vector<ExecutionState 
   }
 
   mergeID++;
+  merged->localMergeID++;
   return merged;
 }
 
@@ -767,7 +770,8 @@ void ExecutionState::mergeLocalVars(ExecutionState *merged,
         if (isa<SelectExpr>(v)) {
           ref<Expr> e = mergeValuesUsingPattern(valuesMap,
                                                 loopHandler,
-                                                matches[0]);
+                                                matches[0],
+                                                merged->getMergeID());
           if (!e.isNull()) {
             v = e;
           }
@@ -872,7 +876,8 @@ void ExecutionState::mergeHeap(ExecutionState *merged,
           if (isa<SelectExpr>(v)) {
             ref<Expr> e = mergeValuesUsingPattern(valuesMap,
                                                   loopHandler,
-                                                  matches[0]);
+                                                  matches[0],
+                                                  merged->getMergeID());
             if (!e.isNull()) {
               v = e;
             }
@@ -994,7 +999,8 @@ ExecutionState::MergedValue ExecutionState::mergeValuesFromNode(ExecTreeNode *n,
 
 ref<Expr> ExecutionState::mergeValuesUsingPattern(State2Value &valuesMap,
                                                   LoopHandler *loopHandler,
-                                                  PatternMatch &pm) {
+                                                  PatternMatch &pm,
+                                                  std::uint32_t mergeID) {
   ParametrizedExpr solution;
   if (!generateMergedValue(pm,
                            loopHandler->tree,

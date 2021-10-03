@@ -230,6 +230,9 @@ public:
   /* TODO: add docs */
   bool hasPendingSnapshot;
 
+  /* TODO: add docs */
+  std::uint32_t localMergeID;
+
 public:
   #ifdef KLEE_UNITTEST
   // provide this function only in the context of unittests
@@ -310,7 +313,8 @@ public:
 
   static ref<Expr> mergeValuesUsingPattern(State2Value &valuesMap,
                                            LoopHandler *loopHandler,
-                                           PatternMatch &pm);
+                                           PatternMatch &pm,
+                                           std::uint32_t mergeID);
 
   static bool areEquiv(TimingSolver *solver,
                        const ExecutionState *sa,
@@ -364,6 +368,11 @@ public:
                           ExecutionState &s2,
                           std::set<const MemoryObject *> &mutated);
 
+  std::uint32_t getMergeID() const {
+    return mergeID;
+  }
+
+private:
   static std::uint32_t mergeID;
 };
 
