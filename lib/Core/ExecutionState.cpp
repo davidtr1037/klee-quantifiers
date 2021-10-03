@@ -97,8 +97,6 @@ cl::opt<bool> klee::CreateSnapshots(
     cl::desc(""),
     cl::cat(MergeCat));
 
-/* TODO: different symbolic states might create an array with the same name,
- * but with different size, might be better to disable? */
 cl::opt<bool> UseLocalMergeID(
     "use-local-merge-id",
     cl::init(true),
