@@ -299,6 +299,7 @@ namespace {
                                     unsigned Kind, bool IsFixed,
                                     Expr::Width ResTy);
     ExprResult ParseSelectParenExpr(const Token &Name, Expr::Width ResTy);
+    ExprResult ParseForallParenExpr(const Token &Name, Expr::Width ResTy);
     ExprResult ParseConcatParenExpr(const Token &Name, Expr::Width ResTy);
     ExprResult ParseExtractParenExpr(const Token &Name, Expr::Width ResTy);
     ExprResult ParseAnyReadParenExpr(const Token &Name,
@@ -881,6 +882,8 @@ static bool LookupExprInfo(const Token &Tok, unsigned &Kind,
       return SetOK(eMacroKind_Concat, false, -1); 
     if (memcmp(Tok.start, "Select", 6) == 0)
       return SetOK(Expr::Select, false, 3);
+    if (memcmp(Tok.start, "Forall", 6) == 0)
+      return SetOK(Expr::Forall, false, 3);
     break;
     
   case 7:
@@ -998,6 +1001,8 @@ ExprResult ParserImpl::ParseParenExpr(TypeResult FIXME_UNUSED) {
   case 3:
     if (ExprKind == Expr::Select) {
       return ParseSelectParenExpr(Name, ResTy);
+    } else if (ExprKind == Expr::Forall) {
+      return ParseForallParenExpr(Name, ResTy);
     } else {
       assert(0 && "Invalid ternary expression kind.");
     }
@@ -1163,6 +1168,38 @@ ExprResult ParserImpl::ParseSelectParenExpr(const Token &Name,
   return Builder->Select(Cond.get(), LHS.get(), RHS.get());
 }
 
+ExprResult ParserImpl::ParseForallParenExpr(const Token &Name,
+                                            Expr::Width ResTy) {
+  // FIXME: Why does this need to be here?
+  if (Tok.kind == Token::RParen) {
+    Error("unexpected end of arguments.", Name);
+    ConsumeRParen();
+    return Builder->Constant(0, ResTy);
+  }
+
+  ExprResult bound = ParseExpr(TypeResult());
+  if (Tok.kind == Token::RParen) {
+    Error("unexpected end of arguments.", Name);
+    ConsumeRParen();
+    return Builder->Constant(0, ResTy);
+  }
+
+  ExprResult pre = ParseExpr(Expr::Bool);
+  if (Tok.kind == Token::RParen) {
+    Error("unexpected end of arguments.", Name);
+    ConsumeRParen();
+    return Builder->Constant(0, ResTy);
+  }
+
+  ExprResult post = ParseExpr(Expr::Bool);
+  ExpectRParen("unexpected argument to expression.");
+
+  if (!bound.isValid() || !pre.isValid() || !post.isValid()) {
+    return Builder->Constant(0, ResTy);
+  }
+
+  return Builder->Forall(bound.get(), pre.get(), post.get());
+}
 
 // FIXME: Rewrite to only accept binary form. Make type optional.
 ExprResult ParserImpl::ParseConcatParenExpr(const Token &Name,

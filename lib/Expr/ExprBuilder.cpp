@@ -149,6 +149,12 @@ namespace {
     virtual ref<Expr> Sge(const ref<Expr> &LHS, const ref<Expr> &RHS) {
       return SgeExpr::alloc(LHS, RHS);
     }
+
+    virtual ref<Expr> Forall(const ref<Expr> &bound,
+                             const ref<Expr> &pre,
+                             const ref<Expr> &post) {
+      return ForallExpr::alloc(bound, pre, post);
+    }
   };
 
   /// ChainedBuilder - Helper class for construct specialized expression

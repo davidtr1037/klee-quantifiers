@@ -95,6 +95,10 @@ namespace expr {
       : Decl(ArrayDeclKind), Name(_Name), 
         Domain(_Domain), Range(_Range), 
         Root(_Root) {
+      /* TODO: this is a hack */
+      if (_Root->getName() == "__i") {
+        _Root->isBoundVariable = true;
+      }
     }
 
     virtual void dump();
