@@ -99,7 +99,7 @@ cl::opt<bool> klee::CreateSnapshots(
 
 cl::opt<bool> UseLocalMergeID(
     "use-local-merge-id",
-    cl::init(true),
+    cl::init(false),
     cl::desc(""),
     cl::cat(MergeCat));
 
