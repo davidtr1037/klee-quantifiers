@@ -52,6 +52,11 @@ llvm::cl::opt<bool> Z3SetLogic("z3-set-logic",
                                llvm::cl::init(false),
                                llvm::cl::desc("Z3 set logic"),
                                llvm::cl::cat(klee::SolvingCat));
+
+llvm::cl::opt<bool> Z3UseEMatching("z3-use-ematching",
+                                   llvm::cl::init(true),
+                                   llvm::cl::desc(""),
+                                   llvm::cl::cat(klee::SolvingCat));
 }
 
 #include "llvm/Support/ErrorHandling.h"
@@ -89,6 +94,10 @@ public:
       timeoutInMilliSeconds = UINT_MAX;
     Z3_params_set_uint(builder->ctx, solverParameters, timeoutParamStrSymbol,
                        timeoutInMilliSeconds);
+    Z3_params_set_bool(builder->ctx,
+                       solverParameters,
+                       Z3_mk_string_symbol(builder->ctx, "ematching"),
+                       Z3UseEMatching);
   }
 
   bool computeTruth(const Query &, bool &isValid);
