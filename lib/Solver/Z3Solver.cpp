@@ -57,6 +57,17 @@ llvm::cl::opt<bool> Z3UseEMatching("z3-use-ematching",
                                    llvm::cl::init(true),
                                    llvm::cl::desc(""),
                                    llvm::cl::cat(klee::SolvingCat));
+
+llvm::cl::opt<bool> Z3UseMBQI("z3-use-mbqi",
+                              llvm::cl::init(true),
+                              llvm::cl::desc(""),
+                              llvm::cl::cat(klee::SolvingCat));
+
+llvm::cl::opt<unsigned> Z3SMTRandomSeed("z3-smt-random-seed",
+                                        llvm::cl::init(0),
+                                        llvm::cl::desc(""),
+                                        llvm::cl::cat(klee::SolvingCat));
+
 }
 
 #include "llvm/Support/ErrorHandling.h"
@@ -94,10 +105,21 @@ public:
       timeoutInMilliSeconds = UINT_MAX;
     Z3_params_set_uint(builder->ctx, solverParameters, timeoutParamStrSymbol,
                        timeoutInMilliSeconds);
+  }
+
+  void setSolverParameters() {
     Z3_params_set_bool(builder->ctx,
                        solverParameters,
                        Z3_mk_string_symbol(builder->ctx, "ematching"),
                        Z3UseEMatching);
+    Z3_params_set_bool(builder->ctx,
+                       solverParameters,
+                       Z3_mk_string_symbol(builder->ctx, "mbqi"),
+                       Z3UseMBQI);
+    Z3_params_set_uint(builder->ctx,
+                       solverParameters,
+                       Z3_mk_string_symbol(builder->ctx, "random_seed"),
+                       Z3SMTRandomSeed);
   }
 
   bool computeTruth(const Query &, bool &isValid);
@@ -126,6 +148,7 @@ Z3SolverImpl::Z3SolverImpl()
   Z3_params_inc_ref(builder->ctx, solverParameters);
   timeoutParamStrSymbol = Z3_mk_string_symbol(builder->ctx, "timeout");
   setCoreSolverTimeout(timeout);
+  setSolverParameters();
 
   if (!Z3QueryDumpFile.empty()) {
     std::string error;
