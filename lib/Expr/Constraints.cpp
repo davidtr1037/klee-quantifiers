@@ -28,6 +28,12 @@ llvm::cl::opt<bool> RewriteEqualities(
                    "constant is added (default=true)"),
     llvm::cl::init(true),
     llvm::cl::cat(SolvingCat));
+
+llvm::cl::opt<bool> ExtractForallEqualities(
+    "extract-forall-equalities",
+    llvm::cl::desc(""),
+    llvm::cl::init(true),
+    llvm::cl::cat(SolvingCat));
 } // namespace
 
 bool ConstraintManager::rewriteConstraints(ExprVisitor &visitor) {
@@ -47,6 +53,36 @@ bool ConstraintManager::rewriteConstraints(ExprVisitor &visitor) {
   }
 
   return changed;
+}
+
+void ConstraintManager::extractEqualities(const ref<ForallExpr> &fe,
+                                          ExprMap &equalities) {
+  if (!isa<EqExpr>(fe->post)) {
+    return;
+  }
+
+  std::vector<ref<ReadExpr>> reads;
+  findReads(fe->post, true, reads);
+
+  for (uint64_t i : fe->range) {
+    std::map<ref<Expr>, ref<Expr>> map;
+    for (ref<ReadExpr> e : reads) {
+      if (e->updates.root->isBoundVariable) {
+        ref<ConstantExpr> index = dyn_cast<ConstantExpr>(e->index);
+        assert(!index.isNull());
+        uint64_t off = index->getZExtValue();
+        map[e] = ConstantExpr::create(i >> (8 * off), Expr::Int8);
+      }
+    }
+
+    ExprReplaceVisitor2 visitor(map);
+    ref<Expr> substituted = visitor.visit(fe->post);
+    if (const EqExpr *eq = dyn_cast<EqExpr>(substituted)) {
+      if (isa<ConstantExpr>(eq->left)) {
+        equalities.insert(std::make_pair(eq->right, eq->left));
+      }
+    }
+  }
 }
 
 ref<Expr> ConstraintManager::simplifyExpr(const ConstraintSet &constraints,
@@ -69,6 +105,10 @@ ref<Expr> ConstraintManager::simplifyExpr(const ConstraintSet &constraints,
     } else {
       equalities.insert(
           std::make_pair(constraint, ConstantExpr::alloc(1, Expr::Bool)));
+    }
+
+    if (ExtractForallEqualities && isa<ForallExpr>(constraint)) {
+      extractEqualities(dyn_cast<ForallExpr>(constraint), equalities);
     }
   }
 

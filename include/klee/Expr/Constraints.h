@@ -59,9 +59,14 @@ class ExprVisitor;
 /// Manages constraints, e.g. optimisation
 class ConstraintManager {
 public:
+  typedef std::map<ref<Expr>, ref<Expr>> ExprMap;
+
   /// Create constraint manager that modifies constraints
   /// \param constraints
   explicit ConstraintManager(ConstraintSet &constraints);
+
+  static void extractEqualities(const ref<ForallExpr> &fe,
+                                ExprMap &equalities);
 
   /// Simplify expression expr based on constraints
   /// \param constraints set of constraints used for simplification

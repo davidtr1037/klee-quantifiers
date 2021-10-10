@@ -1314,6 +1314,14 @@ public:
 
   }
 
+  ForallExpr(const ref<Expr> &bound,
+             const ref<Expr> &pre,
+             const ref<Expr> &post,
+             const std::vector<uint64_t> &range) :
+    QuantifiedExpr(bound, pre, post), range(range) {
+
+  }
+
   static ref<Expr> alloc(const ref<Expr> &bound,
                          const ref<Expr> &pre,
                          const ref<Expr> &post) {
@@ -1322,10 +1330,27 @@ public:
       return res;
   }
 
+
+  static ref<Expr> alloc(const ref<Expr> &bound,
+                         const ref<Expr> &pre,
+                         const ref<Expr> &post,
+                         const std::vector<uint64_t> &range) {
+      ref<Expr> res(new ForallExpr(bound, pre, post, range));
+      res->computeHash();
+      return res;
+  }
+
   static ref<Expr> create(const ref<Expr> &bound,
                           const ref<Expr> &pre,
                           const ref<Expr> &post) {
     return ForallExpr::alloc(bound, pre, post);
+  }
+
+  static ref<Expr> create(const ref<Expr> &bound,
+                          const ref<Expr> &pre,
+                          const ref<Expr> &post,
+                          const std::vector<uint64_t> &range) {
+    return ForallExpr::alloc(bound, pre, post, range);
   }
 
   virtual ref<Expr> rebuild(ref<Expr> kids[]) const {
@@ -1341,6 +1366,8 @@ public:
   }
 
   static bool classof(const ForallExpr *) { return true; }
+
+  std::vector<uint64_t> range;
 
 protected:
   /* TODO: add compareContents? */

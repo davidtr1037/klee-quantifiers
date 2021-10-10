@@ -75,6 +75,20 @@ ref<Expr> generateRangeConstraint(PatternMatch &pm, ref<Expr> aux) {
   return range;
 }
 
+void getKnownRangeValues(PatternMatch &pm,
+                         std::vector<uint64_t> &range) {
+  unsigned min = -1;
+  for (StateMatch &sm : pm.matches) {
+    if (sm.count <= min) {
+      min = sm.count;
+    }
+  }
+
+  for (unsigned i = 1; i < min + 1; i++) {
+    range.push_back(i);
+  }
+}
+
 void generateForall(PatternMatch &pm,
                     std::vector<ParametrizedExpr> solutions,
                     uint32_t mergeID,
@@ -111,11 +125,15 @@ void generateForall(PatternMatch &pm,
     coreExpr = AndExpr::create(coreExpr, substituted);
   }
 
+  std::vector<uint64_t> range;
+  getKnownRangeValues(pm, range);
+
   /* the forall expression itself */
   forallExpr = ForallExpr::create(
     bound,
     premise,
-    coreExpr
+    coreExpr,
+    range
   );
 }
 
