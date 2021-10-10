@@ -32,7 +32,7 @@ llvm::cl::opt<bool> RewriteEqualities(
 llvm::cl::opt<bool> ExtractForallEqualities(
     "extract-forall-equalities",
     llvm::cl::desc(""),
-    llvm::cl::init(true),
+    llvm::cl::init(false),
     llvm::cl::cat(SolvingCat));
 } // namespace
 
