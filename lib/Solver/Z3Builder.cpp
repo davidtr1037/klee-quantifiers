@@ -452,8 +452,8 @@ Z3ASTHandle Z3Builder::getInitialRead(const Array *root, unsigned index) {
 }
 
 Z3ASTHandle Z3Builder::getArrayForUpdate(const Array *root,
-                                         const UpdateNode *un) {
-  if (!un) {
+                                         ref<UpdateNode> un) {
+  if (un.isNull()) {
     return (getInitialArray(root));
   } else {
     // FIXME: This really needs to be non-recursive.
@@ -461,7 +461,7 @@ Z3ASTHandle Z3Builder::getArrayForUpdate(const Array *root,
     bool hashed = _arr_hash.lookupUpdateNodeExpr(un, un_expr);
 
     if (!hashed) {
-      un_expr = writeExpr(getArrayForUpdate(root, un->next.get()),
+      un_expr = writeExpr(getArrayForUpdate(root, un->next),
                           construct(un->index, 0), construct(un->value, 0));
 
       _arr_hash.hashUpdateNodeExpr(un, un_expr);
@@ -550,7 +550,7 @@ Z3ASTHandle Z3Builder::constructActual(ref<Expr> e, int *width_out) {
       unsigned index = dyn_cast<ConstantExpr>(re->index)->getZExtValue();
       return bvExtract(bv_expr, index * 8 + 7, index * 8);
     } else {
-      return readExpr(getArrayForUpdate(re->updates.root, re->updates.head.get()),
+      return readExpr(getArrayForUpdate(re->updates.root, re->updates.head),
                       construct(re->index, 0));
     }
   }
