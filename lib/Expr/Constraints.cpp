@@ -55,12 +55,8 @@ bool ConstraintManager::rewriteConstraints(ExprVisitor &visitor) {
   return changed;
 }
 
-void ConstraintManager::extractEqualities(const ref<ForallExpr> &fe,
-                                          ExprMap &equalities) {
-  if (!isa<EqExpr>(fe->post)) {
-    return;
-  }
-
+void ConstraintManager::extractForallEqualities(const ref<ForallExpr> &fe,
+                                                ExprMap &equalities) {
   std::vector<ref<ReadExpr>> reads;
   findReads(fe->post, true, reads);
 
@@ -77,11 +73,30 @@ void ConstraintManager::extractEqualities(const ref<ForallExpr> &fe,
 
     ExprReplaceVisitor2 visitor(map);
     ref<Expr> substituted = visitor.visit(fe->post);
-    if (const EqExpr *eq = dyn_cast<EqExpr>(substituted)) {
-      if (isa<ConstantExpr>(eq->left)) {
-        equalities.insert(std::make_pair(eq->right, eq->left));
-      }
+    collectEqualities(substituted, equalities);
+  }
+}
+
+void ConstraintManager::collectEqualities(const ref<Expr> &e,
+                                          ExprMap &equalities) {
+  switch (e->getKind()) {
+  case Expr::Eq: {
+    const EqExpr *eq = dyn_cast<EqExpr>(e);
+    if (isa<ConstantExpr>(eq->left)) {
+      equalities.insert(std::make_pair(eq->right, eq->left));
     }
+    break;
+  }
+
+  case Expr::And: {
+    BinaryExpr *be = cast<BinaryExpr>(e);
+    collectEqualities(be->left, equalities);
+    collectEqualities(be->right, equalities);
+    break;
+  }
+
+  default:
+    break;
   }
 }
 
@@ -108,7 +123,7 @@ ref<Expr> ConstraintManager::simplifyExpr(const ConstraintSet &constraints,
     }
 
     if (ExtractForallEqualities && isa<ForallExpr>(constraint)) {
-      extractEqualities(dyn_cast<ForallExpr>(constraint), equalities);
+      extractForallEqualities(dyn_cast<ForallExpr>(constraint), equalities);
     }
   }
 

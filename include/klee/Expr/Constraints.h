@@ -65,7 +65,10 @@ public:
   /// \param constraints
   explicit ConstraintManager(ConstraintSet &constraints);
 
-  static void extractEqualities(const ref<ForallExpr> &fe,
+  static void extractForallEqualities(const ref<ForallExpr> &fe,
+                                      ExprMap &equalities);
+
+  static void collectEqualities(const ref<Expr> &e,
                                 ExprMap &equalities);
 
   /// Simplify expression expr based on constraints
