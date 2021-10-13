@@ -25,6 +25,9 @@ class Solver;
 /// TimingSolver - A simple class which wraps a solver and handles
 /// tracking the statistics that we care about.
 class TimingSolver {
+private:
+  typedef std::map<const Array *, const Array *> ArrayMap;
+
 public:
   std::unique_ptr<Solver> solver;
   bool simplifyExprs;
@@ -44,9 +47,15 @@ public:
     return solver->getConstraintLog(query);
   }
 
-  std::vector<const Array *> rename(const Query &query,
-                                    ConstraintSet &constraints,
-                                    ref<Expr> &expr);
+  ArrayMap rename(const Query &query,
+                  ConstraintSet &constraints,
+                  ref<Expr> &expr);
+
+  void rename(const Query &query,
+              const std::vector<const Array *> &objects,
+              ConstraintSet &constraints,
+              ref<Expr> &expr,
+              std::vector<const Array *> &renamedObjects);
 
   bool evaluate(const ConstraintSet &, ref<Expr>, Solver::Validity &result,
                 SolverQueryMetaData &metaData, bool auxiliary = false);

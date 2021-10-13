@@ -37,11 +37,10 @@ struct {
   }
 } ArrayCompare;
 
-/* TODO: pass objects as output parameter? */
-std::vector<const Array *> TimingSolver::rename(const Query &query,
-                                                ConstraintSet &constraints,
-                                                ref<Expr> &expr) {
-  std::set<const Array *> seen;
+/* TODO: return the map only when needed */
+TimingSolver::ArrayMap TimingSolver::rename(const Query &query,
+                                            ConstraintSet &constraints,
+                                            ref<Expr> &expr) {
   std::vector<ref<ReadExpr>> reads;
   findReads(query.expr, true, reads);
   for (ref<Expr> e : query.constraints) {
@@ -53,15 +52,13 @@ std::vector<const Array *> TimingSolver::rename(const Query &query,
     assert(e->updates.root);
     if (e->updates.root->isAuxVariable) {
       arrays.insert(e->updates.root);
-    } else {
-      seen.insert(e->updates.root);
     }
   }
 
   std::vector<const Array *> sorted(arrays.begin(), arrays.end());
   std::sort(sorted.begin(), sorted.end(), ArrayCompare);
 
-  std::map<const Array *, const Array *> map;
+  ArrayMap map;
   for (unsigned i = 0; i < sorted.size(); i++) {
     const Array *array = sorted[i];
     const Array *newArray = arrayCache.CreateArray(
@@ -72,7 +69,6 @@ std::vector<const Array *> TimingSolver::rename(const Query &query,
     newArray->isBoundVariable = array->isBoundVariable;
     newArray->isAuxVariable = array->isAuxVariable;
     map[array] = newArray;
-    seen.insert(newArray);
   }
 
   std::map<ref<Expr>, ref<Expr>> toReplace;
@@ -89,14 +85,29 @@ std::vector<const Array *> TimingSolver::rename(const Query &query,
   }
 
   ExprFullReplaceVisitor2 visitor(toReplace);
-  //ExprReplaceVisitor2 visitor(toReplace);
   expr = visitor.visit(query.expr);
   for (ref<Expr> e : query.constraints) {
     ref<Expr> x = visitor.visit(e);
     constraints.push_back(visitor.visit(e));
   }
 
-  return std::vector<const Array *>(seen.begin(), seen.end());
+  return map;
+}
+
+void TimingSolver::rename(const Query &query,
+                          const std::vector<const Array *> &objects,
+                          ConstraintSet &constraints,
+                          ref<Expr> &expr,
+                          std::vector<const Array *> &renamedObjects) {
+  ArrayMap map = rename(query, constraints, expr);
+  for (const Array *array : objects) {
+    auto i = map.find(array);
+    if (i == map.end()) {
+      renamedObjects.push_back(array);
+    } else {
+      renamedObjects.push_back(i->second);
+    }
+  }
 }
 
 bool TimingSolver::evaluate(const ConstraintSet &constraints, ref<Expr> expr,
@@ -257,13 +268,15 @@ bool TimingSolver::getInitialValues(
     ConstraintSet renamedConstraints;
     ref<Expr> renamedExpr;
     std::vector<const Array *> renamedObjects;
-    renamedObjects = rename(
+    rename(
       Query(constraints, ConstantExpr::alloc(0, Expr::Bool)),
+      objects,
       renamedConstraints,
-      renamedExpr
+      renamedExpr,
+      renamedObjects
     );
-    Query renamed = Query(renamedConstraints, renamedExpr);
-    success = solver->getInitialValues(renamed, renamedObjects, result);
+    success = solver->getInitialValues(
+      Query(renamedConstraints, renamedExpr), renamedObjects, result);
   } else {
     success = solver->getInitialValues(
       Query(constraints, ConstantExpr::alloc(0, Expr::Bool)), objects, result);
