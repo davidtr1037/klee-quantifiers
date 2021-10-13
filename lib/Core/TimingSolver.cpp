@@ -16,6 +16,9 @@
 #include "klee/Statistics/TimerStatIncrementer.h"
 #include "klee/Solver/Solver.h"
 #include "klee/Solver/SolverStats.h"
+#include <klee/Expr/ArrayCache.h>
+#include "klee/Expr/ExprUtil.h"
+#include "klee/Expr/ExprPPrinter.h"
 
 #include "CoreStats.h"
 
@@ -23,6 +26,78 @@ using namespace klee;
 using namespace llvm;
 
 /***/
+
+cl::opt<bool> RenameExpr("rename-expr", cl::init(false), cl::desc(""));
+
+static ArrayCache arrayCache;
+
+struct {
+  bool operator()(const Array *a, const Array *b) const {
+    return a->id < b->id;
+  }
+} ArrayCompare;
+
+/* TODO: pass objects as output parameter? */
+std::vector<const Array *> TimingSolver::rename(const Query &query,
+                                                ConstraintSet &constraints,
+                                                ref<Expr> &expr) {
+  std::set<const Array *> seen;
+  std::vector<ref<ReadExpr>> reads;
+  findReads(query.expr, true, reads);
+  for (ref<Expr> e : query.constraints) {
+    findReads(e, true, reads);
+  }
+
+  std::set<const Array *> arrays;
+  for (ref<ReadExpr> e : reads) {
+    assert(e->updates.root);
+    if (e->updates.root->isAuxVariable) {
+      arrays.insert(e->updates.root);
+    } else {
+      seen.insert(e->updates.root);
+    }
+  }
+
+  std::vector<const Array *> sorted(arrays.begin(), arrays.end());
+  std::sort(sorted.begin(), sorted.end(), ArrayCompare);
+
+  std::map<const Array *, const Array *> map;
+  for (unsigned i = 0; i < sorted.size(); i++) {
+    const Array *array = sorted[i];
+    const Array *newArray = arrayCache.CreateArray(
+      "p_" + llvm::utostr(i),
+      array->size
+    );
+    /* TODO: refactor */
+    newArray->isBoundVariable = array->isBoundVariable;
+    newArray->isAuxVariable = array->isAuxVariable;
+    map[array] = newArray;
+    seen.insert(newArray);
+  }
+
+  std::map<ref<Expr>, ref<Expr>> toReplace;
+  for (ref<ReadExpr> e : reads) {
+    if (e->updates.root && e->updates.root->isAuxVariable) {
+      assert(isa<ConstantExpr>(e->index));
+      auto i = map.find(e->updates.root);
+      if (i == map.end()) {
+        assert(0);
+      } else {
+        toReplace[e] = ReadExpr::create(UpdateList(i->second, 0), e->index);
+      }
+    }
+  }
+
+  ExprFullReplaceVisitor2 visitor(toReplace);
+  //ExprReplaceVisitor2 visitor(toReplace);
+  expr = visitor.visit(query.expr);
+  for (ref<Expr> e : query.constraints) {
+    ref<Expr> x = visitor.visit(e);
+    constraints.push_back(visitor.visit(e));
+  }
+
+  return std::vector<const Array *>(seen.begin(), seen.end());
+}
 
 bool TimingSolver::evaluate(const ConstraintSet &constraints, ref<Expr> expr,
                             Solver::Validity &result,
@@ -43,7 +118,16 @@ bool TimingSolver::evaluate(const ConstraintSet &constraints, ref<Expr> expr,
   if (simplifyExprs)
     expr = ConstraintManager::simplifyExpr(constraints, expr);
 
-  bool success = solver->evaluate(Query(constraints, expr), result);
+  bool success;
+  if (RenameExpr) {
+    ConstraintSet renamedConstraints;
+    ref<Expr> renamedExpr;
+    rename(Query(constraints, expr), renamedConstraints, renamedExpr);
+    Query renamed = Query(renamedConstraints, renamedExpr);
+    success = solver->evaluate(renamed, result);
+  } else {
+    success = solver->evaluate(Query(constraints, expr), result);
+  }
 
   metaData.queryCost += timer.delta();
 
@@ -70,7 +154,16 @@ bool TimingSolver::mustBeTrue(const ConstraintSet &constraints,
   if (simplifyExprs)
     expr = ConstraintManager::simplifyExpr(constraints, expr);
 
-  bool success = solver->mustBeTrue(Query(constraints, expr), result);
+  bool success;
+  if (RenameExpr) {
+    ConstraintSet renamedConstraints;
+    ref<Expr> renamedExpr;
+    rename(Query(constraints, expr), renamedConstraints, renamedExpr);
+    Query renamed = Query(renamedConstraints, renamedExpr);
+    success = solver->mustBeTrue(renamed, result);
+  } else {
+    success = solver->mustBeTrue(Query(constraints, expr), result);
+  }
 
   metaData.queryCost += timer.delta();
 
@@ -128,7 +221,16 @@ bool TimingSolver::getValue(const ConstraintSet &constraints,
   if (simplifyExprs)
     expr = ConstraintManager::simplifyExpr(constraints, expr);
 
-  bool success = solver->getValue(Query(constraints, expr), result);
+  bool success;
+  if (RenameExpr) {
+    ConstraintSet renamedConstraints;
+    ref<Expr> renamedExpr;
+    rename(Query(constraints, expr), renamedConstraints, renamedExpr);
+    Query renamed = Query(renamedConstraints, renamedExpr);
+    success = solver->getValue(renamed, result);
+  } else {
+    success = solver->getValue(Query(constraints, expr), result);
+  }
 
   metaData.queryCost += timer.delta();
 
@@ -150,8 +252,22 @@ bool TimingSolver::getInitialValues(
     ++stats::auxilaryQueries;
   }
 
-  bool success = solver->getInitialValues(
+  bool success;
+  if (RenameExpr) {
+    ConstraintSet renamedConstraints;
+    ref<Expr> renamedExpr;
+    std::vector<const Array *> renamedObjects;
+    renamedObjects = rename(
+      Query(constraints, ConstantExpr::alloc(0, Expr::Bool)),
+      renamedConstraints,
+      renamedExpr
+    );
+    Query renamed = Query(renamedConstraints, renamedExpr);
+    success = solver->getInitialValues(renamed, renamedObjects, result);
+  } else {
+    success = solver->getInitialValues(
       Query(constraints, ConstantExpr::alloc(0, Expr::Bool)), objects, result);
+  }
 
   metaData.queryCost += timer.delta();
 

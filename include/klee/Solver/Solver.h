@@ -11,6 +11,7 @@
 #define KLEE_SOLVER_H
 
 #include "klee/Expr/Expr.h"
+#include "klee/Expr/Constraints.h"
 #include "klee/System/Time.h"
 #include "klee/Solver/SolverCmdLine.h"
 
@@ -31,7 +32,9 @@ namespace klee {
 
   struct Query {
   public:
-    const ConstraintSet &constraints;
+    //const ConstraintSet &constraints;
+    /* TODO: use a reference */
+    const ConstraintSet constraints;
     ref<Expr> expr;
 
     Query(const ConstraintSet& _constraints, ref<Expr> _expr)

@@ -89,6 +89,64 @@ namespace klee {
     }
   };
 
+  class ExprFullReplaceVisitorBase : public ExprVisitor {
+  public:
+
+    Action visitRead(const ReadExpr &e);
+  };
+
+
+  class ExprFullReplaceVisitor : public ExprFullReplaceVisitorBase {
+  private:
+    ref<Expr> src, dst;
+
+  public:
+    ExprFullReplaceVisitor(const ref<Expr> &src, const ref<Expr> &dst)
+        : src(src), dst(dst) {}
+
+    Action visitRead(const ReadExpr &e);
+
+    Action visitExpr(const Expr &e) override {
+      if (e == *src) {
+        return Action::changeTo(dst);
+      }
+      return Action::doChildren();
+    }
+
+    Action visitExprPost(const Expr &e) override {
+      if (e == *src) {
+        return Action::changeTo(dst);
+      }
+      return Action::doChildren();
+    }
+  };
+
+  class ExprFullReplaceVisitor2 : public ExprFullReplaceVisitorBase {
+  private:
+    const std::map<ref<Expr>, ref<Expr>> &replacements;
+
+  public:
+    ExprFullReplaceVisitor2(const std::map<ref<Expr>, ref<Expr>> &replacements) :
+      replacements(replacements) {
+
+    }
+
+    Action visitExpr(const Expr &e) override {
+      auto it = replacements.find(ref<Expr>(const_cast<Expr *>(&e)));
+      if (it!=replacements.end()) {
+        return Action::changeTo(it->second);
+      }
+      return Action::doChildren();
+    }
+
+    Action visitExprPost(const Expr &e) override {
+      auto it = replacements.find(ref<Expr>(const_cast<Expr *>(&e)));
+      if (it!=replacements.end()) {
+        return Action::changeTo(it->second);
+      }
+      return Action::doChildren();
+    }
+  };
 }
 
 #endif /* KLEE_EXPRUTIL_H */

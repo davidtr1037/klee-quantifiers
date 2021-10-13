@@ -44,6 +44,10 @@ public:
     return solver->getConstraintLog(query);
   }
 
+  std::vector<const Array *> rename(const Query &query,
+                                    ConstraintSet &constraints,
+                                    ref<Expr> &expr);
+
   bool evaluate(const ConstraintSet &, ref<Expr>, Solver::Validity &result,
                 SolverQueryMetaData &metaData, bool auxiliary = false);
 
