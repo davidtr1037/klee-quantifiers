@@ -19,10 +19,10 @@ struct {
   }
 } ArrayCompare;
 
-/* TODO: return the map only when needed */
-ArrayMap klee::rename(const Query &query,
-                      ConstraintSet &constraints,
-                      ref<Expr> &expr) {
+void klee::rename(const Query &query,
+                  ConstraintSet &constraints,
+                  ref<Expr> &expr,
+                  ArrayMap &map) {
   std::vector<ref<ReadExpr>> reads;
   findReads(query.expr, true, reads);
   for (ref<Expr> e : query.constraints) {
@@ -40,7 +40,6 @@ ArrayMap klee::rename(const Query &query,
   std::vector<const Array *> sorted(arrays.begin(), arrays.end());
   std::sort(sorted.begin(), sorted.end(), ArrayCompare);
 
-  ArrayMap map;
   for (unsigned i = 0; i < sorted.size(); i++) {
     const Array *array = sorted[i];
     const Array *newArray = arrayCache.CreateArray(
@@ -72,8 +71,13 @@ ArrayMap klee::rename(const Query &query,
     ref<Expr> x = visitor.visit(e);
     constraints.push_back(visitor.visit(e));
   }
+}
 
-  return map;
+void klee::rename(const Query &query,
+                  ConstraintSet &constraints,
+                  ref<Expr> &expr) {
+  ArrayMap map;
+  rename(query, constraints, expr, map);
 }
 
 void klee::rename(const Query &query,
@@ -81,7 +85,8 @@ void klee::rename(const Query &query,
                   ConstraintSet &constraints,
                   ref<Expr> &expr,
                   std::vector<const Array *> &renamedObjects) {
-  ArrayMap map = rename(query, constraints, expr);
+  ArrayMap map;
+  rename(query, constraints, expr, map);
   for (const Array *array : objects) {
     auto i = map.find(array);
     if (i == map.end()) {

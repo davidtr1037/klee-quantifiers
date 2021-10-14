@@ -8,16 +8,16 @@
 
 namespace klee {
 
-//class Array;
-//class Expr;
-//class ReadExpr;
-//template<typename T> class ref;
-
 typedef std::map<const Array *, const Array *> ArrayMap;
 
-ArrayMap rename(const Query &query,
-                ConstraintSet &constraints,
-                ref<Expr> &expr);
+void rename(const Query &query,
+            ConstraintSet &constraints,
+            ref<Expr> &expr,
+            ArrayMap &map);
+
+void rename(const Query &query,
+            ConstraintSet &constraints,
+            ref<Expr> &expr);
 
 void rename(const Query &query,
             const std::vector<const Array *> &objects,
