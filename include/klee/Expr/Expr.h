@@ -683,13 +683,17 @@ private:
       }
     }
 
-    if (index->hasAuxVariable) {
+    if (updates.root && updates.root->isAuxVariable) {
       hasAuxVariable = true;
     } else {
-      for (const UpdateNode *un = updates.head.get(); un; un = un->next.get()) {
-        if (un->index->hasAuxVariable || un->value->hasAuxVariable) {
-          hasAuxVariable = true;
-          break;
+      if (index->hasAuxVariable) {
+        hasAuxVariable = true;
+      } else {
+        for (const UpdateNode *un = updates.head.get(); un; un = un->next.get()) {
+          if (un->index->hasAuxVariable || un->value->hasAuxVariable) {
+            hasAuxVariable = true;
+            break;
+          }
         }
       }
     }
@@ -1302,6 +1306,9 @@ protected:
                  const ref<Expr> &post) :
     bound(bound), pre(pre), post(post) {
     isTainted = bound->isTainted || pre->isTainted || post->isTainted;
+    hasAuxVariable = bound->hasAuxVariable || \
+                     pre->hasAuxVariable || \
+                     post->hasAuxVariable;
     size = bound->size + pre->size + post->size + 1;
 
     if (isa<ConcatExpr>(bound)) {
