@@ -5,7 +5,7 @@
 #include <klee/Expr/ExprUtil.h>
 #include <klee/Support/ErrorHandling.h>
 
-#include "llvm/ADT/StringExtras.h"
+#include <llvm/ADT/StringExtras.h>
 
 #define ATTEMPTS (2)
 
