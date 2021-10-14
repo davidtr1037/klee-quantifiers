@@ -117,6 +117,7 @@ void generateForall(PatternMatch &pm,
   for (const ParametrizedExpr &pe : solutions) {
     /* TODO: rename */
     ref<Expr> i = getSymbolicValue(array_i, pe.parameter->getWidth() / 8);
+    /* TODO: use the fixed visitor */
     ExprReplaceVisitor visitor(pe.parameter, i);
     /* TODO: rename */
     ref<Expr> substituted = visitor.visit(pe.e);

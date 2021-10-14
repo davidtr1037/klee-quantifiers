@@ -620,6 +620,7 @@ ExecutionState *ExecutionState::mergeStatesOptimized(std::vector<ExecutionState 
     m.addConstraint(e);
   }
 
+  /* TODO: rename to usingABV */
   bool isEncodedWithABV = false;
   if (!isComplete) {
     /* TODO: rename to mergedConstraint? */
