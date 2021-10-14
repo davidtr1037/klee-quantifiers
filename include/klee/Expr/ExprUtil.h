@@ -13,6 +13,7 @@
 #include "klee/Expr/ExprVisitor.h"
 
 #include <vector>
+#include <unordered_map>
 
 namespace klee {
   class Array;
@@ -89,8 +90,24 @@ namespace klee {
     }
   };
 
+  struct UpdateListEquality {
+    bool operator()(const UpdateList &u1, const UpdateList &u2) const {
+      return u1.root == u2.root && u1.head.get() == u2.head.get();
+    }
+  };
+
+  struct UpdateListHash {
+    unsigned operator()(const UpdateList &u) const {
+      return u.hash();
+    }
+  };
+
+  typedef std::unordered_map<UpdateList, UpdateList, UpdateListHash, UpdateListEquality> UpdateListCache;
+
   class ExprFullReplaceVisitorBase : public ExprVisitor {
   public:
+    /* TODO: local or global? */
+    static UpdateListCache cache;
 
     Action visitRead(const ReadExpr &e);
   };

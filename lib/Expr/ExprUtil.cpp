@@ -142,18 +142,27 @@ template void klee::findSymbolicObjects<A>(A, A, std::vector<const Array*> &);
 typedef std::set< ref<Expr> >::iterator B;
 template void klee::findSymbolicObjects<B>(B, B, std::vector<const Array*> &);
 
+UpdateListCache ExprFullReplaceVisitorBase::cache;
+
 ExprVisitor::Action ExprFullReplaceVisitorBase::visitRead(const ReadExpr &e) {
   ref<Expr> index = visit(e.index);
 
-  UpdateList updates = UpdateList(e.updates.root, nullptr);
-  std::list<const UpdateNode *> nodes;
-  for (const UpdateNode *n = e.updates.head.get(); n; n = n->next.get()) {
-    nodes.push_front(n);
-  }
-  for (const UpdateNode *n : nodes) {
-    ref<Expr> index = visit(n->index);
-    ref<Expr> value = visit(n->value);
-    updates.extend(index, value);
+  UpdateList updates = UpdateList(nullptr, nullptr);
+  auto i = cache.find(e.updates);
+  if (i == cache.end()) {
+    updates = UpdateList(e.updates.root, nullptr);
+    std::list<const UpdateNode *> nodes;
+    for (const UpdateNode *n = e.updates.head.get(); n; n = n->next.get()) {
+      nodes.push_front(n);
+    }
+    for (const UpdateNode *n : nodes) {
+      ref<Expr> index = visit(n->index);
+      ref<Expr> value = visit(n->value);
+      updates.extend(index, value);
+    }
+    cache.insert(std::make_pair(e.updates, updates));
+  } else {
+    updates = i->second;
   }
 
   return Action::changeTo(ReadExpr::create(updates, index));
