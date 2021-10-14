@@ -24,9 +24,13 @@ void klee::rename(const Query &query,
                   ref<Expr> &expr,
                   ArrayMap &map) {
   std::vector<ref<ReadExpr>> reads;
-  findReads(query.expr, true, reads);
+  if (query.expr->hasAuxVariable) {
+    findReads(query.expr, true, reads);
+  }
   for (ref<Expr> e : query.constraints) {
-    findReads(e, true, reads);
+    if (e->hasAuxVariable) {
+      findReads(e, true, reads);
+    }
   }
 
   std::set<const Array *> arrays;
@@ -66,10 +70,9 @@ void klee::rename(const Query &query,
   }
 
   ExprFullReplaceVisitor2 visitor(toReplace);
-  expr = visitor.visit(query.expr);
+  expr = query.expr->hasAuxVariable ? visitor.visit(query.expr) : query.expr;
   for (ref<Expr> e : query.constraints) {
-    ref<Expr> x = visitor.visit(e);
-    constraints.push_back(visitor.visit(e));
+    constraints.push_back(e->hasAuxVariable ? visitor.visit(e) : e);
   }
 }
 
