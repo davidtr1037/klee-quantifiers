@@ -70,6 +70,7 @@ void custom_z3_error_handler(Z3_context ctx, Z3_error_code ec) {
 Z3ArrayExprHash::~Z3ArrayExprHash() {}
 
 void Z3ArrayExprHash::clear() {
+  klee_message("update node cache size: %lu", _update_node_hash.size());
   _update_node_hash.clear();
   _array_hash.clear();
 }
