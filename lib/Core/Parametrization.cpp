@@ -29,6 +29,11 @@ const Array *klee::getArray(const std::string &name,
   return array;
 }
 
+const Array *klee::getArrayForAuxVariable(const std::string &name,
+                                          uint64_t size) {
+  return getArray(name, size, false, true);
+}
+
 ref<Expr> klee::extractPrefixConstraint(ExecTree &t,
                                         PatternMatch &pm) {
   ExecTreeIterator iter(t);
@@ -296,8 +301,8 @@ static bool solveLinearEquation(TimingSolver &solver,
   unsigned auxArraySize = QuantifiedExpr::AUX_VARIABLE_WIDTH / 8;
   const Array *array_a = getArray("a", auxArraySize);
   const Array *array_b = getArray("b", auxArraySize);
-  /* TODO: add a dedicated API for that */
-  const Array *array_m = getArray("m_" + llvm::utostr(id), auxArraySize);
+  const Array *array_m = getArrayForAuxVariable("m_" + llvm::utostr(id),
+                                                auxArraySize);
 
   unsigned size = width / 8;
   ref<Expr> a = getSymbolicValue(array_a, size);
