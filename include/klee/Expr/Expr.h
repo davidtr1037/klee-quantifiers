@@ -223,7 +223,13 @@ protected:
   virtual int compareContents(const Expr &b) const = 0;
 
 public:
-  Expr() { Expr::count++; isTainted = false; size = 1; }
+  Expr() {
+    Expr::count++;
+    isTainted = false;
+    hasAuxVariable = false;
+    size = 1;
+  }
+
   virtual ~Expr() { Expr::count--; } 
 
   virtual Kind getKind() const = 0;
@@ -318,6 +324,7 @@ public:
   }
 
   bool isTainted;
+  bool hasAuxVariable;
   uint64_t size;
 
 private:
@@ -417,6 +424,7 @@ public:
 protected:
   BinaryExpr(const ref<Expr> &l, const ref<Expr> &r) : left(l), right(r) {
     isTainted = l->isTainted || r->isTainted;
+    hasAuxVariable = l->hasAuxVariable || r->hasAuxVariable;
     size = l->size + r->size + 1;
   }
 
@@ -471,6 +479,7 @@ public:
 private:
   NotOptimizedExpr(const ref<Expr> &_src) : src(_src) {
     isTainted = src->isTainted;
+    hasAuxVariable = src->hasAuxVariable;
     size = src->size + 1;
   }
 
@@ -674,6 +683,17 @@ private:
       }
     }
 
+    if (index->hasAuxVariable) {
+      hasAuxVariable = true;
+    } else {
+      for (const UpdateNode *un = updates.head.get(); un; un = un->next.get()) {
+        if (un->index->hasAuxVariable || un->value->hasAuxVariable) {
+          hasAuxVariable = true;
+          break;
+        }
+      }
+    }
+
     size = index->size + 1;
     for (const UpdateNode *un = updates.head.get(); un; un = un->next.get()) {
       size += un->index->size + un->value->size;
@@ -735,6 +755,8 @@ private:
   SelectExpr(const ref<Expr> &c, const ref<Expr> &t, const ref<Expr> &f) 
     : cond(c), trueExpr(t), falseExpr(f) {
     /* TODO: update isTainted? */
+    isTainted = c->isTainted || t->isTainted || f->isTainted;
+    hasAuxVariable = c->hasAuxVariable || t->hasAuxVariable || f->hasAuxVariable;
     size = c->size + t->size + f->size + 1;
   }
 
@@ -800,6 +822,7 @@ private:
   ConcatExpr(const ref<Expr> &l, const ref<Expr> &r) : left(l), right(r) {
     width = l->getWidth() + r->getWidth();
     isTainted = l->isTainted || r->isTainted;
+    hasAuxVariable = l->hasAuxVariable || r->hasAuxVariable;
     size = l->size + r->size + 1;
   }
 
@@ -865,6 +888,8 @@ public:
 private:
   ExtractExpr(const ref<Expr> &e, unsigned b, Width w) 
     : expr(e),offset(b),width(w) {
+    isTainted = e->isTainted;
+    hasAuxVariable = e->hasAuxVariable;
     size = e->size + 1;
   }
 
@@ -916,6 +941,8 @@ public:
 private:
   NotExpr(const ref<Expr> &e) : expr(e) {
     size = e->size + 1;
+    isTainted = e->isTainted;
+    hasAuxVariable = e->hasAuxVariable;
   }
 
 protected:
@@ -937,6 +964,7 @@ public:
 public:
   CastExpr(const ref<Expr> &e, Width w) : src(e), width(w) {
     isTainted = e->isTainted;
+    hasAuxVariable = e->hasAuxVariable;
     size = e->size + 1;
   }
 
