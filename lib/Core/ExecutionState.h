@@ -238,12 +238,6 @@ public:
   /* TODO: add docs */
   std::uint32_t localMergeID;
 
-  struct ArrayCompare {
-    bool operator()(const Array *a, const Array *b) {
-      return a->id < b->id;
-    }
-  };
-
   /* translation map for renaming  */
   ArrayMap renamingMap;
 

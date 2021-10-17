@@ -484,6 +484,7 @@ void ExecutionState::addConstraint(ref<Expr> e, bool atMerge) {
     if (changed) {
       rewriteConstraints();
     } else {
+      /* TODO: add the tail using a loop? */
       if (rewrittenConstraints.size() != constraints.size()) {
         ref<Expr> renamed = rename(constraints.last(), renamingMap);
         rewrittenConstraints.push_back(renamed);
