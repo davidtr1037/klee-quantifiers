@@ -80,7 +80,7 @@ public:
 
   /// Add constraint to the referenced constraint set
   /// \param constraint
-  void addConstraint(const ref<Expr> &constraint);
+  bool addConstraint(const ref<Expr> &constraint);
 
   void dump() const;
 
@@ -91,7 +91,7 @@ private:
   bool rewriteConstraints(ExprVisitor &visitor);
 
   /// Add constraint to the set of constraints
-  void addConstraintInternal(const ref<Expr> &constraint);
+  bool addConstraintInternal(const ref<Expr> &constraint);
 
   ConstraintSet &constraints;
 };

@@ -130,8 +130,9 @@ ref<Expr> ConstraintManager::simplifyExpr(const ConstraintSet &constraints,
   return ExprReplaceVisitor2(equalities).visit(e);
 }
 
-void ConstraintManager::addConstraintInternal(const ref<Expr> &e) {
+bool ConstraintManager::addConstraintInternal(const ref<Expr> &e) {
   // rewrite any known equalities and split Ands into different conjuncts
+  bool changed = false;
 
   switch (e->getKind()) {
   case Expr::Constant:
@@ -144,6 +145,7 @@ void ConstraintManager::addConstraintInternal(const ref<Expr> &e) {
     BinaryExpr *be = cast<BinaryExpr>(e);
     addConstraintInternal(be->left);
     addConstraintInternal(be->right);
+    changed = true;
     break;
   }
 
@@ -156,8 +158,8 @@ void ConstraintManager::addConstraintInternal(const ref<Expr> &e) {
       // (byte-constant comparison).
       BinaryExpr *be = cast<BinaryExpr>(e);
       if (isa<ConstantExpr>(be->left)) {
-	ExprReplaceVisitor visitor(be->right, be->left);
-	rewriteConstraints(visitor);
+        ExprReplaceVisitor visitor(be->right, be->left);
+        changed = rewriteConstraints(visitor);
       }
     }
     constraints.push_back(e);
@@ -168,11 +170,13 @@ void ConstraintManager::addConstraintInternal(const ref<Expr> &e) {
     constraints.push_back(e);
     break;
   }
+
+  return changed;
 }
 
-void ConstraintManager::addConstraint(const ref<Expr> &e) {
+bool ConstraintManager::addConstraint(const ref<Expr> &e) {
   ref<Expr> simplified = simplifyExpr(constraints, e);
-  addConstraintInternal(simplified);
+  return addConstraintInternal(simplified);
 }
 
 void ConstraintManager::dump() const {
