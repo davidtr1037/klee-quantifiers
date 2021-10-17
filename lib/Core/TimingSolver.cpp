@@ -52,7 +52,7 @@ bool TimingSolver::evaluate(const ExecutionState *state,
     ref<Expr> renamedExpr = rename(expr, state->renamingMap);
     Query renamed = Query(state->rewrittenConstraints, renamedExpr);
     success = solver->evaluate(renamed, result);
-  } if (RenameExpr) {
+  } else if (RenameExpr) {
     ConstraintSet renamedConstraints;
     ref<Expr> renamedExpr;
     rename(Query(constraints, expr), renamedConstraints, renamedExpr);
