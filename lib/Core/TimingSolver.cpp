@@ -48,11 +48,15 @@ bool TimingSolver::evaluate(const ExecutionState *state,
     expr = ConstraintManager::simplifyExpr(constraints, expr);
 
   bool success;
-  if (RenameExpr) {
+  if (RenameExpr && state) {
     ConstraintSet renamedConstraints;
     ref<Expr> renamedExpr;
     rename(Query(constraints, expr), renamedConstraints, renamedExpr);
     Query renamed = Query(renamedConstraints, renamedExpr);
+    success = solver->evaluate(renamed, result);
+  } else if (RewriteExpr && state) {
+    ref<Expr> renamedExpr = rename(expr, state->renamingMap);
+    Query renamed = Query(state->rewrittenConstraints, renamedExpr);
     success = solver->evaluate(renamed, result);
   } else {
     success = solver->evaluate(Query(constraints, expr), result);
@@ -85,11 +89,15 @@ bool TimingSolver::mustBeTrue(const ExecutionState *state,
     expr = ConstraintManager::simplifyExpr(constraints, expr);
 
   bool success;
-  if (RenameExpr) {
+  if (RenameExpr && state) {
     ConstraintSet renamedConstraints;
     ref<Expr> renamedExpr;
     rename(Query(constraints, expr), renamedConstraints, renamedExpr);
     Query renamed = Query(renamedConstraints, renamedExpr);
+    success = solver->mustBeTrue(renamed, result);
+  } else if (RewriteExpr && state) {
+    ref<Expr> renamedExpr = rename(expr, state->renamingMap);
+    Query renamed = Query(state->rewrittenConstraints, renamedExpr);
     success = solver->mustBeTrue(renamed, result);
   } else {
     success = solver->mustBeTrue(Query(constraints, expr), result);
@@ -157,11 +165,15 @@ bool TimingSolver::getValue(const ExecutionState *state,
     expr = ConstraintManager::simplifyExpr(constraints, expr);
 
   bool success;
-  if (RenameExpr) {
+  if (RenameExpr && state) {
     ConstraintSet renamedConstraints;
     ref<Expr> renamedExpr;
     rename(Query(constraints, expr), renamedConstraints, renamedExpr);
     Query renamed = Query(renamedConstraints, renamedExpr);
+    success = solver->getValue(renamed, result);
+  } else if (RewriteExpr && state) {
+    ref<Expr> renamedExpr = rename(expr, state->renamingMap);
+    Query renamed = Query(state->rewrittenConstraints, renamedExpr);
     success = solver->getValue(renamed, result);
   } else {
     success = solver->getValue(Query(constraints, expr), result);
@@ -189,7 +201,7 @@ bool TimingSolver::getInitialValues(
   }
 
   bool success;
-  if (RenameExpr) {
+  if (RenameExpr && state) {
     ConstraintSet renamedConstraints;
     ref<Expr> renamedExpr;
     std::vector<const Array *> renamedObjects;
@@ -202,6 +214,19 @@ bool TimingSolver::getInitialValues(
     );
     success = solver->getInitialValues(
       Query(renamedConstraints, renamedExpr), renamedObjects, result);
+  } else if (RewriteExpr && state) {
+    Query renamed = Query(state->rewrittenConstraints,
+                          ConstantExpr::alloc(0, Expr::Bool));
+    std::vector<const Array *> renamedObjects;
+    for (const Array *array : objects) {
+      auto i = state->renamingMap.find(array);
+      if (i == state->renamingMap.end()) {
+        renamedObjects.push_back(array);
+      } else {
+        renamedObjects.push_back(i->second);
+      }
+    }
+    success = solver->getInitialValues(renamed, renamedObjects, result);
   } else {
     success = solver->getInitialValues(
       Query(constraints, ConstantExpr::alloc(0, Expr::Bool)), objects, result);

@@ -19,6 +19,7 @@
 #include "klee/Expr/Constraints.h"
 #include "klee/Expr/Expr.h"
 #include "klee/Expr/ExprVisitor.h"
+#include "klee/Expr/ExprRename.h"
 #include "klee/Module/KInstIterator.h"
 #include "klee/Module/KLoop.h"
 #include "klee/Solver/Solver.h"
@@ -45,6 +46,7 @@ extern llvm::cl::opt<bool> OptimizeITEUsingExecTree;
 extern llvm::cl::opt<bool> OptimizeArrayITEUsingExecTree;
 extern llvm::cl::opt<bool> OptimizeUsingQuantifiers;
 extern llvm::cl::opt<bool> CreateSnapshots;
+extern llvm::cl::opt<bool> RewriteExpr;
 
 llvm::raw_ostream &operator<<(llvm::raw_ostream &os, const MemoryMap &mm);
 
@@ -167,6 +169,9 @@ public:
   /// @brief Constraints collected so far
   ConstraintSet constraints;
 
+  /* TODO: add docs */
+  ConstraintSet rewrittenConstraints;
+
   /// Statistics and information
 
   /// @brief Metadata utilized and collected by solvers for this state
@@ -233,6 +238,15 @@ public:
   /* TODO: add docs */
   std::uint32_t localMergeID;
 
+  struct ArrayCompare {
+    bool operator()(const Array *a, const Array *b) {
+      return a->id < b->id;
+    }
+  };
+
+  /* translation map for renaming  */
+  ArrayMap renamingMap;
+
 public:
   #ifdef KLEE_UNITTEST
   // provide this function only in the context of unittests
@@ -256,7 +270,7 @@ public:
 
   void addSymbolic(const MemoryObject *mo, const Array *array);
 
-  void addConstraint(ref<Expr> e);
+  void addConstraint(ref<Expr> e, bool atMerge = false);
 
   void addSuffixConstraint(ref<Expr> e);
 
@@ -369,6 +383,12 @@ public:
                           std::set<const MemoryObject *> &mutated);
 
   std::uint32_t getMergeID() const;
+
+  void addAuxArray();
+
+  void mapAuxArrays();
+
+  void rewriteConstraints();
 
 private:
   static std::uint32_t mergeID;

@@ -11,13 +11,51 @@
 
 using namespace klee;
 
-static ArrayCache arrayCache;
+static ArrayCache cache;
 
-struct {
-  bool operator()(const Array *a, const Array *b) const {
-    return a->id < b->id;
+const Array *klee::cloneArray(const Array *from, unsigned i) {
+  const Array *cloned = cache.CreateArray(
+    "p_" + llvm::utostr(i),
+    from->size
+  );
+  /* TODO: refactor */
+  cloned->isBoundVariable = from->isBoundVariable;
+  cloned->isAuxVariable = from->isAuxVariable;
+  return cloned;
+}
+
+ref<Expr> klee::rename(const ref<Expr> e, const ArrayMap &map) {
+  if (!e->hasAuxVariable) {
+    return e;
   }
-} ArrayCompare;
+
+  std::vector<ref<ReadExpr>> reads;
+  findReads(e, true, reads);
+
+  std::set<const Array *> arrays;
+  for (ref<ReadExpr> e : reads) {
+    assert(e->updates.root);
+    if (e->updates.root->isAuxVariable) {
+      arrays.insert(e->updates.root);
+    }
+  }
+
+  std::map<ref<Expr>, ref<Expr>> toReplace;
+  for (ref<ReadExpr> e : reads) {
+    if (e->updates.root && e->updates.root->isAuxVariable) {
+      assert(isa<ConstantExpr>(e->index));
+      auto i = map.find(e->updates.root);
+      if (i == map.end()) {
+        assert(0);
+      } else {
+        toReplace[e] = ReadExpr::create(UpdateList(i->second, 0), e->index);
+      }
+    }
+  }
+
+  ExprFullReplaceVisitor2 visitor(toReplace);
+  return visitor.visit(e);
+}
 
 void klee::rename(const Query &query,
                   ConstraintSet &constraints,
@@ -41,19 +79,15 @@ void klee::rename(const Query &query,
     }
   }
 
-  std::vector<const Array *> sorted(arrays.begin(), arrays.end());
-  std::sort(sorted.begin(), sorted.end(), ArrayCompare);
-
-  for (unsigned i = 0; i < sorted.size(); i++) {
-    const Array *array = sorted[i];
-    const Array *newArray = arrayCache.CreateArray(
-      "p_" + llvm::utostr(i),
-      array->size
-    );
-    /* TODO: refactor */
-    newArray->isBoundVariable = array->isBoundVariable;
-    newArray->isAuxVariable = array->isAuxVariable;
-    map[array] = newArray;
+  /* sort arrays by id */
+  for (const Array *array : arrays) {
+    map[array] = nullptr;
+  }
+  unsigned index = 0;
+  for (auto i : map) {
+    const Array *array = i.first;
+    map[array] = cloneArray(array, index);
+    index++;
   }
 
   std::map<ref<Expr>, ref<Expr>> toReplace;

@@ -102,8 +102,7 @@ void generateForall(PatternMatch &pm,
   unsigned auxArraySize = QuantifiedExpr::AUX_VARIABLE_WIDTH / 8;
   const Array *array_i = getArray("__i", auxArraySize, true, false);
   /* TODO: reuse the array from other module */
-  const Array *array_m = getArrayForAuxVariable("m_" + llvm::utostr(mergeID),
-                                                auxArraySize);
+  const Array *array_m = getArrayForAuxVariable(mergeID, auxArraySize);
 
   /* the introduced variable */
   ref<Expr> aux = getSymbolicValue(array_m, array_m->size);

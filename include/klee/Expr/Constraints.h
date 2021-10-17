@@ -48,6 +48,14 @@ public:
     constraints.clear();
   }
 
+  ref<Expr> last() {
+    if (constraints.empty()) {
+      return nullptr;
+    } else {
+      return constraints.back();
+    }
+  }
+
   void dump() const;
 
 private:

@@ -18,6 +18,7 @@
 #include "klee/Expr/Expr.h"
 #include "klee/Expr/ExprVisitor.h"
 #include "klee/Expr/ExprUtil.h"
+#include "klee/Expr/ExprRename.h"
 #include "klee/Module/Cell.h"
 #include "klee/Module/InstructionInfoTable.h"
 #include "klee/Module/KInstruction.h"
@@ -103,6 +104,12 @@ cl::opt<bool> UseLocalMergeID(
     cl::desc(""),
     cl::cat(MergeCat));
 
+cl::opt<bool> klee::RewriteExpr(
+    "rewrite-expr",
+    cl::init(false),
+    cl::desc(""),
+    cl::cat(MergeCat));
+
 /***/
 
 std::uint32_t ExecutionState::nextID = 1;
@@ -180,6 +187,7 @@ ExecutionState::ExecutionState(const ExecutionState& state, bool isSnapshot):
     depth(state.depth),
     addressSpace(state.addressSpace),
     constraints(state.constraints),
+    rewrittenConstraints(state.rewrittenConstraints),
     pathOS(state.pathOS),
     symPathOS(state.symPathOS),
     coveredLines(state.coveredLines),
@@ -197,7 +205,8 @@ ExecutionState::ExecutionState(const ExecutionState& state, bool isSnapshot):
     suffixConstraints(state.suffixConstraints),
     isSnapshot(isSnapshot),
     hasPendingSnapshot(false),
-    localMergeID(state.localMergeID) {
+    localMergeID(state.localMergeID),
+    renamingMap(state.renamingMap) {
   for (const auto &cur_mergehandler: openMergeStack) {
     cur_mergehandler->addOpenState(this);
   }
@@ -360,6 +369,13 @@ bool ExecutionState::merge(const ExecutionState &b) {
       llvm::errs() << "\t\tmappings differ\n";
     return false;
   }
+
+  /* handle auxiliary variables */
+  for (auto i : b.renamingMap) {
+    const Array *array = i.first;
+    renamingMap[array] = nullptr;
+  }
+  mapAuxArrays();
   
   // merge stack
 
@@ -415,11 +431,11 @@ bool ExecutionState::merge(const ExecutionState &b) {
   }
 
   constraints = ConstraintSet();
-
-  ConstraintManager m(constraints);
-  for (const auto &constraint : commonConstraints)
-    m.addConstraint(constraint);
-  m.addConstraint(OrExpr::create(inA, inB));
+  rewrittenConstraints = ConstraintSet();
+  for (const auto &constraint : commonConstraints) {
+    addConstraint(constraint, true);
+  }
+  addConstraint(OrExpr::create(inA, inB), true);
 
   if (DebugLogStateMerge) {
     llvm::errs() << "merge succeeded\n";
@@ -461,17 +477,30 @@ void ExecutionState::dumpStack(llvm::raw_ostream &out) const {
   }
 }
 
-void ExecutionState::addConstraint(ref<Expr> e) {
+void ExecutionState::addConstraint(ref<Expr> e, bool atMerge) {
   ConstraintManager c(constraints);
-  c.addConstraint(e);
-  if (!loopHandler.isNull()) {
-    /* we don't expect forks after the state is paused */
-    assert(stack.back().isExecutingLoop);
-    addSuffixConstraint(e);
+  bool changed = c.addConstraint(e);
+  if (RewriteExpr) {
+    if (changed) {
+      rewriteConstraints();
+    } else {
+      if (rewrittenConstraints.size() != constraints.size()) {
+        ref<Expr> renamed = rename(constraints.last(), renamingMap);
+        rewrittenConstraints.push_back(renamed);
+      }
+    }
+    assert(rewrittenConstraints.size() == constraints.size());
   }
+  if (!atMerge) {
+    if (!loopHandler.isNull()) {
+      /* we don't expect forks after the state is paused */
+      assert(stack.back().isExecutingLoop);
+      addSuffixConstraint(e);
+    }
 
-  if (OptimizeArrayValuesUsingUpperBound) {
-    inferSizeConstraint(e);
+    if (OptimizeArrayValuesUsingUpperBound) {
+      inferSizeConstraint(e);
+    }
   }
 }
 
@@ -612,12 +641,21 @@ ExecutionState *ExecutionState::mergeStatesOptimized(std::vector<ExecutionState 
 
   ExecutionState *merged = states[0];
 
+  /* handle auxiliary variables */
+  for (unsigned i = 0; i < states.size(); i++) {
+    ExecutionState *es = states[i];
+    for (auto j : es->renamingMap) {
+      const Array *array = j.first;
+      merged->renamingMap[array] = nullptr;
+    }
+  }
+  merged->mapAuxArrays();
+
   /* path constraints */
   merged->constraints = ConstraintSet();
-  ConstraintManager m(merged->constraints);
+  merged->rewrittenConstraints = ConstraintSet();
   for (ref<Expr> e : loopHandler->initialConstraints) {
-    /* add without the manager? (the prefix is already optimized) */
-    m.addConstraint(e);
+    merged->addConstraint(e, true);
   }
 
   /* TODO: rename to usingABV */
@@ -644,8 +682,12 @@ ExecutionState *ExecutionState::mergeStatesOptimized(std::vector<ExecutionState 
       }
     }
 
-    /* TODO: used ExecutionState's addConstraint? */
-    m.addConstraint(orExpr);
+    if (isEncodedWithABV) {
+      /* TODO: add parameter */
+      merged->addAuxArray();
+    }
+
+    merged->addConstraint(orExpr, true);
     stats::mergedConstraintsSize += orExpr->size;
     klee_message("partial merge constraint size %lu", orExpr->size);
   }
@@ -1483,4 +1525,31 @@ bool ExecutionState::compareHeap(ExecutionState &s1,
 
 std::uint32_t ExecutionState::getMergeID() const {
   return UseLocalMergeID ? localMergeID : mergeID;
+}
+
+void ExecutionState::addAuxArray() {
+  /* TODO: remove the size argument? */
+  const Array *array = getArrayForAuxVariable(
+    getMergeID(),
+    QuantifiedExpr::AUX_VARIABLE_WIDTH / 8
+  );
+  renamingMap[array] = nullptr;
+  mapAuxArrays();
+}
+
+void ExecutionState::mapAuxArrays() {
+  unsigned index = 0;
+  for (auto i : renamingMap) {
+    const Array *array = i.first;
+    renamingMap[array] = cloneArray(array, index);
+    index++;
+  }
+}
+
+void ExecutionState::rewriteConstraints() {
+  rewrittenConstraints.clear();
+  for (ref<Expr> e : constraints) {
+    ref<Expr> renamed = rename(e, renamingMap);
+    rewrittenConstraints.push_back(renamed);
+  }
 }

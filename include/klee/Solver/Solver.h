@@ -32,9 +32,7 @@ namespace klee {
 
   struct Query {
   public:
-    //const ConstraintSet &constraints;
-    /* TODO: use a reference */
-    const ConstraintSet constraints;
+    const ConstraintSet &constraints;
     ref<Expr> expr;
 
     Query(const ConstraintSet& _constraints, ref<Expr> _expr)

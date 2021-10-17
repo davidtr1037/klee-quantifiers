@@ -29,9 +29,8 @@ const Array *klee::getArray(const std::string &name,
   return array;
 }
 
-const Array *klee::getArrayForAuxVariable(const std::string &name,
-                                          uint64_t size) {
-  return getArray(name, size, false, true);
+const Array *klee::getArrayForAuxVariable(uint32_t id, uint64_t size) {
+  return getArray("m_" + llvm::utostr(id), size, false, true);
 }
 
 ref<Expr> klee::extractPrefixConstraint(ExecTree &t,
@@ -301,8 +300,7 @@ static bool solveLinearEquation(TimingSolver &solver,
   unsigned auxArraySize = QuantifiedExpr::AUX_VARIABLE_WIDTH / 8;
   const Array *array_a = getArray("a", auxArraySize);
   const Array *array_b = getArray("b", auxArraySize);
-  const Array *array_m = getArrayForAuxVariable("m_" + llvm::utostr(id),
-                                                auxArraySize);
+  const Array *array_m = getArrayForAuxVariable(id, auxArraySize);
 
   unsigned size = width / 8;
   ref<Expr> a = getSymbolicValue(array_a, size);
