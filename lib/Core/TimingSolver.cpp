@@ -27,7 +27,8 @@ using namespace llvm;
 
 cl::opt<bool> RenameExpr("rename-expr", cl::init(false), cl::desc(""));
 
-bool TimingSolver::evaluate(const ConstraintSet &constraints, ref<Expr> expr,
+bool TimingSolver::evaluate(const ExecutionState *state,
+                            const ConstraintSet &constraints, ref<Expr> expr,
                             Solver::Validity &result,
                             SolverQueryMetaData &metaData,
                             bool auxiliary) {
@@ -62,7 +63,8 @@ bool TimingSolver::evaluate(const ConstraintSet &constraints, ref<Expr> expr,
   return success;
 }
 
-bool TimingSolver::mustBeTrue(const ConstraintSet &constraints,
+bool TimingSolver::mustBeTrue(const ExecutionState *state,
+                              const ConstraintSet &constraints,
                               ref<Expr> expr,
                               bool &result,
                               SolverQueryMetaData &metaData,
@@ -98,43 +100,48 @@ bool TimingSolver::mustBeTrue(const ConstraintSet &constraints,
   return success;
 }
 
-bool TimingSolver::mustBeFalse(const ConstraintSet &constraints,
+bool TimingSolver::mustBeFalse(const ExecutionState *state,
+                               const ConstraintSet &constraints,
                                ref<Expr> expr,
                                bool &result,
                                SolverQueryMetaData &metaData,
                                bool auxiliary) {
-  return mustBeTrue(constraints,
+  return mustBeTrue(state,
+                    constraints,
                     Expr::createIsZero(expr),
                     result,
                     metaData,
                     auxiliary);
 }
 
-bool TimingSolver::mayBeTrue(const ConstraintSet &constraints,
+bool TimingSolver::mayBeTrue(const ExecutionState *state,
+                             const ConstraintSet &constraints,
                              ref<Expr> expr,
                              bool &result,
                              SolverQueryMetaData &metaData,
                              bool auxiliary) {
   bool res;
-  if (!mustBeFalse(constraints, expr, res, metaData, auxiliary))
+  if (!mustBeFalse(state, constraints, expr, res, metaData, auxiliary))
     return false;
   result = !res;
   return true;
 }
 
-bool TimingSolver::mayBeFalse(const ConstraintSet &constraints,
+bool TimingSolver::mayBeFalse(const ExecutionState *state,
+                              const ConstraintSet &constraints,
                               ref<Expr> expr,
                               bool &result,
                               SolverQueryMetaData &metaData,
                               bool auxiliary) {
   bool res;
-  if (!mustBeTrue(constraints, expr, res, metaData, auxiliary))
+  if (!mustBeTrue(state, constraints, expr, res, metaData, auxiliary))
     return false;
   result = !res;
   return true;
 }
 
-bool TimingSolver::getValue(const ConstraintSet &constraints,
+bool TimingSolver::getValue(const ExecutionState *state,
+                            const ConstraintSet &constraints,
                             ref<Expr> expr,
                             ref<ConstantExpr> &result,
                             SolverQueryMetaData &metaData) {
@@ -166,6 +173,7 @@ bool TimingSolver::getValue(const ConstraintSet &constraints,
 }
 
 bool TimingSolver::getInitialValues(
+    const ExecutionState *state,
     const ConstraintSet &constraints,
     const std::vector<const Array *> &objects,
     std::vector<std::vector<unsigned char>> &result,

@@ -19,6 +19,7 @@
 #include <vector>
 
 namespace klee {
+class ExecutionState;
 class ConstraintSet;
 class Solver;
 
@@ -44,29 +45,36 @@ public:
     return solver->getConstraintLog(query);
   }
 
-  bool evaluate(const ConstraintSet &, ref<Expr>, Solver::Validity &result,
+  bool evaluate(const ExecutionState *state,
+                const ConstraintSet &, ref<Expr>, Solver::Validity &result,
                 SolverQueryMetaData &metaData, bool auxiliary = false);
 
-  bool mustBeTrue(const ConstraintSet &, ref<Expr>, bool &result,
+  bool mustBeTrue(const ExecutionState *state,
+                  const ConstraintSet &, ref<Expr>, bool &result,
                   SolverQueryMetaData &metaData,
                   bool auxiliary = false);
 
-  bool mustBeFalse(const ConstraintSet &, ref<Expr>, bool &result,
+  bool mustBeFalse(const ExecutionState *state,
+                   const ConstraintSet &, ref<Expr>, bool &result,
                    SolverQueryMetaData &metaData,
                    bool auxiliary = false);
 
-  bool mayBeTrue(const ConstraintSet &, ref<Expr>, bool &result,
+  bool mayBeTrue(const ExecutionState *state,
+                 const ConstraintSet &, ref<Expr>, bool &result,
                  SolverQueryMetaData &metaData,
                  bool auxiliary = false);
 
-  bool mayBeFalse(const ConstraintSet &, ref<Expr>, bool &result,
+  bool mayBeFalse(const ExecutionState *state,
+                  const ConstraintSet &, ref<Expr>, bool &result,
                   SolverQueryMetaData &metaData,
                   bool auxiliary = false);
 
-  bool getValue(const ConstraintSet &, ref<Expr> expr,
+  bool getValue(const ExecutionState *state,
+                const ConstraintSet &, ref<Expr> expr,
                 ref<ConstantExpr> &result, SolverQueryMetaData &metaData);
 
-  bool getInitialValues(const ConstraintSet &,
+  bool getInitialValues(const ExecutionState *state,
+                        const ConstraintSet &,
                         const std::vector<const Array *> &objects,
                         std::vector<std::vector<unsigned char>> &result,
                         SolverQueryMetaData &metaData,

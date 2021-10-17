@@ -468,7 +468,7 @@ void SpecialFunctionHandler::handleAssume(ExecutionState &state,
   
   bool res;
   bool success __attribute__((unused)) = executor.solver->mustBeFalse(
-      state.constraints, e, res, state.queryMetaData);
+      &state, state.constraints, e, res, state.queryMetaData);
   assert(success && "FIXME: Unhandled solver failure");
   if (res) {
     if (SilentKleeAssume) {
@@ -584,10 +584,11 @@ void SpecialFunctionHandler::handlePrintRange(ExecutionState &state,
     // FIXME: Pull into a unique value method?
     ref<ConstantExpr> value;
     bool success __attribute__((unused)) = executor.solver->getValue(
-        state.constraints, arguments[1], value, state.queryMetaData);
+        &state, state.constraints, arguments[1], value, state.queryMetaData);
     assert(success && "FIXME: Unhandled solver failure");
     bool res;
-    success = executor.solver->mustBeTrue(state.constraints,
+    success = executor.solver->mustBeTrue(&state,
+                                          state.constraints,
                                           EqExpr::create(arguments[1], value),
                                           res, state.queryMetaData);
     assert(success && "FIXME: Unhandled solver failure");
@@ -819,6 +820,7 @@ void SpecialFunctionHandler::handleMakeSymbolic(ExecutionState &state,
     // FIXME: Type coercion should be done consistently somewhere.
     bool res;
     bool success __attribute__((unused)) = executor.solver->mustBeTrue(
+        s,
         s->constraints,
         EqExpr::create(
             ZExtExpr::create(arguments[1], Context::get().getPointerWidth()),

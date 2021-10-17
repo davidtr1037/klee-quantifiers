@@ -1048,7 +1048,7 @@ bool ExecutionState::areEquiv(TimingSolver *solver,
     /* make sure that A is consistent (satisfiable) */
     bool isSatisfiable = false;
     SolverQueryMetaData meta;
-    assert(solver->mayBeTrue(empty, pcA, isSatisfiable, meta));
+    assert(solver->mayBeTrue(nullptr, empty, pcA, isSatisfiable, meta));
     if (!isSatisfiable) {
       return false;
     }
@@ -1058,7 +1058,7 @@ bool ExecutionState::areEquiv(TimingSolver *solver,
 
   bool isTrue = false;
   SolverQueryMetaData meta;
-  assert(solver->mustBeTrue(empty, pcEquiv, isTrue, meta));
+  assert(solver->mustBeTrue(nullptr, empty, pcEquiv, isTrue, meta));
   if (!isTrue) {
     return false;
   }
@@ -1075,7 +1075,8 @@ bool ExecutionState::areEquiv(TimingSolver *solver,
 
       bool isEqual;
       SolverQueryMetaData meta;
-      assert(solver->mustBeTrue(sa->constraints,
+      assert(solver->mustBeTrue(nullptr,
+                                sa->constraints,
                                 EqExpr::create(v1, v2),
                                 isEqual,
                                 meta));
@@ -1093,7 +1094,8 @@ bool ExecutionState::areEquiv(TimingSolver *solver,
       bool inRange = false;
       SolverQueryMetaData meta;
       ref<Expr> rangeCond = UltExpr::create(ConstantExpr::create(i, Expr::Int64), mo->getSizeExpr());
-      assert(solver->mayBeTrue(sa->constraints,
+      assert(solver->mayBeTrue(nullptr,
+                               sa->constraints,
                                rangeCond,
                                inRange,
                                meta));
@@ -1107,7 +1109,8 @@ bool ExecutionState::areEquiv(TimingSolver *solver,
       bool isEqual;
       ConstraintSet tmp(sa->constraints);
       tmp.push_back(rangeCond);
-      assert(solver->mustBeTrue(tmp,
+      assert(solver->mustBeTrue(nullptr,
+                                tmp,
                                 EqExpr::create(v1, v2),
                                 isEqual,
                                 meta));
@@ -1250,7 +1253,7 @@ bool ExecutionState::isValidOffset(TimingSolver *solver,
                                    uint64_t offset) {
   Solver::Validity result;
   ref<Expr> range = UltExpr::create(ConstantExpr::create(offset, Expr::Int64), mo->getSizeExpr());
-  bool success = solver->evaluate(constraints, range, result, queryMetaData, true);
+  bool success = solver->evaluate(this, constraints, range, result, queryMetaData, true);
   assert(success);
 
   return result != Solver::False;

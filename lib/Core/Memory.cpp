@@ -228,7 +228,8 @@ void ObjectState::flushToConcreteStore(TimingSolver *solver,
   for (unsigned i = 0; i < size; i++) {
     if (isByteKnownSymbolic(i)) {
       ref<ConstantExpr> ce;
-      bool success = solver->getValue(state.constraints, read8(i), ce,
+      bool success = solver->getValue(&state,
+                                      state.constraints, read8(i), ce,
                                       state.queryMetaData);
       if (!success)
         klee_warning("Solver timed out when getting a value for external call, "

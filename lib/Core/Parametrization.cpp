@@ -331,7 +331,7 @@ static bool solveLinearEquation(TimingSolver &solver,
   /* first check is satisfiable */
   bool mayBeTrue;
   SolverQueryMetaData metaData;
-  assert(solver.mayBeTrue(s, all, mayBeTrue, metaData, true));
+  assert(solver.mayBeTrue(nullptr, s, all, mayBeTrue, metaData, true));
   if (!mayBeTrue) {
     return false;
   }
@@ -342,7 +342,7 @@ static bool solveLinearEquation(TimingSolver &solver,
   /* get assignment */
   std::vector<const Array *> objects = {array_a, array_b};
   std::vector<std::vector<unsigned char>> result;
-  if (!solver.getInitialValues(s, objects, result, metaData, true)) {
+  if (!solver.getInitialValues(nullptr, s, objects, result, metaData, true)) {
     assert(0);
   }
 
