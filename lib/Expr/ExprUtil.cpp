@@ -150,6 +150,7 @@ ExprVisitor::Action ExprFullReplaceVisitorBase::visitRead(const ReadExpr &e) {
   UpdateList updates = UpdateList(nullptr, nullptr);
   auto i = cache.find(e.updates);
   if (i == cache.end()) {
+    /* TODO: rewrite only if one of the nodes changes */
     updates = UpdateList(e.updates.root, nullptr);
     std::list<const UpdateNode *> nodes;
     for (const UpdateNode *n = e.updates.head.get(); n; n = n->next.get()) {
