@@ -6,6 +6,11 @@
 using namespace klee;
 using namespace llvm;
 
+cl::opt<unsigned> MinStateForABV(
+    "min-states-for-abv",
+    cl::init(1),
+    cl::desc(""));
+
 bool getParametricExpressions(std::vector<SMTEquationSystem> systems,
                               TimingSolver &solver,
                               uint32_t mergeID,
@@ -143,6 +148,10 @@ ref<Expr> klee::generateQuantifiedConstraint(PatternMatch &pm,
                                              TimingSolver &solver) {
   std::vector<SMTEquationSystem> coreSystems, suffixSystems;
   std::vector<ParametrizedExpr> coreSolutions, suffixSolutions;
+
+  if (pm.matches.size() < MinStateForABV) {
+    return nullptr;
+  }
 
   ref<Expr> prefix = extractPrefixConstraint(tree, pm);
 
