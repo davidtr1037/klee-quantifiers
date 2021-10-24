@@ -61,6 +61,8 @@ public:
 
   Word reversed() const;
 
+  Word extractSuffix(unsigned from);
+
   static Word getCommonPrefix(const Word &w1, const Word &w2);
 
   static Word getCommonSuffix(const Word &w1, const Word &w2);

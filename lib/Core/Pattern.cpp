@@ -73,6 +73,14 @@ Word Word::reversed() const {
   return w;
 }
 
+Word Word::extractSuffix(unsigned from) {
+  Word suffix;
+  for (unsigned i = from; i < size(); i++) {
+    suffix.append(symbols[i]);
+  }
+  return suffix;
+}
+
 Word Word::getCommonPrefix(const Word &w1, const Word &w2) {
   Word prefix;
   for (unsigned i = 0; i < w1.size() && i < w2.size(); i++) {

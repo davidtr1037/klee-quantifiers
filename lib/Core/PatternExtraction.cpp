@@ -140,7 +140,9 @@ static bool hasCommonBoundaries(const PatternMatch &pm1,
 
   Word prefix, core, suffix;
   prefix = Word::getCommonPrefix(w1, w2);
-  suffix = Word::getCommonSuffix(w1, w2);
+  suffix = Word::getCommonSuffix(
+    w1.extractSuffix(prefix.size()), w2.extractSuffix(prefix.size())
+  );
 
   unsigned boundarySize = prefix.size() + suffix.size();
   if (boundarySize > 0 && boundarySize < w2.size()) {
