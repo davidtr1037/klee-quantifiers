@@ -276,6 +276,8 @@ static ref<Expr> getConstantExpr(std::vector<unsigned char> &v,
   switch (size) {
   case 1:
     return ConstantExpr::create(n, Expr::Int8);
+  case 2:
+    return ConstantExpr::create(n, Expr::Int16);
   case 4:
     return ConstantExpr::create(n, Expr::Int32);
   case 8:
