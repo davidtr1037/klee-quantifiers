@@ -20,6 +20,11 @@
     klee_assume(var >= 1); \
     klee_assume(var <= max);
 
+#define KLEE_MAKE_SYMBOLIC_STR(str, max_size) \
+    char *str = malloc(max_size); \
+    klee_make_symbolic(str, max_size, #str); \
+    str[max_size - 1] = 0;
+
 #define KLEE_MAKE_SYMBOLIC_STR_AND_LEN(str, length, max_size) \
     KLEE_MAKE_SYMBOLIC_SIZE(length, size_t, max_size); \
     char *str = malloc(length + 1); \
