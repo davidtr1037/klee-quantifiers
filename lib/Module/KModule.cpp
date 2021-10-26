@@ -467,12 +467,12 @@ bool KModule::hasFunctionCalls(Loop *loop) {
       if (call) {
         Function *f = call->getCalledFunction();
         if (f) {
-            if (!f->isDeclaration()) {
-              return true;
-            }
-        } else {
-            /* virtual call */
+          if (!f->isDeclaration() || !f->isIntrinsic()) {
             return true;
+          }
+        } else {
+          /* virtual call */
+          return true;
         }
       }
     }
