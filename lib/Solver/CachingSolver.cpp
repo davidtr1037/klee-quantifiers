@@ -151,8 +151,15 @@ ref<Expr> CachingSolver::canonicalizeQuery(ref<Expr> originalQuery,
                                            bool &negationUsed) {
   ref<Expr> negatedQuery = Expr::createIsZero(originalQuery);
 
-  // select the "smaller" query to the be canonical representation
-  if (originalQuery.compare(negatedQuery) < 0) {
+  bool cmp;
+  if (UseIsoCache) {
+    /* Expr:compare may return inconsistent results for isomorphic queries */
+    cmp = originalQuery->size < negatedQuery->size;
+  } else {
+    // select the "smaller" query to the be canonical representation
+    cmp = originalQuery.compare(negatedQuery) < 0;
+  }
+  if (cmp) {
     negationUsed = false;
     return originalQuery;
   } else {
