@@ -381,12 +381,16 @@ bool ExecutionState::merge(const ExecutionState &b) {
 
   ref<Expr> inA = ConstantExpr::alloc(1, Expr::Bool);
   ref<Expr> inB = ConstantExpr::alloc(1, Expr::Bool);
-  for (std::set< ref<Expr> >::iterator it = aSuffix.begin(), 
-         ie = aSuffix.end(); it != ie; ++it)
-    inA = AndExpr::create(inA, *it);
-  for (std::set< ref<Expr> >::iterator it = bSuffix.begin(), 
-         ie = bSuffix.end(); it != ie; ++it)
-    inB = AndExpr::create(inB, *it);
+  for (ref<Expr> e : constraints) {
+    if (aSuffix.find(e) != aSuffix.end()) {
+      inA = AndExpr::create(inA, e);
+    }
+  }
+  for (ref<Expr> e : b.constraints) {
+    if (bSuffix.find(e) != bSuffix.end()) {
+      inB = AndExpr::create(inB, e);
+    }
+  }
 
   // XXX should we have a preference as to which predicate to use?
   // it seems like it can make a difference, even though logically
@@ -432,8 +436,10 @@ bool ExecutionState::merge(const ExecutionState &b) {
 
   constraints = ConstraintSet();
   rewrittenConstraints = ConstraintSet();
-  for (const auto &constraint : commonConstraints) {
-    addConstraint(constraint, true);
+  for (ref<Expr> e : b.constraints) {
+    if (commonConstraints.find(e) != commonConstraints.end()) {
+      addConstraint(e, true);
+    }
   }
   addConstraint(OrExpr::create(inA, inB), true);
 
