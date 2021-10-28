@@ -328,6 +328,7 @@ IndependentElementSet getIndependentConstraints(const Query& query,
                                                 std::vector< ref<Expr> > &result) {
   IndependentElementSet eltsClosure(query.expr);
   std::vector< std::pair<ref<Expr>, IndependentElementSet> > worklist;
+  std::vector<ref<Expr>> required;
 
   for (const auto &constraint : query.constraints)
     worklist.push_back(
@@ -343,7 +344,7 @@ IndependentElementSet getIndependentConstraints(const Query& query,
       if (it->second.intersects(eltsClosure)) {
         if (eltsClosure.add(it->second))
           done = false;
-        result.push_back(it->first);
+        required.push_back(it->first);
         // Means that we have added (z=y)added to (x=y)
         // Now need to see if there are any (z=?)'s
       } else {
@@ -352,6 +353,12 @@ IndependentElementSet getIndependentConstraints(const Query& query,
     }
     worklist.swap(newWorklist);
   } while (!done);
+
+  for (ref<Expr> condition : query.constraints) {
+    if (std::find(required.begin(), required.end(), condition) != required.end()) {
+      result.push_back(condition);
+    }
+  }
 
   KLEE_DEBUG(
     std::set< ref<Expr> > reqset(result.begin(), result.end());
