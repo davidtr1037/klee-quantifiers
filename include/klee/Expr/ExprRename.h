@@ -36,6 +36,11 @@ void rename(const Query &query,
             ref<Expr> &expr,
             std::vector<const Array *> &renamedObjects);
 
+Query rename(const Query &query);
+
+Query rename(const Query &query,
+             const std::vector<const Array *> &objects,
+             std::vector<const Array *> &renamedObjects);
 }
 
 #endif

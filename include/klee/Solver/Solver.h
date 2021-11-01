@@ -277,6 +277,8 @@ namespace klee {
 
   // Create a solver based on the supplied ``CoreSolverType``.
   Solver *createCoreSolver(CoreSolverType cst);
+
+  Solver *createRenamingSolver(Solver *s);
 }
 
 #endif /* KLEE_SOLVER_H */

@@ -133,3 +133,19 @@ void klee::rename(const Query &query,
     }
   }
 }
+
+Query klee::rename(const Query &query) {
+  ConstraintSet constraints;
+  ref<Expr> expr;
+  rename(query, constraints, expr);
+  return Query(constraints, expr);
+}
+
+Query klee::rename(const Query &query,
+                   const std::vector<const Array *> &objects,
+                   std::vector<const Array *> &renamedObjects) {
+  ConstraintSet constraints;
+  ref<Expr> expr;
+  rename(query, objects, constraints, expr, renamedObjects);
+  return Query(constraints, expr);
+}

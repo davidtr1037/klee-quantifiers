@@ -44,6 +44,8 @@ extern llvm::cl::opt<bool> CoreSolverOptimizeDivides;
 
 extern llvm::cl::opt<bool> UseAssignmentValidatingSolver;
 
+extern llvm::cl::opt<bool> UseRenamingSolver;
+
 /// The different query logging solvers that can be switched on/off
 enum QueryLoggingSolverType {
   ALL_KQUERY,    ///< Log all queries in .kquery (KQuery) format

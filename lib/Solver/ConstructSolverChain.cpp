@@ -52,6 +52,9 @@ Solver *constructSolverChain(Solver *coreSolver,
   if (UseBranchCache)
     solver = createCachingSolver(solver);
 
+  if (UseRenamingSolver)
+    solver = createRenamingSolver(solver);
+
   if (UseIndependentSolver)
     solver = createIndependentSolver(solver);
 

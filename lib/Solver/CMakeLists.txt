@@ -20,6 +20,7 @@ klee_add_component(kleaverSolver
   MetaSMTSolver.cpp
   KQueryLoggingSolver.cpp
   QueryLoggingSolver.cpp
+  RenamingSolver.cpp
   SMTLIBLoggingSolver.cpp
   Solver.cpp
   SolverCmdLine.cpp
