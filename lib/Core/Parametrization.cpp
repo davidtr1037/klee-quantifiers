@@ -1,5 +1,6 @@
 #include "Parametrization.h"
 #include "ExecTreeIterator.h"
+#include "TimingSolver.h"
 
 #include <klee/Expr/ArrayCache.h>
 #include <klee/Expr/ExprUtil.h>
@@ -12,7 +13,26 @@
 using namespace llvm;
 using namespace klee;
 
+cl::opt<bool> UseSeparateEquationSolver("use-separate-equation-solver",
+                                        cl::init(false),
+                                        cl::desc(""));
+
 static ArrayCache cache;
+
+static TimingSolver *equationSolver = nullptr;
+
+static TimingSolver *getNewSolver() {
+  if (!equationSolver) {
+    Solver *solver = klee::createCoreSolver(Z3_SOLVER);
+    solver = createAssignmentValidatingSolver(solver);
+    solver = createFastCexSolver(solver);
+    solver = createCexCachingSolver(solver);
+    solver = createCachingSolver(solver);
+    solver = createIndependentSolver(solver);
+    equationSolver = new TimingSolver(solver, true);
+  }
+  return equationSolver;
+}
 
 /* TODO: the size probably shouldn't be a parameter */
 const Array *klee::getArray(const std::string &name,
@@ -325,24 +345,26 @@ static bool solveLinearEquation(TimingSolver &solver,
     all = AndExpr::create(all, eq);
   }
 
+  TimingSolver &eqSolver =
+    UseSeparateEquationSolver ? *getNewSolver() : solver;
   /* must be empty */
-  ConstraintSet s;
+  ConstraintSet c;
 
   /* first check is satisfiable */
   bool mayBeTrue;
   SolverQueryMetaData metaData;
-  assert(solver.mayBeTrue(nullptr, s, all, mayBeTrue, metaData, true));
+  assert(eqSolver.mayBeTrue(nullptr, c, all, mayBeTrue, metaData, true));
   if (!mayBeTrue) {
     return false;
   }
 
   /* now, we can add the constraint as it is feasible */
-  s.push_back(all);
+  c.push_back(all);
 
   /* get assignment */
   std::vector<const Array *> objects = {array_a, array_b};
   std::vector<std::vector<unsigned char>> result;
-  if (!solver.getInitialValues(nullptr, s, objects, result, metaData, true)) {
+  if (!eqSolver.getInitialValues(nullptr, c, objects, result, metaData, true)) {
     assert(0);
   }
 
