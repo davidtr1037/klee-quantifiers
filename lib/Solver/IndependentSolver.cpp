@@ -506,7 +506,13 @@ bool IndependentSolver::computeInitialValues(const Query& query,
     if (arraysInFactor.size() == 0){
       continue;
     }
-    ConstraintSet tmp(it->exprs);
+    ConstraintSet tmp;
+    const std::vector<ref<Expr>> &pc = it->exprs;
+    for (ref<Expr> condition : query.constraints) {
+      if (std::find(pc.begin(), pc.end(), condition) != pc.end()) {
+        tmp.push_back(condition);
+      }
+    }
     std::vector<std::vector<unsigned char> > tempValues;
     if (!solver->impl->computeInitialValues(Query(tmp, ConstantExpr::alloc(0, Expr::Bool)),
                                             arraysInFactor, tempValues, hasSolution)){
