@@ -370,12 +370,14 @@ bool ExecutionState::merge(const ExecutionState &b) {
     return false;
   }
 
-  /* handle auxiliary variables */
-  for (auto i : b.renamingMap) {
-    const Array *array = i.first;
-    renamingMap[array] = nullptr;
+  if (RewriteExpr) {
+    /* handle auxiliary variables */
+    for (auto i : b.renamingMap) {
+      const Array *array = i.first;
+      renamingMap[array] = nullptr;
+    }
+    mapAuxArrays();
   }
-  mapAuxArrays();
   
   // merge stack
 
@@ -648,15 +650,17 @@ ExecutionState *ExecutionState::mergeStatesOptimized(std::vector<ExecutionState 
 
   ExecutionState *merged = states[0];
 
-  /* handle auxiliary variables */
-  for (unsigned i = 0; i < states.size(); i++) {
-    ExecutionState *es = states[i];
-    for (auto j : es->renamingMap) {
-      const Array *array = j.first;
-      merged->renamingMap[array] = nullptr;
+  if (RewriteExpr) {
+    /* handle auxiliary variables */
+    for (unsigned i = 0; i < states.size(); i++) {
+      ExecutionState *es = states[i];
+      for (auto j : es->renamingMap) {
+        const Array *array = j.first;
+        merged->renamingMap[array] = nullptr;
+      }
     }
+    merged->mapAuxArrays();
   }
-  merged->mapAuxArrays();
 
   /* path constraints */
   merged->constraints = ConstraintSet();
@@ -691,7 +695,9 @@ ExecutionState *ExecutionState::mergeStatesOptimized(std::vector<ExecutionState 
 
     if (isEncodedWithABV) {
       /* TODO: add parameter */
-      merged->addAuxArray();
+      if (RewriteExpr) {
+        merged->addAuxArray();
+      }
     }
 
     merged->addConstraint(orExpr, true);
