@@ -79,6 +79,8 @@ public:
 
   void splitStates(std::vector<MergeGroup> &result);
 
+  bool mergeGroup(MergeGroup &states, bool isComplete);
+
   void releaseStates();
 
   void markEarlyTerminated(ExecutionState &state);

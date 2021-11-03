@@ -234,6 +234,91 @@ void LoopHandler::splitStates(std::vector<MergeGroup> &result) {
   }
 }
 
+bool LoopHandler::mergeGroup(MergeGroup &states, bool isComplete) {
+  vector<ExecutionState *> snapshots;
+  if (ValidateMerge) {
+    /* take snapshots before merging */
+    for (ExecutionState *es : states) {
+      snapshots.push_back(es->branch(true));
+    }
+  }
+
+  ExecutionState *merged = nullptr;
+  /* TODO: pc or prevPC? */
+  klee_message("merging at %s:%u",
+               states[0]->pc->info->file.data(),
+               states[0]->pc->info->line);
+
+  if (MaxStatesToMerge == 0 || states.size() < MaxStatesToMerge) {
+    if (UseOptimizedMerge) {
+      std::vector<PatternMatch> matches;
+      if (OptimizeUsingQuantifiers) {
+        std::set<uint32_t> ids;
+        for (ExecutionState *es : states) {
+          ids.insert(es->getID());
+        }
+        /* TODO: avoid calling twice */
+        if (UseForwardExtract) {
+          extractPatterns(tree, ids, matches);
+        } else {
+          extractPatternsBackward(tree, ids, matches);
+        }
+      }
+
+      merged = ExecutionState::mergeStatesOptimized(states,
+                                                    isComplete,
+                                                    OptimizeUsingQuantifiers,
+                                                    matches,
+                                                    this);
+    } else {
+      merged = ExecutionState::mergeStates(states);
+    }
+  }
+
+  if (!merged) {
+    /* TODO: merged state might have merge side effects */
+    char msg[1000];
+    snprintf(msg,
+             sizeof(msg),
+             "unsupported merge: %s:%u",
+             states[0]->prevPC->info->file.data(),
+             states[0]->prevPC->info->line);
+    klee_warning("%s", msg);
+
+    for (ExecutionState *es : states) {
+      es->suffixConstraints.clear();
+      resumeClosedState(es);
+    }
+
+    return false;
+  }
+
+  merged->hasPendingSnapshot = false;
+
+  if (ValidateMerge) {
+    assert(validateMerge(snapshots, merged));
+    for (ExecutionState *es : snapshots) {
+      delete es;
+    }
+  }
+
+  executor->collectMergeStats(*merged);
+
+  resumeClosedState(merged);
+
+  /* TODO: why? */
+  for (ExecutionState *es : states) {
+    es->suffixConstraints.clear();
+  }
+
+  for (unsigned i = 1; i < states.size(); i++) {
+    ExecutionState *es = states[i];
+    discardClosedState(es, "Merge", true);
+  }
+
+  return true;
+}
+
 void LoopHandler::releaseStates() {
   TimerStatIncrementer timer(stats::mergeTime);
   std::vector<MergeGroup> groups;
@@ -251,77 +336,10 @@ void LoopHandler::releaseStates() {
     dumpStats();
   }
 
-  unsigned groupId = 0;
+  bool isComplete = (groups.size() == 1) && (earlyTerminated == 0);
+  unsigned groupID = 0;
   for (MergeGroup &states: groups) {
-    vector<ExecutionState *> snapshots;
-    if (ValidateMerge) {
-      /* take snapshots before merging */
-      for (ExecutionState *es : states) {
-        snapshots.push_back(es->branch(true));
-      }
-    }
-
-    ExecutionState *merged = nullptr;
-    bool isComplete = (groups.size() == 1) && (earlyTerminated == 0);
-    /* TODO: pc or prevPC? */
-    klee_message("merging at %s:%u",
-                 states[0]->pc->info->file.data(),
-                 states[0]->pc->info->line);
-
-    if (MaxStatesToMerge == 0 || states.size() < MaxStatesToMerge) {
-      if (UseOptimizedMerge) {
-        std::vector<PatternMatch> matches;
-        if (OptimizeUsingQuantifiers) {
-          std::set<uint32_t> ids;
-          for (ExecutionState *es : states) {
-            ids.insert(es->getID());
-          }
-          /* TODO: avoid calling twice */
-          if (UseForwardExtract) {
-            extractPatterns(tree, ids, matches);
-          } else {
-            extractPatternsBackward(tree, ids, matches);
-          }
-        }
-
-        merged = ExecutionState::mergeStatesOptimized(states,
-                                                      isComplete,
-                                                      OptimizeUsingQuantifiers,
-                                                      matches,
-                                                      this);
-      } else {
-        merged = ExecutionState::mergeStates(states);
-      }
-    }
-    if (!merged) {
-      /* TODO: merged state might have merge side effects */
-      char msg[1000];
-      snprintf(msg,
-               sizeof(msg),
-               "unsupported merge: %s:%u",
-               states[0]->prevPC->info->file.data(),
-               states[0]->prevPC->info->line);
-      klee_warning("%s", msg);
-
-      for (ExecutionState *es : states) {
-        es->suffixConstraints.clear();
-        resumeClosedState(es);
-      }
-
-      /* TODO: refactor... */
-      continue;
-    } else {
-      merged->hasPendingSnapshot = false;
-    }
-
-    if (ValidateMerge) {
-      assert(validateMerge(snapshots, merged));
-      for (ExecutionState *es : snapshots) {
-        delete es;
-      }
-    }
-
-    executor->collectMergeStats(*merged);
+    mergeGroup(states, isComplete);
     if (groups.size() == 1) {
       klee_message("merged %lu states (complete = %u)",
                    states.size(),
@@ -330,24 +348,13 @@ void LoopHandler::releaseStates() {
       klee_message("merged %lu states (complete = %u, group = %u)",
                    states.size(),
                    isComplete,
-                   groupId);
+                   groupID);
     }
-
-    resumeClosedState(merged);
-
-    /* TODO: why? */
-    for (ExecutionState *es : states) {
-      es->suffixConstraints.clear();
-    }
-
-    for (unsigned i = 1; i < states.size(); i++) {
-      ExecutionState *es = states[i];
-      discardClosedState(es, "Merge", true);
-    }
-
-    groupId++;
+    groupID++;
   }
+
   mergeGroupsByExit.clear();
+
   /* the snapshots hold a reference to the loop hander... */
   tree.clear();
 
