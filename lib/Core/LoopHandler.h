@@ -5,7 +5,6 @@
 #include "Memory.h"
 #include "ExecTree.h"
 #include "LivenessAnalysis.h"
-#include "LivenessAnalysis.h"
 #include "PatternExtraction.h"
 
 #include "klee/ADT/Ref.h"
