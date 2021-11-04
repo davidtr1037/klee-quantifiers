@@ -513,6 +513,9 @@ bool IndependentSolver::computeInitialValues(const Query& query,
         tmp.push_back(condition);
       }
     }
+    if (tmp.size() != it->exprs.size()) {
+      tmp.push_back(Expr::createIsZero(query.expr));
+    }
     std::vector<std::vector<unsigned char> > tempValues;
     if (!solver->impl->computeInitialValues(Query(tmp, ConstantExpr::alloc(0, Expr::Bool)),
                                             arraysInFactor, tempValues, hasSolution)){
