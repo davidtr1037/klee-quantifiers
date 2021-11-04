@@ -5,6 +5,8 @@
 #include "Memory.h"
 #include "ExecTree.h"
 #include "LivenessAnalysis.h"
+#include "LivenessAnalysis.h"
+#include "PatternExtraction.h"
 
 #include "klee/ADT/Ref.h"
 #include "klee/Expr/Constraints.h"
@@ -34,6 +36,24 @@ class LoopHandler {
 private:
 
   typedef std::vector<ExecutionState *> MergeGroup;
+
+  struct MergeGroupInfo {
+    MergeGroup states;
+    std::vector<PatternMatch> matches;
+
+    MergeGroupInfo(const MergeGroup &states,
+                   const std::vector<PatternMatch> &matches) :
+      states(states),
+      matches(matches) {
+
+    }
+
+    MergeGroupInfo(const MergeGroup &states) :
+      states(states) {
+
+    }
+
+  };
 
   unsigned closedStateCount;
 
@@ -77,9 +97,9 @@ public:
 
   void addClosedState(ExecutionState *es, llvm::Instruction *mp);
 
-  void splitStates(std::vector<MergeGroup> &result);
+  void splitStates(std::vector<MergeGroupInfo> &result);
 
-  ExecutionState *mergeGroup(MergeGroup &states, bool isComplete);
+  ExecutionState *mergeGroup(MergeGroupInfo &groupInfo, bool isComplete);
 
   void releaseStates();
 

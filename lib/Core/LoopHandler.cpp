@@ -113,9 +113,9 @@ void LoopHandler::addOpenState(ExecutionState *es){
 }
 
 void LoopHandler::removeOpenState(ExecutionState *es) {
-  auto it = std::find(openStates.begin(), openStates.end(), es);
+  auto it = find(openStates.begin(), openStates.end(), es);
   assert(it != openStates.end());
-  std::swap(*it, openStates.back());
+  swap(*it, openStates.back());
   openStates.pop_back();
 }
 
@@ -165,7 +165,7 @@ void LoopHandler::discardClosedState(ExecutionState *es,
 void LoopHandler::discardState(ExecutionState *es,
                                const char *reason,
                                bool isFullyExplored) {
-  if (std::find(openStates.begin(), openStates.end(), es) == openStates.end()) {
+  if (find(openStates.begin(), openStates.end(), es) == openStates.end()) {
     /* the state reached the loop exit (suspended) */
     discardClosedState(es, reason, isFullyExplored);
   } else {
@@ -195,21 +195,21 @@ void LoopHandler::addClosedState(ExecutionState *es,
   }
 }
 
-void LoopHandler::splitStates(std::vector<MergeGroup> &result) {
+void LoopHandler::splitStates(vector<MergeGroupInfo> &result) {
   if (SplitByPattern) {
     for (auto &i: mergeGroupsByExit) {
       MergeGroup &states = i.second;
 
-      std::set<uint32_t> ids;
+      set<uint32_t> ids;
       /* TODO: add this mapping to LoopHandler */
-      std::map<uint32_t, ExecutionState *> m;
+      map<uint32_t, ExecutionState *> m;
       for (ExecutionState *es : states) {
           ids.insert(es->getID());
           m[es->getID()] = es;
       }
 
       /* TODO: check forward as well */
-      std::vector<PatternMatch> matches;
+      vector<PatternMatch> matches;
       if (UseForwardExtract) {
         extractPatterns(tree, ids, matches);
       } else {
@@ -223,18 +223,23 @@ void LoopHandler::splitStates(std::vector<MergeGroup> &result) {
           assert(i != m.end());
           states.push_back(i->second);
         }
-        result.push_back(states);
+        assert(!matches.empty());
+        result.push_back(MergeGroupInfo(states, {pm}));
       }
     }
   } else {
     for (auto &i: mergeGroupsByExit) {
       MergeGroup &states = i.second;
-      result.push_back(states);
+      result.push_back(MergeGroupInfo(states));
     }
   }
 }
 
-ExecutionState *LoopHandler::mergeGroup(MergeGroup &states, bool isComplete) {
+ExecutionState *LoopHandler::mergeGroup(MergeGroupInfo &groupInfo,
+                                        bool isComplete) {
+  MergeGroup &states = groupInfo.states;
+  vector<PatternMatch> &matches = groupInfo.matches;
+
   vector<ExecutionState *> snapshots;
   if (ValidateMerge) {
     /* take snapshots before merging */
@@ -251,23 +256,10 @@ ExecutionState *LoopHandler::mergeGroup(MergeGroup &states, bool isComplete) {
 
   if (MaxStatesToMerge == 0 || states.size() < MaxStatesToMerge) {
     if (UseOptimizedMerge) {
-      std::vector<PatternMatch> matches;
-      if (OptimizeUsingQuantifiers) {
-        std::set<uint32_t> ids;
-        for (ExecutionState *es : states) {
-          ids.insert(es->getID());
-        }
-        /* TODO: avoid calling twice */
-        if (UseForwardExtract) {
-          extractPatterns(tree, ids, matches);
-        } else {
-          extractPatternsBackward(tree, ids, matches);
-        }
-      }
-
+      bool usePattern = OptimizeUsingQuantifiers && !matches.empty();
       merged = ExecutionState::mergeStatesOptimized(states,
                                                     isComplete,
-                                                    OptimizeUsingQuantifiers,
+                                                    usePattern,
                                                     matches,
                                                     this);
     } else {
@@ -318,12 +310,12 @@ ExecutionState *LoopHandler::mergeGroup(MergeGroup &states, bool isComplete) {
 
 void LoopHandler::releaseStates() {
   TimerStatIncrementer timer(stats::mergeTime);
-  std::vector<MergeGroup> groups;
+  vector<MergeGroupInfo> groups;
   splitStates(groups);
 
   size_t total = 0;
-  for (MergeGroup &states: groups) {
-    total += states.size();
+  for (MergeGroupInfo &groupInfo: groups) {
+    total += groupInfo.states.size();
   }
   klee_message("splitting %lu states to %lu merging groups",
                total,
@@ -335,16 +327,16 @@ void LoopHandler::releaseStates() {
 
   bool isComplete = (groups.size() == 1) && (earlyTerminated == 0);
   unsigned groupID = 0;
-  for (MergeGroup &states: groups) {
-    ExecutionState *merged = mergeGroup(states, isComplete);
+  for (MergeGroupInfo &groupInfo: groups) {
+    ExecutionState *merged = mergeGroup(groupInfo, isComplete);
     executor->collectMergeStats(*merged);
     if (groups.size() == 1) {
       klee_message("merged %lu states (complete = %u)",
-                   states.size(),
+                   groupInfo.states.size(),
                    isComplete);
     } else {
       klee_message("merged %lu states (complete = %u, group = %u)",
-                   states.size(),
+                   groupInfo.states.size(),
                    isComplete,
                    groupID);
     }
@@ -381,8 +373,8 @@ bool LoopHandler::canMergeNodes(ExecTreeNode *n1, ExecTreeNode *n2) {
 }
 
 bool LoopHandler::shouldMerge(ExecutionState &s1, ExecutionState &s2) {
-  std::vector<ExecutionState *> states = {&s1, &s2};
-  std::set<const MemoryObject*> mutated;
+  vector<ExecutionState *> states = {&s1, &s2};
+  set<const MemoryObject*> mutated;
   if (!ExecutionState::canMerge(states, mutated)) {
     return false;
   }
@@ -428,8 +420,8 @@ bool LoopHandler::discardStateByID(unsigned id) {
 
 void LoopHandler::discardSubTree(ExecTreeNode *src,
                                  ExecTreeNode *ancestor) {
-  std::set<unsigned> ids;
-  std::vector<ExecTreeNode *> nodes;
+  set<unsigned> ids;
+  vector<ExecTreeNode *> nodes;
 
   tree.getReachable(src, nodes);
   for (ExecTreeNode *n : nodes) {
@@ -451,7 +443,7 @@ void LoopHandler::discardSubTree(ExecTreeNode *src,
 void LoopHandler::setSuffixConstraints(ExecutionState *merged,
                                        ExecTreeNode *ancestor,
                                        ref<Expr> condition) {
-  std::list<ref<Expr>> prefixConditions;
+  list<ref<Expr>> prefixConditions;
   ExecTreeNode *n = ancestor;
   while (n) {
     prefixConditions.push_front(n->e);
@@ -473,7 +465,7 @@ void LoopHandler::mergeNodes(ExecTreeNode *n1,
     tree.dumpGMLToFile("before-merge");
   }
 
-  std::vector<ExecutionState *> states = {s1, s2};
+  vector<ExecutionState *> states = {s1, s2};
   /* TODO: use ExecutionState::mergeStatesOptimized? */
   ExecutionState *merged = ExecutionState::mergeStates(states);
 
@@ -533,7 +525,7 @@ bool LoopHandler::mergeNodes(ExecTreeNode *n1, ExecTreeNode *n2) {
 }
 
 bool LoopHandler::mergeIntermediateState(ExecTreeNode *target) {
-  std::list<ExecTreeNode *> worklist;
+  list<ExecTreeNode *> worklist;
 
   ExecTreeNode *n = target;
   while (n->parent) {
@@ -639,7 +631,7 @@ bool LoopHandler::transform() {
   return changed;
 }
 
-bool LoopHandler::validateMerge(std::vector<ExecutionState *> &snapshots,
+bool LoopHandler::validateMerge(vector<ExecutionState *> &snapshots,
                                 ExecutionState *merged) {
   ExecutionState *expected = ExecutionState::mergeStates(snapshots);
   return ExecutionState::areEquiv(executor->solver,
