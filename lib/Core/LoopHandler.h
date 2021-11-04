@@ -79,7 +79,7 @@ public:
 
   void splitStates(std::vector<MergeGroup> &result);
 
-  bool mergeGroup(MergeGroup &states, bool isComplete);
+  ExecutionState *mergeGroup(MergeGroup &states, bool isComplete);
 
   void releaseStates();
 

@@ -234,7 +234,7 @@ void LoopHandler::splitStates(std::vector<MergeGroup> &result) {
   }
 }
 
-bool LoopHandler::mergeGroup(MergeGroup &states, bool isComplete) {
+ExecutionState *LoopHandler::mergeGroup(MergeGroup &states, bool isComplete) {
   vector<ExecutionState *> snapshots;
   if (ValidateMerge) {
     /* take snapshots before merging */
@@ -290,7 +290,7 @@ bool LoopHandler::mergeGroup(MergeGroup &states, bool isComplete) {
       resumeClosedState(es);
     }
 
-    return false;
+    return nullptr;
   }
 
   merged->hasPendingSnapshot = false;
@@ -301,8 +301,6 @@ bool LoopHandler::mergeGroup(MergeGroup &states, bool isComplete) {
       delete es;
     }
   }
-
-  executor->collectMergeStats(*merged);
 
   resumeClosedState(merged);
 
@@ -316,7 +314,7 @@ bool LoopHandler::mergeGroup(MergeGroup &states, bool isComplete) {
     discardClosedState(es, "Merge", true);
   }
 
-  return true;
+  return merged;
 }
 
 void LoopHandler::releaseStates() {
@@ -339,7 +337,8 @@ void LoopHandler::releaseStates() {
   bool isComplete = (groups.size() == 1) && (earlyTerminated == 0);
   unsigned groupID = 0;
   for (MergeGroup &states: groups) {
-    mergeGroup(states, isComplete);
+    ExecutionState *merged = mergeGroup(states, isComplete);
+    executor->collectMergeStats(*merged);
     if (groups.size() == 1) {
       klee_message("merged %lu states (complete = %u)",
                    states.size(),
