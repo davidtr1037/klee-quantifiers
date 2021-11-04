@@ -293,8 +293,6 @@ ExecutionState *LoopHandler::mergeGroup(MergeGroup &states, bool isComplete) {
     return nullptr;
   }
 
-  merged->hasPendingSnapshot = false;
-
   if (ValidateMerge) {
     assert(validateMerge(snapshots, merged));
     for (ExecutionState *es : snapshots) {
@@ -302,6 +300,7 @@ ExecutionState *LoopHandler::mergeGroup(MergeGroup &states, bool isComplete) {
     }
   }
 
+  merged->hasPendingSnapshot = false;
   resumeClosedState(merged);
 
   /* TODO: why? */
