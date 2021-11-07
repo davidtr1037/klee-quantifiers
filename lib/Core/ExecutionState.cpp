@@ -614,6 +614,7 @@ ExecutionState *ExecutionState::mergeStates(std::vector<ExecutionState *> &state
   return merged;
 }
 
+/* TODO: pass a single PatternMatch instead of a list? */
 ExecutionState *ExecutionState::mergeStatesOptimized(std::vector<ExecutionState *> &states,
                                                      bool isComplete,
                                                      bool usePattern,
