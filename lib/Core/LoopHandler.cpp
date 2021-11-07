@@ -48,6 +48,13 @@ cl::opt<bool> SplitByPattern(
     cl::desc(""),
     cl::cat(klee::LoopCat));
 
+cl::opt<bool> SplitByCFG(
+    "split-by-cfg",
+    cl::init(false),
+    cl::desc(""),
+    cl::cat(klee::LoopCat));
+
+
 cl::opt<bool> UseForwardExtract(
     "use-forward-extract",
     cl::init(false),
@@ -224,17 +231,32 @@ void LoopHandler::splitStates(vector<MergeGroupInfo> &result) {
       } else {
         extractPatternsBackward(tree, ids, matches);
       }
+      assert(!matches.empty());
 
-      for (PatternMatch &pm : matches) {
-        StateSet states;
-        for (StateMatch &sm : pm.matches) {
-          auto i = m.find(sm.stateID);
-          assert(i != m.end());
-          states.push_back(i->second);
+      if (SplitByCFG) {
+        std::vector<MergeSubGroupInfo> subGroups;
+        for (PatternMatch &pm : matches) {
+          StateSet states;
+          for (StateMatch &sm : pm.matches) {
+            auto i = m.find(sm.stateID);
+            assert(i != m.end());
+            states.push_back(i->second);
+          }
+          subGroups.push_back(MergeSubGroupInfo(states, {pm}));
         }
-        assert(!matches.empty());
-        MergeGroupInfo groupInfo({MergeSubGroupInfo(states, {pm})});
+        MergeGroupInfo groupInfo(subGroups);
         result.push_back(groupInfo);
+      } else {
+        for (PatternMatch &pm : matches) {
+          StateSet states;
+          for (StateMatch &sm : pm.matches) {
+            auto i = m.find(sm.stateID);
+            assert(i != m.end());
+            states.push_back(i->second);
+          }
+          MergeGroupInfo groupInfo({MergeSubGroupInfo(states, {pm})});
+          result.push_back(groupInfo);
+        }
       }
     }
   } else {
@@ -291,7 +313,10 @@ ExecutionState *LoopHandler::mergeGroup(MergeGroupInfo &groupInfo,
 
   vector<ExecutionState *> subStates;
   for (MergeSubGroupInfo &subGroupInfo : groupInfo.subGroups) {
-    ExecutionState *subState = mergeSubGroup(subGroupInfo, isComplete);
+    ExecutionState *subState = mergeSubGroup(
+      subGroupInfo,
+      isComplete && groupInfo.subGroups.size() == 1
+    );
     subStates.push_back(subState);
   }
   ExecutionState *merged = ExecutionState::mergeStates(subStates);
