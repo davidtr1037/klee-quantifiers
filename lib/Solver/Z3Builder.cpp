@@ -897,6 +897,7 @@ Z3ASTHandle Z3Builder::constructActual(ref<Expr> e, int *width_out) {
       ),
       ctx
     );
+    *width_out = 1;
     return forall;
   }
 // unused due to canonicalization
