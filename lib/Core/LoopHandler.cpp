@@ -233,20 +233,24 @@ void LoopHandler::splitStates(vector<MergeGroupInfo> &result) {
           states.push_back(i->second);
         }
         assert(!matches.empty());
-        result.push_back(MergeGroupInfo(states, {pm}));
+        MergeGroupInfo groupInfo({MergeSubGroupInfo(states, {pm})});
+        result.push_back(groupInfo);
       }
     }
   } else {
     for (auto &i: mergeGroupsByExit) {
       MergeGroup &states = i.second;
-      result.push_back(MergeGroupInfo(states));
+      MergeGroupInfo groupInfo({MergeSubGroupInfo(states)});
+      result.push_back(groupInfo);
     }
   }
 }
 
-ExecutionState *LoopHandler::merge(MergeGroup &states,
-                                   bool isComplete,
-                                   std::vector<PatternMatch> &matches) {
+ExecutionState *LoopHandler::mergeSubGroup(MergeSubGroupInfo &info,
+                                           bool isComplete) {
+  MergeGroup &states = info.states;
+  vector<PatternMatch> &matches = info.matches;
+
   if (MaxStatesToMerge != 0 && states.size() > MaxStatesToMerge) {
     return nullptr;
   }
@@ -265,8 +269,12 @@ ExecutionState *LoopHandler::merge(MergeGroup &states,
 
 ExecutionState *LoopHandler::mergeGroup(MergeGroupInfo &groupInfo,
                                         bool isComplete) {
-  MergeGroup &states = groupInfo.states;
-  vector<PatternMatch> &matches = groupInfo.matches;
+  MergeGroup states;
+  for (MergeSubGroupInfo &subGroupInfo : groupInfo.subGroups) {
+    for (ExecutionState *state : subGroupInfo.states) {
+      states.push_back(state);
+    }
+  }
 
   vector<ExecutionState *> snapshots;
   if (ValidateMerge) {
@@ -281,7 +289,12 @@ ExecutionState *LoopHandler::mergeGroup(MergeGroupInfo &groupInfo,
                states[0]->pc->info->file.data(),
                states[0]->pc->info->line);
 
-  ExecutionState *merged = merge(states, isComplete, matches);
+  vector<ExecutionState *> subStates;
+  for (MergeSubGroupInfo &subGroupInfo : groupInfo.subGroups) {
+    ExecutionState *subState = mergeSubGroup(subGroupInfo, isComplete);
+    subStates.push_back(subState);
+  }
+  ExecutionState *merged = ExecutionState::mergeStates(subStates);
   if (!merged) {
     /* TODO: merged state might have merge side effects */
     char msg[1000];
@@ -330,7 +343,7 @@ void LoopHandler::releaseStates() {
 
   size_t total = 0;
   for (MergeGroupInfo &groupInfo: groups) {
-    total += groupInfo.states.size();
+    total += groupInfo.getStatesCount();
   }
   klee_message("splitting %lu states to %lu merging groups",
                total,
@@ -347,11 +360,11 @@ void LoopHandler::releaseStates() {
     executor->collectMergeStats(*merged);
     if (groups.size() == 1) {
       klee_message("merged %lu states (complete = %u)",
-                   groupInfo.states.size(),
+                   groupInfo.getStatesCount(),
                    isComplete);
     } else {
       klee_message("merged %lu states (complete = %u, group = %u)",
-                   groupInfo.states.size(),
+                   groupInfo.getStatesCount(),
                    isComplete,
                    groupID);
     }

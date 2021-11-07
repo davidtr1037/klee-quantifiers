@@ -36,22 +36,39 @@ private:
 
   typedef std::vector<ExecutionState *> MergeGroup;
 
-  struct MergeGroupInfo {
+  struct MergeSubGroupInfo {
     MergeGroup states;
     std::vector<PatternMatch> matches;
 
-    MergeGroupInfo(const MergeGroup &states,
-                   const std::vector<PatternMatch> &matches) :
+    MergeSubGroupInfo(const MergeGroup &states,
+                      const std::vector<PatternMatch> &matches) :
       states(states),
       matches(matches) {
 
     }
 
-    MergeGroupInfo(const MergeGroup &states) :
+    MergeSubGroupInfo(const MergeGroup &states) :
       states(states) {
 
     }
 
+  };
+
+  struct MergeGroupInfo {
+    std::vector<MergeSubGroupInfo> subGroups;
+
+    MergeGroupInfo(const std::vector<MergeSubGroupInfo> &subGroups) :
+      subGroups(subGroups) {
+
+    }
+
+    size_t getStatesCount() const {
+      size_t total = 0;
+      for (const MergeSubGroupInfo &info : subGroups) {
+        total += info.states.size();
+      }
+      return total;
+    }
   };
 
   unsigned closedStateCount;
@@ -98,9 +115,8 @@ public:
 
   void splitStates(std::vector<MergeGroupInfo> &result);
 
-  ExecutionState *merge(MergeGroup &states,
-                        bool isComplete,
-                        std::vector<PatternMatch> &matches);
+  ExecutionState *mergeSubGroup(MergeSubGroupInfo &info,
+                                bool isComplete);
 
   ExecutionState *mergeGroup(MergeGroupInfo &groupInfo, bool isComplete);
 
