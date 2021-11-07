@@ -26,7 +26,7 @@ cl::opt<bool> UseLoopMerge(
 
 cl::opt<bool> UseOptimizedMerge(
     "use-optimized-merge",
-    cl::init(false),
+    cl::init(true),
     cl::desc(""),
     cl::cat(klee::LoopCat));
 
