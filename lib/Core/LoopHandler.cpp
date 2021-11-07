@@ -192,7 +192,7 @@ void LoopHandler::addClosedState(ExecutionState *es,
   if (i == mergeGroupsByExit.end()) {
     mergeGroupsByExit[mp].push_back(es);
   } else {
-    MergeGroup &states = i->second;
+    StateSet &states = i->second;
     states.push_back(es);
   }
 
@@ -207,7 +207,7 @@ void LoopHandler::addClosedState(ExecutionState *es,
 void LoopHandler::splitStates(vector<MergeGroupInfo> &result) {
   if (SplitByPattern) {
     for (auto &i: mergeGroupsByExit) {
-      MergeGroup &states = i.second;
+      StateSet &states = i.second;
 
       set<uint32_t> ids;
       /* TODO: add this mapping to LoopHandler */
@@ -226,7 +226,7 @@ void LoopHandler::splitStates(vector<MergeGroupInfo> &result) {
       }
 
       for (PatternMatch &pm : matches) {
-        MergeGroup states;
+        StateSet states;
         for (StateMatch &sm : pm.matches) {
           auto i = m.find(sm.stateID);
           assert(i != m.end());
@@ -239,7 +239,7 @@ void LoopHandler::splitStates(vector<MergeGroupInfo> &result) {
     }
   } else {
     for (auto &i: mergeGroupsByExit) {
-      MergeGroup &states = i.second;
+      StateSet &states = i.second;
       MergeGroupInfo groupInfo({MergeSubGroupInfo(states)});
       result.push_back(groupInfo);
     }
@@ -248,7 +248,7 @@ void LoopHandler::splitStates(vector<MergeGroupInfo> &result) {
 
 ExecutionState *LoopHandler::mergeSubGroup(MergeSubGroupInfo &info,
                                            bool isComplete) {
-  MergeGroup &states = info.states;
+  StateSet &states = info.states;
   vector<PatternMatch> &matches = info.matches;
 
   if (MaxStatesToMerge != 0 && states.size() > MaxStatesToMerge) {
@@ -269,7 +269,7 @@ ExecutionState *LoopHandler::mergeSubGroup(MergeSubGroupInfo &info,
 
 ExecutionState *LoopHandler::mergeGroup(MergeGroupInfo &groupInfo,
                                         bool isComplete) {
-  MergeGroup states;
+  StateSet states;
   for (MergeSubGroupInfo &subGroupInfo : groupInfo.subGroups) {
     for (ExecutionState *state : subGroupInfo.states) {
       states.push_back(state);
@@ -430,13 +430,13 @@ bool LoopHandler::discardStateByID(unsigned id) {
 
   /* search in the closed states */
   for (auto &i : mergeGroupsByExit) {
-    MergeGroup &group = i.second;
-    auto j = group.begin();
-    while (j != group.end()) {
+    StateSet &states = i.second;
+    auto j = states.begin();
+    while (j != states.end()) {
       ExecutionState *es = *j;
       if (es->getID() == id) {
         discardState(es, "Incremental Merge", false);
-        group.erase(j);
+        states.erase(j);
         return true;
       }
       j++;

@@ -35,20 +35,20 @@ class LoopHandler {
 private:
 
   /* TODO: rename */
-  typedef std::vector<ExecutionState *> MergeGroup;
+  typedef std::vector<ExecutionState *> StateSet;
 
   struct MergeSubGroupInfo {
-    MergeGroup states;
+    StateSet states;
     std::vector<PatternMatch> matches;
 
-    MergeSubGroupInfo(const MergeGroup &states,
+    MergeSubGroupInfo(const StateSet &states,
                       const std::vector<PatternMatch> &matches) :
       states(states),
       matches(matches) {
 
     }
 
-    MergeSubGroupInfo(const MergeGroup &states) :
+    MergeSubGroupInfo(const StateSet &states) :
       states(states) {
 
     }
@@ -76,7 +76,7 @@ private:
 
   std::vector<ExecutionState *> openStates;
 
-  std::map<llvm::Instruction *, MergeGroup> mergeGroupsByExit;
+  std::map<llvm::Instruction *, StateSet> mergeGroupsByExit;
 
   /* TODO: signed or unsigned? */
   int activeStates;
