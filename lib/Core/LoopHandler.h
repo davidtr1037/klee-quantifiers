@@ -98,6 +98,10 @@ public:
 
   void splitStates(std::vector<MergeGroupInfo> &result);
 
+  ExecutionState *merge(MergeGroup &states,
+                        bool isComplete,
+                        std::vector<PatternMatch> &matches);
+
   ExecutionState *mergeGroup(MergeGroupInfo &groupInfo, bool isComplete);
 
   void releaseStates();

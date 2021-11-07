@@ -244,6 +244,25 @@ void LoopHandler::splitStates(vector<MergeGroupInfo> &result) {
   }
 }
 
+ExecutionState *LoopHandler::merge(MergeGroup &states,
+                                   bool isComplete,
+                                   std::vector<PatternMatch> &matches) {
+  if (MaxStatesToMerge != 0 && states.size() > MaxStatesToMerge) {
+    return nullptr;
+  }
+
+  if (!UseOptimizedMerge) {
+    return ExecutionState::mergeStates(states);
+  }
+
+  bool usePattern = OptimizeUsingQuantifiers && !matches.empty();
+  return ExecutionState::mergeStatesOptimized(states,
+                                              isComplete,
+                                              usePattern,
+                                              matches,
+                                              this);
+}
+
 ExecutionState *LoopHandler::mergeGroup(MergeGroupInfo &groupInfo,
                                         bool isComplete) {
   MergeGroup &states = groupInfo.states;
@@ -257,25 +276,12 @@ ExecutionState *LoopHandler::mergeGroup(MergeGroupInfo &groupInfo,
     }
   }
 
-  ExecutionState *merged = nullptr;
   /* TODO: pc or prevPC? */
   klee_message("merging at %s:%u",
                states[0]->pc->info->file.data(),
                states[0]->pc->info->line);
 
-  if (MaxStatesToMerge == 0 || states.size() < MaxStatesToMerge) {
-    if (UseOptimizedMerge) {
-      bool usePattern = OptimizeUsingQuantifiers && !matches.empty();
-      merged = ExecutionState::mergeStatesOptimized(states,
-                                                    isComplete,
-                                                    usePattern,
-                                                    matches,
-                                                    this);
-    } else {
-      merged = ExecutionState::mergeStates(states);
-    }
-  }
-
+  ExecutionState *merged = merge(states, isComplete, matches);
   if (!merged) {
     /* TODO: merged state might have merge side effects */
     char msg[1000];
