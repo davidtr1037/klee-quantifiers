@@ -19,47 +19,56 @@ cl::OptionCategory LoopCat("Loop merging options",
                            "These options control path merging.");
 
 cl::opt<bool> UseLoopMerge(
-    "use-loop-merge", cl::init(false),
+    "use-loop-merge",
+    cl::init(false),
     cl::desc(""),
     cl::cat(klee::LoopCat));
 
 cl::opt<bool> UseOptimizedMerge(
-    "use-optimized-merge", cl::init(false),
+    "use-optimized-merge",
+    cl::init(false),
     cl::desc(""),
     cl::cat(klee::LoopCat));
 
 cl::opt<bool> ValidateMerge(
-    "validate-merge", cl::init(false),
+    "validate-merge",
+    cl::init(false),
     cl::desc(""),
     cl::cat(klee::LoopCat));
 
 cl::opt<unsigned> MaxStatesToMerge(
-    "max-states-to-merge", cl::init(10000),
+    "max-states-to-merge",
+    cl::init(10000),
     cl::desc(""),
     cl::cat(klee::LoopCat));
 
 cl::opt<bool> SplitByPattern(
-    "split-by-pattern", cl::init(false),
+    "split-by-pattern",
+    cl::init(false),
     cl::desc(""),
     cl::cat(klee::LoopCat));
 
 cl::opt<bool> UseForwardExtract(
-    "use-forward-extract", cl::init(false),
+    "use-forward-extract",
+    cl::init(false),
     cl::desc(""),
     cl::cat(klee::LoopCat));
 
 cl::opt<bool> UseMergeTransformation(
-    "use-merge-transformation", cl::init(false),
+    "use-merge-transformation",
+    cl::init(false),
     cl::desc(""),
     cl::cat(klee::LoopCat));
 
 cl::opt<bool> UseJoinTransformation(
-    "use-join-transformation", cl::init(false),
+    "use-join-transformation",
+    cl::init(false),
     cl::desc(""),
     cl::cat(klee::LoopCat));
 
 cl::opt<bool> DebugMergeTransformation(
-    "debug-merge-transformation", cl::init(false),
+    "debug-merge-transformation",
+    cl::init(false),
     cl::desc(""),
     cl::cat(klee::LoopCat));
 
