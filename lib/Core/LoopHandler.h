@@ -34,6 +34,7 @@ class LoopHandler {
 
 private:
 
+  /* TODO: rename */
   typedef std::vector<ExecutionState *> MergeGroup;
 
   struct MergeSubGroupInfo {
