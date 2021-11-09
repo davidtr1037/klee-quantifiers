@@ -727,8 +727,6 @@ ExecutionState *ExecutionState::mergeStatesOptimized(std::vector<ExecutionState 
     merged->optimizeArrayValues(mutated, loopHandler->solver);
   }
 
-  mergeID++;
-  merged->localMergeID++;
   return merged;
 }
 
@@ -1539,6 +1537,11 @@ bool ExecutionState::compareHeap(ExecutionState &s1,
 
 std::uint32_t ExecutionState::getMergeID() const {
   return UseLocalMergeID ? localMergeID : mergeID;
+}
+
+void ExecutionState::incMergeID() {
+  mergeID++;
+  localMergeID++;
 }
 
 void ExecutionState::addAuxArray() {

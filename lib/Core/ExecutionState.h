@@ -378,6 +378,8 @@ public:
 
   std::uint32_t getMergeID() const;
 
+  void incMergeID();
+
   void addAuxArray();
 
   void mapAuxArrays();

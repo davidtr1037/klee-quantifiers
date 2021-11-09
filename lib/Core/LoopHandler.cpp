@@ -345,6 +345,7 @@ ExecutionState *LoopHandler::mergeGroup(MergeGroupInfo &groupInfo,
     }
   }
 
+  merged->incMergeID();
   merged->hasPendingSnapshot = false;
   resumeClosedState(merged);
 
