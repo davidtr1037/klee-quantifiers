@@ -227,6 +227,7 @@ public:
     Expr::count++;
     isTainted = false;
     hasAuxVariable = false;
+    isQF = true;
     size = 1;
   }
 
@@ -325,6 +326,7 @@ public:
 
   bool isTainted;
   bool hasAuxVariable;
+  bool isQF;
   uint64_t size;
 
 private:
@@ -425,6 +427,7 @@ protected:
   BinaryExpr(const ref<Expr> &l, const ref<Expr> &r) : left(l), right(r) {
     isTainted = l->isTainted || r->isTainted;
     hasAuxVariable = l->hasAuxVariable || r->hasAuxVariable;
+    isQF = l->isQF && r->isQF;
     size = l->size + r->size + 1;
   }
 
@@ -480,6 +483,7 @@ private:
   NotOptimizedExpr(const ref<Expr> &_src) : src(_src) {
     isTainted = src->isTainted;
     hasAuxVariable = src->hasAuxVariable;
+    isQF = src->isQF;
     size = src->size + 1;
   }
 
@@ -683,7 +687,7 @@ private:
       }
     }
 
-    if (updates.root && updates.root->isAuxVariable) {
+    if (updates.root->isAuxVariable) {
       hasAuxVariable = true;
     } else {
       if (index->hasAuxVariable) {
@@ -698,9 +702,11 @@ private:
       }
     }
 
+    isQF = index->isQF;
     size = index->size + 1;
     for (const UpdateNode *un = updates.head.get(); un; un = un->next.get()) {
       size += un->index->size + un->value->size;
+      isQF = isQF && (un->index->isQF && un->value->isQF);
     }
   }
 
@@ -761,6 +767,7 @@ private:
     /* TODO: update isTainted? */
     isTainted = c->isTainted || t->isTainted || f->isTainted;
     hasAuxVariable = c->hasAuxVariable || t->hasAuxVariable || f->hasAuxVariable;
+    isQF = c->isQF && t->isQF && f->isQF;
     size = c->size + t->size + f->size + 1;
   }
 
@@ -827,6 +834,7 @@ private:
     width = l->getWidth() + r->getWidth();
     isTainted = l->isTainted || r->isTainted;
     hasAuxVariable = l->hasAuxVariable || r->hasAuxVariable;
+    isQF = l->isQF && r->isQF;
     size = l->size + r->size + 1;
   }
 
@@ -894,6 +902,7 @@ private:
     : expr(e),offset(b),width(w) {
     isTainted = e->isTainted;
     hasAuxVariable = e->hasAuxVariable;
+    isQF = e->isQF;
     size = e->size + 1;
   }
 
@@ -947,6 +956,7 @@ private:
     size = e->size + 1;
     isTainted = e->isTainted;
     hasAuxVariable = e->hasAuxVariable;
+    isQF = e->isQF;
   }
 
 protected:
@@ -969,6 +979,7 @@ public:
   CastExpr(const ref<Expr> &e, Width w) : src(e), width(w) {
     isTainted = e->isTainted;
     hasAuxVariable = e->hasAuxVariable;
+    isQF = e->isQF;
     size = e->size + 1;
   }
 
@@ -1309,6 +1320,7 @@ protected:
     hasAuxVariable = bound->hasAuxVariable || \
                      pre->hasAuxVariable || \
                      post->hasAuxVariable;
+    isQF = false;
     size = bound->size + pre->size + post->size + 1;
 
     if (isa<ConcatExpr>(bound)) {
