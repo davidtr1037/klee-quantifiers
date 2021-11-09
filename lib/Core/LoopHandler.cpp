@@ -307,7 +307,8 @@ ExecutionState *LoopHandler::mergeGroup(MergeGroupInfo &groupInfo,
   }
 
   /* TODO: pc or prevPC? */
-  klee_message("merging at %s:%u",
+  klee_message("merging %lu sub groups at %s:%u",
+               groupInfo.subGroups.size(),
                states[0]->pc->info->file.data(),
                states[0]->pc->info->line);
 
