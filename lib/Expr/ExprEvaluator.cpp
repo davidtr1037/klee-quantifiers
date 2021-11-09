@@ -109,6 +109,9 @@ ExprVisitor::Action ExprEvaluator::visitExprPost(const Expr& e) {
 }
 
 ExprVisitor::Action ExprEvaluator::visitForall(const ForallExpr &e) {
+  /* can't handle nested quantifiers */
+  assert(e.post->isQF);
+
   ref<AndExpr> pre = dyn_cast<AndExpr>(visit(e.pre));
   assert(!pre.isNull());
   ref<UleExpr> lower = dyn_cast<UleExpr>(pre->left);
