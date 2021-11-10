@@ -1204,31 +1204,47 @@ ExprResult ParserImpl::ParseForallParenExpr(const Token &Name,
 // FIXME: Rewrite to only accept binary form. Make type optional.
 ExprResult ParserImpl::ParseConcatParenExpr(const Token &Name,
                                             Expr::Width ResTy) {
-  std::vector<ExprHandle> Kids;
-  
-  unsigned Width = 0;
-  while (Tok.kind != Token::RParen) {
-    ExprResult E = ParseExpr(TypeResult());
-
-    // Skip to end of expr on error.
-    if (!E.isValid()) {
-      SkipUntilRParen();
-      return Builder->Constant(0, ResTy);
-    }
-    
-    Kids.push_back(E.get());
-    Width += E.get()->getWidth();
-  }
-  
-  ConsumeRParen();
-
-  if (Width != ResTy) {
-    Error("concat does not match expected result size.");
+  ExprResult left = ParseExpr(TypeResult(Expr::Int8));
+  if (Tok.kind == Token::RParen) {
+    Error("unexpected end of arguments.", Name);
+    ConsumeRParen();
     return Builder->Constant(0, ResTy);
   }
 
-  // FIXME: Use builder!
-  return ConcatExpr::createN(Kids.size(), &Kids[0]);
+  ExprResult right = ParseExpr(TypeResult());
+  ExpectRParen("unexpected argument to expression.");
+
+  if (!left.isValid() || !right.isValid()) {
+    return Builder->Constant(0, ResTy);
+  }
+
+  return Builder->Concat(left.get(), right.get());
+
+  //std::vector<ExprHandle> Kids;
+  //
+  //unsigned Width = 0;
+  //while (Tok.kind != Token::RParen) {
+  //  ExprResult E = ParseExpr(TypeResult());
+
+  //  // Skip to end of expr on error.
+  //  if (!E.isValid()) {
+  //    SkipUntilRParen();
+  //    return Builder->Constant(0, ResTy);
+  //  }
+  //  
+  //  Kids.push_back(E.get());
+  //  Width += E.get()->getWidth();
+  //}
+  
+  //ConsumeRParen();
+
+  //if (Width != ResTy) {
+  //  Error("concat does not match expected result size.");
+  //  return Builder->Constant(0, ResTy);
+  //}
+
+  //// FIXME: Use builder!
+  //return ConcatExpr::createN(Kids.size(), &Kids[0]);
 }
 
 IntegerResult ParserImpl::ParseIntegerConstant(Expr::Width Type) {
