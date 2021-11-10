@@ -227,6 +227,7 @@ public:
     Expr::count++;
     isTainted = false;
     hasAuxVariable = false;
+    isPureAux = false;
     isQF = true;
     size = 1;
   }
@@ -255,6 +256,8 @@ public:
   /// Returns the hash value. 
   virtual unsigned computeHash();
   
+  unsigned computeShapeHash();
+
   /// Compares `b` to `this` Expr for structural equivalence.
   ///
   /// This method effectively defines a total order over all Expr.
@@ -326,6 +329,7 @@ public:
 
   bool isTainted;
   bool hasAuxVariable;
+  bool isPureAux;
   bool isQF;
   uint64_t size;
 
@@ -428,6 +432,7 @@ protected:
     isTainted = l->isTainted || r->isTainted;
     hasAuxVariable = l->hasAuxVariable || r->hasAuxVariable;
     isQF = l->isQF && r->isQF;
+    isPureAux = l->isPureAux && r->isPureAux;
     size = l->size + r->size + 1;
   }
 
@@ -483,6 +488,7 @@ private:
   NotOptimizedExpr(const ref<Expr> &_src) : src(_src) {
     isTainted = src->isTainted;
     hasAuxVariable = src->hasAuxVariable;
+    isPureAux = src->isPureAux;
     isQF = src->isQF;
     size = src->size + 1;
   }
@@ -701,6 +707,7 @@ private:
         }
       }
     }
+    isPureAux = updates.root->isAuxVariable && isa<ConstantExpr>(index);
 
     isQF = index->isQF;
     size = index->size + 1;
@@ -767,6 +774,7 @@ private:
     /* TODO: update isTainted? */
     isTainted = c->isTainted || t->isTainted || f->isTainted;
     hasAuxVariable = c->hasAuxVariable || t->hasAuxVariable || f->hasAuxVariable;
+    isPureAux = c->isPureAux && t->isPureAux && f->isPureAux;
     isQF = c->isQF && t->isQF && f->isQF;
     size = c->size + t->size + f->size + 1;
   }
@@ -834,6 +842,7 @@ private:
     width = l->getWidth() + r->getWidth();
     isTainted = l->isTainted || r->isTainted;
     hasAuxVariable = l->hasAuxVariable || r->hasAuxVariable;
+    isPureAux = l->isPureAux && r->isPureAux;
     isQF = l->isQF && r->isQF;
     size = l->size + r->size + 1;
   }
@@ -902,6 +911,7 @@ private:
     : expr(e),offset(b),width(w) {
     isTainted = e->isTainted;
     hasAuxVariable = e->hasAuxVariable;
+    isPureAux = e->isPureAux;
     isQF = e->isQF;
     size = e->size + 1;
   }
@@ -956,6 +966,7 @@ private:
     size = e->size + 1;
     isTainted = e->isTainted;
     hasAuxVariable = e->hasAuxVariable;
+    isPureAux = e->isPureAux;
     isQF = e->isQF;
   }
 
@@ -979,6 +990,7 @@ public:
   CastExpr(const ref<Expr> &e, Width w) : src(e), width(w) {
     isTainted = e->isTainted;
     hasAuxVariable = e->hasAuxVariable;
+    isPureAux = e->isPureAux;
     isQF = e->isQF;
     size = e->size + 1;
   }
@@ -1320,6 +1332,9 @@ protected:
     hasAuxVariable = bound->hasAuxVariable || \
                      pre->hasAuxVariable || \
                      post->hasAuxVariable;
+    isPureAux = bound->isPureAux && \
+                pre->isPureAux && \
+                post->isPureAux;
     isQF = false;
     size = bound->size + pre->size + post->size + 1;
 

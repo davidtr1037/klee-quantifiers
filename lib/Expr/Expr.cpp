@@ -264,23 +264,48 @@ bool Expr::isIsomorphic(const Expr &b, ArrayMapping &map) const {
 
 unsigned Expr::computeHash() {
   unsigned res = getKind() * Expr::MAGIC_HASH_CONSTANT;
-  unsigned shapeRes = getKind() * Expr::MAGIC_HASH_CONSTANT;
   unsigned isoRes = getKind() * Expr::MAGIC_HASH_CONSTANT;
 
   int n = getNumKids();
   for (int i = 0; i < n; i++) {
     res <<= 1;
     res ^= getKid(i)->hash() * Expr::MAGIC_HASH_CONSTANT;
-    shapeRes <<= 1;
-    shapeRes ^= getKid(i)->shapeHash() * Expr::MAGIC_HASH_CONSTANT;
     isoRes <<= 1;
     isoRes ^= getKid(i)->isoHash() * Expr::MAGIC_HASH_CONSTANT;
   }
-  
+
   hashValue = res;
-  shapeHashValue = shapeRes;
+  shapeHashValue = computeShapeHash();
   isoHashValue = isoRes;
   return hashValue;
+}
+
+unsigned Expr::computeShapeHash() {
+  std::vector<ref<Expr>> nonIgnorable;
+  unsigned n = getNumKids();
+  for (unsigned i = 0; i < n; i++) {
+    ref<Expr> e = getKid(i);
+    if (!isa<ConstantExpr>(e) && !e->isPureAux) {
+      nonIgnorable.push_back(getKid(i));
+    }
+  }
+
+  if (nonIgnorable.size() == 0) {
+    return Expr::MAGIC_SHAPE_HASH_CONSTANT;
+  }
+
+  Expr::Kind k = getKind();
+  if (nonIgnorable.size() == 1 && ((k == Expr::Add) || k == Expr::Sub)) {
+    return nonIgnorable[0]->shapeHash();
+  }
+
+  unsigned r = getKind() * Expr::MAGIC_HASH_CONSTANT;
+  for (unsigned i = 0; i < n; i++) {
+    r <<= 1;
+    r ^= getKid(i)->shapeHash() * Expr::MAGIC_HASH_CONSTANT;
+  }
+
+  return r;
 }
 
 unsigned ConstantExpr::computeHash() {
@@ -314,6 +339,10 @@ unsigned ExtractExpr::computeHash() {
   unsigned shapeRes = offset * Expr::MAGIC_HASH_CONSTANT;
   shapeRes ^= getWidth() * Expr::MAGIC_HASH_CONSTANT;
   shapeHashValue = shapeRes ^ expr->shapeHash() * Expr::MAGIC_HASH_CONSTANT;
+  if (offset == 0) {
+    /* TODO: better solution? */
+    shapeHashValue = expr->shapeHash();
+  }
 
   unsigned isoRes = offset * Expr::MAGIC_HASH_CONSTANT;
   isoRes ^= getWidth() * Expr::MAGIC_HASH_CONSTANT;
