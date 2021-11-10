@@ -138,7 +138,8 @@ static bool hasCommonBoundaries(const PatternMatch &pm1,
     w2 = pm2.pattern.prefix;
   }
 
-  Word prefix, core, suffix;
+  /* now, pm1 is shorter than pm2 */
+  Word prefix, suffix;
   prefix = Word::getCommonPrefix(w1, w2);
   suffix = Word::getCommonSuffix(
     w1.extractSuffix(prefix.size()), w2.extractSuffix(prefix.size())
@@ -146,16 +147,22 @@ static bool hasCommonBoundaries(const PatternMatch &pm1,
 
   unsigned boundarySize = prefix.size() + suffix.size();
   if (boundarySize > 0 && boundarySize < w2.size()) {
-    for (unsigned i = prefix.size(); i < w2.size() - suffix.size(); i++) {
-      core.append(w2[i]);
+    Word core1, core2;
+    for (unsigned i = prefix.size(); i < w1.size() - suffix.size(); i++) {
+      core1.append(w1[i]);
     }
-    unified.pattern = Pattern(prefix, core, suffix);
+    for (unsigned i = prefix.size(); i < w2.size() - suffix.size(); i++) {
+      core2.append(w2[i]);
+    }
 
-    uint32_t id1 = pm1.matches[0].stateID;
-    uint32_t id2 = pm2.matches[0].stateID;
-    unified.addStateMatch(StateMatch(id1, pm1.pattern.prefix == w1 ? 0 : 1));
-    unified.addStateMatch(StateMatch(id2, pm1.pattern.prefix == w1 ? 1 : 0));
-    return true;
+    if (core1.isEmpty() && !core2.isEmpty()) {
+      unified.pattern = Pattern(prefix, core2, suffix);
+      uint32_t id1 = pm1.matches[0].stateID;
+      uint32_t id2 = pm2.matches[0].stateID;
+      unified.addStateMatch(StateMatch(id1, pm1.pattern.prefix == w1 ? 0 : 1));
+      unified.addStateMatch(StateMatch(id2, pm1.pattern.prefix == w1 ? 1 : 0));
+      return true;
+    }
   }
 
   return false;
