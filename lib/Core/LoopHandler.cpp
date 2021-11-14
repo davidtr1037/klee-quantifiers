@@ -79,6 +79,12 @@ cl::opt<bool> DebugMergeTransformation(
     cl::desc(""),
     cl::cat(klee::LoopCat));
 
+cl::opt<bool> RestrictPatternBaseMerging(
+    "restrict-pattern-based-merging",
+    cl::init(false),
+    cl::desc(""),
+    cl::cat(klee::LoopCat));
+
 LoopHandler::LoopHandler(Executor *executor,
                          ExecutionState *es,
                          Loop *loop,
@@ -211,8 +217,24 @@ void LoopHandler::addClosedState(ExecutionState *es,
   }
 }
 
+static set<string> forceCFG = {
+    "memmove",
+    "memcpy",
+    "strcpy",
+    "strncpy",
+};
+
+bool LoopHandler::shouldForceCFGBasedMerging() const {
+  if (RestrictPatternBaseMerging) {
+    Function *f = loop->getHeader()->getParent();
+    return forceCFG.find(f->getName()) != forceCFG.end();
+  } else {
+    return false;
+  }
+}
+
 void LoopHandler::splitStates(vector<MergeGroupInfo> &result) {
-  if (SplitByPattern) {
+  if (SplitByPattern && !shouldForceCFGBasedMerging()) {
     for (auto &i: mergeGroupsByExit) {
       StateSet &states = i.second;
 

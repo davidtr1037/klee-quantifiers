@@ -114,6 +114,8 @@ public:
 
   void addClosedState(ExecutionState *es, llvm::Instruction *mp);
 
+  bool shouldForceCFGBasedMerging() const;
+
   void splitStates(std::vector<MergeGroupInfo> &result);
 
   ExecutionState *mergeSubGroup(MergeSubGroupInfo &info,
