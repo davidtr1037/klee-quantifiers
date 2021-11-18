@@ -41,6 +41,8 @@ namespace klee {
                            InputIterator end,
                            std::vector<const Array*> &results);
 
+  ref<Expr> simplifyITE(ref<Expr> ite);
+
   class ConstantArrayFinder : public ExprVisitor {
   protected:
     ExprVisitor::Action visitRead(const ReadExpr &re);

@@ -14,6 +14,8 @@
 
 #include <set>
 #include <list>
+#include <cmath>
+#include <algorithm>
 
 using namespace klee;
 
@@ -134,6 +136,143 @@ void klee::findSymbolicObjects(InputIterator begin,
 void klee::findSymbolicObjects(ref<Expr> e,
                                std::vector<const Array*> &results) {
   findSymbolicObjects(&e, &e+1, results);
+}
+
+static ref<Expr> simplifyITEEqEq(ref<SelectExpr> e) {
+  /* looking for an expression of the form:
+   * ite(c1 == x, v, ite(c2 == x, v, ...)) */
+  ref<SelectExpr> inner = dyn_cast<SelectExpr>(e->falseExpr);
+
+  ref<EqExpr> eq1 = dyn_cast<EqExpr>(e->cond);
+  ref<EqExpr> eq2 = dyn_cast<EqExpr>(inner->cond);
+  if (eq1.isNull() || eq2.isNull()) {
+    return nullptr;
+  }
+
+  if (*eq1->right != *eq2->right) {
+    return nullptr;
+  }
+
+  ref<ConstantExpr> v1 = dyn_cast<ConstantExpr>(eq1->left);
+  ref<ConstantExpr> v2 = dyn_cast<ConstantExpr>(eq2->left);
+  if (v1.isNull() || v2.isNull()) {
+    return nullptr;
+  }
+
+  uint64_t n1 = v1->getZExtValue();
+  uint64_t n2 = v2->getZExtValue();
+  if (abs(n1 - n2) != 1) {
+    return nullptr;
+  }
+
+  uint64_t low = std::min(n1, n2);
+  uint64_t high = std::max(n1, n2);
+  if (low == 0 && high == (uint64_t)(-1)) {
+    return nullptr;
+  }
+
+  ref<Expr> cond = AndExpr::create(
+    UleExpr::create(
+      ConstantExpr::create(low, eq1->right->getWidth()),
+      eq1->right
+    ),
+    UleExpr::create(
+      eq1->right,
+      ConstantExpr::create(high, eq1->right->getWidth())
+    )
+  );
+  return SelectExpr::create(cond, inner->trueExpr, inner->falseExpr);
+}
+
+static ref<Expr> simplifyITEEqRange(ref<SelectExpr> e) {
+  /* looking for an expression of the form:
+   * ite(x == c1, v, ite(c2 <= x and x <= c3, v, ...)) */
+  ref<SelectExpr> inner = dyn_cast<SelectExpr>(e->falseExpr);
+
+  ref<EqExpr> eq = dyn_cast<EqExpr>(e->cond);
+  ref<AndExpr> range = dyn_cast<AndExpr>(inner->cond);
+  if (eq.isNull() || range.isNull()) {
+    return nullptr;
+  }
+
+  ref<UleExpr> ule1 = dyn_cast<UleExpr>(range->left);
+  ref<UleExpr> ule2 = dyn_cast<UleExpr>(range->right);
+  if (ule1.isNull() || ule2.isNull()) {
+    return nullptr;
+  }
+
+  if ((*ule1->right != *ule2->left) || (*ule1->right != *eq->right)) {
+    return nullptr;
+  }
+
+  ref<ConstantExpr> v = dyn_cast<ConstantExpr>(eq->left);
+  ref<ConstantExpr> rv1 = dyn_cast<ConstantExpr>(ule1->left);
+  ref<ConstantExpr> rv2 = dyn_cast<ConstantExpr>(ule2->right);
+  if (v.isNull() || rv1.isNull() || rv2.isNull()) {
+    return nullptr;
+  }
+
+  uint64_t n = v->getZExtValue();
+  uint64_t rn1 = rv1->getZExtValue();
+  uint64_t rn2 = rv2->getZExtValue();
+  if (rn1 == n + 1 && n != (uint64_t)(-1)) {
+    ref<Expr> cond = AndExpr::create(
+      UleExpr::create(
+        ConstantExpr::create(n, eq->right->getWidth()),
+        eq->right
+      ),
+      UleExpr::create(
+        eq->right,
+        ConstantExpr::create(rn2, eq->right->getWidth())
+      )
+    );
+    return SelectExpr::create(cond, inner->trueExpr, inner->falseExpr);
+  }
+
+  if (n == rn2 + 1 && rn2 != (uint64_t)(-1)) {
+    ref<Expr> cond = AndExpr::create(
+      UleExpr::create(
+        ConstantExpr::create(rn1, eq->right->getWidth()),
+        eq->right
+      ),
+      UleExpr::create(
+        eq->right,
+        ConstantExpr::create(n, eq->right->getWidth())
+      )
+    );
+    return SelectExpr::create(cond, inner->trueExpr, inner->falseExpr);
+  }
+
+  return nullptr;
+}
+
+ref<Expr> klee::simplifyITE(ref<Expr> ite) {
+  ref<SelectExpr> e = dyn_cast<SelectExpr>(ite);
+  if (e.isNull()) {
+    return ite;
+  }
+
+  ref<SelectExpr> inner = dyn_cast<SelectExpr>(e->falseExpr);
+  if (inner.isNull()) {
+    return e;
+  }
+
+  if (*e->trueExpr != *inner->trueExpr) {
+    return e;
+  }
+
+  ref<Expr> simplified;
+  simplified = simplifyITEEqEq(e);
+  if (!simplified.isNull()) {
+    return simplified;
+  }
+
+  simplified = simplifyITEEqRange(e);
+  if (!simplified.isNull()) {
+    return simplified;
+  }
+
+  return e;
 }
 
 typedef std::vector< ref<Expr> >::iterator A;

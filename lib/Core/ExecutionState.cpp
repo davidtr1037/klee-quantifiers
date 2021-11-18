@@ -110,6 +110,12 @@ cl::opt<bool> klee::RewriteExpr(
     cl::desc(""),
     cl::cat(MergeCat));
 
+cl::opt<bool> SimplifyITE(
+    "simplify-ite",
+    cl::init(false),
+    cl::desc(""),
+    cl::cat(MergeCat));
+
 /***/
 
 std::uint32_t ExecutionState::nextID = 1;
@@ -1046,12 +1052,16 @@ ExecutionState::MergedValue ExecutionState::mergeValuesFromNode(ExecTreeNode *n,
         );
       }
 
+      ref<Expr> ite = SelectExpr::create(
+        AndExpr::create(n->left->e, lv.guard),
+        lv.value,
+        rv.value
+      );
+      if (SimplifyITE) {
+        ite = simplifyITE(ite);
+      }
       return MergedValue(
-        SelectExpr::create(
-          AndExpr::create(n->left->e, lv.guard),
-          lv.value,
-          rv.value
-        ),
+        ite,
         isComplete,
         guard
       );
