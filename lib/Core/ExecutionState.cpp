@@ -61,12 +61,6 @@ cl::opt<bool> OptimizeArrayValuesByTracking(
     cl::cat(MergeCat));
 
 /* TODO: can't be used with -validate-merge */
-cl::opt<bool> OptimizeArrayValuesUsingUpperBound(
-    "optimize-array-values-using-upper-bound", cl::init(false),
-    cl::desc(""),
-    cl::cat(MergeCat));
-
-/* TODO: can't be used with -validate-merge */
 cl::opt<bool> OptimizeArrayValuesUsingSolver(
     "optimize-array-values-using-solver", cl::init(false),
     cl::desc(""),
@@ -206,7 +200,6 @@ ExecutionState::ExecutionState(const ExecutionState& state, bool isSnapshot):
     forkDisabled(state.forkDisabled),
     /* TODO: copy-on-write? */
     taintedExprs(state.taintedExprs),
-    size2addr(state.size2addr),
     loopHandler(state.loopHandler),
     suffixConstraints(state.suffixConstraints),
     isSnapshot(isSnapshot),
@@ -511,10 +504,6 @@ void ExecutionState::addConstraint(ref<Expr> e, bool atMerge) {
       /* we don't expect forks after the state is paused */
       assert(stack.back().isExecutingLoop);
       addSuffixConstraint(e);
-    }
-
-    if (OptimizeArrayValuesUsingUpperBound) {
-      inferSizeConstraint(e);
     }
   }
 }
@@ -868,8 +857,6 @@ void ExecutionState::mergeHeap(ExecutionState *merged,
       minInvalidOffset[j] = mo->capacity;
     }
 
-    unsigned maxUpperBound = 0;
-
     std::vector<ref<Expr>> toWrite;
     for (unsigned i = 0; i < mo->capacity; i++) {
       std::vector<ref<Expr>> values;
@@ -902,17 +889,6 @@ void ExecutionState::mergeHeap(ExecutionState *merged,
                   minInvalidOffset[j] = i;
                 }
               }
-            }
-          } else if (OptimizeArrayValuesUsingUpperBound) {
-            unsigned upperBound = other->getUpperBound();
-            if (upperBound >= maxUpperBound) {
-              maxUpperBound = upperBound;
-            }
-
-            if (i < upperBound) {
-              values.push_back(e);
-              neededSuffixes.push_back(suffixes[j]);
-              valuesMap[es->getID()] = e;
             }
           } else if (OptimizeArrayValuesUsingSolver) {
             if (i < minInvalidOffset[j]) {
@@ -969,9 +945,6 @@ void ExecutionState::mergeHeap(ExecutionState *merged,
 
     if (OptimizeArrayValuesByTracking) {
       wos->setActualBound(0);
-    }
-    if (OptimizeArrayValuesUsingUpperBound) {
-      wos->resetUpperBound(maxUpperBound);
     }
   }
 }
@@ -1190,7 +1163,6 @@ bool ExecutionState::areEquiv(TimingSolver *solver,
 
 bool ExecutionState::shouldOptimizeArrayValues() {
   return OptimizeArrayValuesByTracking ||
-         OptimizeArrayValuesUsingUpperBound ||
          OptimizeArrayValuesUsingSolver ||
          OptimizeArrayValuesUsingITERewrite;
 }
@@ -1322,164 +1294,6 @@ bool ExecutionState::isValidOffset(TimingSolver *solver,
   assert(success);
 
   return result != Solver::False;
-}
-
-void ExecutionState::linkSizeToID(ref<Expr> size, uint64_t address) {
-  size2addr[size].push_back(address);
-}
-
-bool ExecutionState::getAddressesBySize(ref<Expr> size,
-                                        std::vector<uint64_t> &addresses) {
-  auto i = size2addr.find(size);
-  if (i == size2addr.end()) {
-    return false;
-  } else {
-    addresses = i->second;
-    return true;
-  }
-}
-
-void ExecutionState::inferSizeConstraint(ref<Expr> condition) {
-  /* TODO: check each constraint that is added to the PC? */
-  if (loopHandler.isNull()) {
-    return;
-  }
-
-  ref<Expr> size;
-  ref<ConstantExpr> bound;
-  if (!extractSizeConstraint(condition, size, bound)) {
-    return;
-  }
-
-  for (auto &op : addressSpace.objects) {
-    const MemoryObject *mo = op.first;
-    if (mo->hasFixedSize()) {
-      continue;
-    }
-
-    ref<Expr> e = mo->getSizeExpr();
-    if (isa<ZExtExpr>(e)) {
-      e = dyn_cast<ZExtExpr>(e)->src;
-    }
-    if (isa<AddExpr>(e)) {
-      ref<AddExpr> addExpr = dyn_cast<AddExpr>(e);
-      if (isa<ConstantExpr>(addExpr->left)) {
-        e = addExpr->right;
-      }
-    }
-
-    if (e->compare(*size) == 0) {
-      ExprReplaceVisitor visitor(e, bound);
-      ref<ConstantExpr> substSize = dyn_cast<ConstantExpr>(visitor.visit(mo->getSizeExpr()));
-      if (!substSize.isNull()) {
-        ObjectState *wos = addressSpace.getWriteable(mo, op.second.get());
-        wos->setUpperBound(substSize->getZExtValue());
-        break;
-      }
-    }
-  }
-
-  //ref<EqExpr> eqExpr = dyn_cast<EqExpr>(condition);
-  //if (eqExpr.isNull()) {
-  //  return;
-  //}
-
-  //if (isa<ConstantExpr>(eqExpr->left)) {
-  //  ref<ConstantExpr> ce = dyn_cast<ConstantExpr>(eqExpr->left);
-  //  if (ce->getZExtValue() != 0) {
-  //    return;
-  //  }
-  //}
-
-  //ref<CmpExpr> cmpExpr = dyn_cast<CmpExpr>(eqExpr->right);
-  //if (cmpExpr.isNull()) {
-  //  return;
-  //}
-
-  //if (isa<UltExpr>(cmpExpr) || isa<UleExpr>(cmpExpr)) {
-  //  ref<ConstantExpr> boundExpr = dyn_cast<ConstantExpr>(cmpExpr->left);
-  //  if (boundExpr.isNull()) {
-  //    return;
-  //  }
-
-  //  ref<Expr> size = cmpExpr->right;
-  //  uint64_t bound = boundExpr->getZExtValue();
-
-  //  std::vector<uint64_t> addresses;
-  //  if (getAddressesBySize(size, addresses)) {
-  //    for (uint64_t address : addresses) {
-  //      ObjectPair op;
-  //      ref<ConstantExpr> addressExpr = ConstantExpr::create(address, Expr::Int64);
-  //      if (addressSpace.resolveOne(*this, loopHandler->solver, addressExpr, op)) {
-  //        ObjectState *wos = addressSpace.getWriteable(op.first, op.second);
-  //        switch (cmpExpr->getKind()) {
-  //        case Expr::Ult:
-  //          /* size <= c */
-  //          wos->setUpperBound(bound);
-  //          break;
-  //        case Expr::Ule:
-  //          /* size < c */
-  //          wos->setUpperBound(bound + 1);
-  //          break;
-  //        default:
-  //          break;
-  //        }
-  //      }
-  //    }
-  //  }
-  //}
-}
-
-bool ExecutionState::extractSizeConstraint(ref<Expr> condition,
-                                           ref<Expr> &size,
-                                           ref<ConstantExpr> &bound) {
-  ref<EqExpr> eqExpr = dyn_cast<EqExpr>(condition);
-  if (eqExpr.isNull()) {
-    return false;
-  }
-
-  ref<ConstantExpr> ce = dyn_cast<ConstantExpr>(eqExpr->left);
-  if (ce.isNull()) {
-    return false;
-  }
-
-  if (ce->getWidth() == Expr::Bool) {
-    if (ce->getZExtValue() != 0) {
-      return false;
-    }
-
-    ref<CmpExpr> cmpExpr = dyn_cast<CmpExpr>(eqExpr->right);
-    if (cmpExpr.isNull()) {
-      return false;
-    }
-
-    ref<ConstantExpr> boundExpr = dyn_cast<ConstantExpr>(cmpExpr->left);
-    if (boundExpr.isNull()) {
-      return false;
-    }
-
-    size = cmpExpr->right;
-
-    switch (cmpExpr->getKind()) {
-    case Expr::Ult:
-      /* size <= c */
-      bound = boundExpr;
-      return true;
-    case Expr::Ule:
-      /* size < c */
-      bound = AddExpr::create(boundExpr,
-                              ConstantExpr::create(1, boundExpr->getWidth()));
-      return true;
-    default:
-      break;
-    }
-  } else {
-    size = eqExpr->right;
-    bound = ce;
-    return true;
-  }
-
-  return false;
 }
 
 bool ExecutionState::isLiveRegAt(const LivenessAnalysis::Result &result,

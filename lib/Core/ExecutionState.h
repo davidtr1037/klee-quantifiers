@@ -224,8 +224,6 @@ public:
 
   std::map<std::string, ExprSet> taintedExprs;
 
-  std::unordered_map<ref<Expr>, std::vector<uint64_t>, ExprKeyHash, ExprKeyEquality> size2addr;
-
   ref<LoopHandler> loopHandler;
 
   ConstraintSet suffixConstraints;
@@ -350,19 +348,6 @@ public:
   bool isValidOffset(TimingSolver *solver,
                      const MemoryObject *mo,
                      uint64_t offset);
-
-  /* TODO: remove? */
-  void linkSizeToID(ref<Expr> size, uint64_t address);
-
-  /* TODO: remove? */
-  bool getAddressesBySize(ref<Expr> size,
-                          std::vector<uint64_t> &addresses);
-
-  void inferSizeConstraint(ref<Expr> condition);
-
-  bool extractSizeConstraint(ref<Expr> condition,
-                             ref<Expr> &size,
-                             ref<ConstantExpr> &bound);
 
   static bool isLiveRegAt(const LivenessAnalysis::Result &result,
                           KFunction *kf,

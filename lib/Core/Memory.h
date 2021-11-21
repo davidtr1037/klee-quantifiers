@@ -239,8 +239,6 @@ private:
   /* TODO: this is not a bound, rename */
   mutable unsigned actualBound;
 
-  unsigned upperBound;
-
 public:
   unsigned size;
 
@@ -296,20 +294,6 @@ public:
   void setActualBound(unsigned bound) const {
     /* TODO: validate that there were no symbolic-offset writes */
     actualBound = bound;
-  }
-
-  unsigned getUpperBound() const {
-    return upperBound;
-  }
-
-  void setUpperBound(unsigned bound) {
-    if (bound < upperBound) {
-      upperBound = bound;
-    }
-  }
-
-  void resetUpperBound(unsigned bound) {
-    upperBound = bound;
   }
 
 private:
