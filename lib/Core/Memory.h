@@ -239,7 +239,7 @@ private:
   /* TODO: this is not a bound, rename */
   mutable unsigned actualBound;
 
-  mutable unsigned upperBound;
+  unsigned upperBound;
 
 public:
   unsigned size;
@@ -308,7 +308,7 @@ public:
     }
   }
 
-  void resetUpperBound(unsigned bound) const {
+  void resetUpperBound(unsigned bound) {
     upperBound = bound;
   }
 
