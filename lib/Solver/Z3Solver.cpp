@@ -68,6 +68,11 @@ llvm::cl::opt<unsigned> Z3SMTRandomSeed("z3-smt-random-seed",
                                         llvm::cl::desc(""),
                                         llvm::cl::cat(klee::SolvingCat));
 
+llvm::cl::opt<unsigned> Z3SMTRelevancy("z3-smt-relevancy",
+                                       llvm::cl::init(2),
+                                       llvm::cl::desc(""),
+                                       llvm::cl::cat(klee::SolvingCat));
+
 }
 
 #include "llvm/Support/ErrorHandling.h"
@@ -120,6 +125,10 @@ public:
                        solverParameters,
                        Z3_mk_string_symbol(builder->ctx, "random_seed"),
                        Z3SMTRandomSeed);
+    Z3_params_set_uint(builder->ctx,
+                       solverParameters,
+                       Z3_mk_string_symbol(builder->ctx, "relevancy"),
+                       Z3SMTRelevancy);
   }
 
   bool computeTruth(const Query &, bool &isValid);
