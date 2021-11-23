@@ -3953,9 +3953,16 @@ void Executor::executeMemoryOperation(ExecutionState &state,
         } else {
           ObjectState *wos = state.addressSpace.getWriteable(mo, os);
           wos->write(offset, value);
+          if (OptimizeArrayValuesByTracking && !mo->hasFixedSize()) {
+            wos->onAccess(offset);
+          }
         }          
       } else {
         ref<Expr> result = os->read(offset, type);
+        if (OptimizeArrayValuesByTracking && !mo->hasFixedSize()) {
+          ObjectState *wos = state.addressSpace.getWriteable(mo, os);
+          wos->onAccess(offset);
+        }
         
         if (interpreterOpts.MakeConcreteSymbolic)
           result = replaceReadWithSymbolic(state, result);

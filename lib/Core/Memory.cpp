@@ -144,6 +144,18 @@ ArrayCache *ObjectState::getArrayCache() const {
   return object->parent->getArrayCache();
 }
 
+void ObjectState::onAccess(ref<Expr> offset) {
+  if (isa<ConstantExpr>(offset)) {
+    uint64_t bound = dyn_cast<ConstantExpr>(offset)->getZExtValue() + 1;
+    if (bound > actualBound) {
+      actualBound = bound;
+    }
+  } else {
+    /* conservatively set to the max value (capacity) */
+    actualBound = size;
+  }
+}
+
 void ObjectState::onConcreteAccess(unsigned offset, bool track) const {
   if (!track) {
     return;

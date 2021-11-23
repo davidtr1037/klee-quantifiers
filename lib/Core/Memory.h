@@ -296,6 +296,8 @@ public:
     actualBound = bound;
   }
 
+  void onAccess(ref<Expr> offset);
+
 private:
   const UpdateList &getUpdates() const;
 

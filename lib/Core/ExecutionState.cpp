@@ -55,12 +55,6 @@ cl::opt<bool> OptimizeArrayValuesUsingITERewrite(
     cl::cat(MergeCat));
 
 /* TODO: can't be used with -validate-merge */
-cl::opt<bool> OptimizeArrayValuesByTracking(
-    "optimize-array-values-by-tracking", cl::init(false),
-    cl::desc(""),
-    cl::cat(MergeCat));
-
-/* TODO: can't be used with -validate-merge */
 cl::opt<bool> OptimizeArrayValuesUsingSolver(
     "optimize-array-values-using-solver", cl::init(false),
     cl::desc(""),
@@ -74,6 +68,12 @@ cl::opt<bool> klee::OptimizeITEUsingExecTree(
 
 cl::opt<bool> klee::OptimizeArrayITEUsingExecTree(
     "optimize-array-ite-using-exec-tree", cl::init(false),
+    cl::desc(""),
+    cl::cat(MergeCat));
+
+/* TODO: can't be used with -validate-merge */
+cl::opt<bool> klee::OptimizeArrayValuesByTracking(
+    "optimize-array-values-by-tracking", cl::init(false),
     cl::desc(""),
     cl::cat(MergeCat));
 
