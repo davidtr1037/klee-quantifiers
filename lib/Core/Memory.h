@@ -325,9 +325,6 @@ private:
   void setKnownSymbolic(unsigned offset, Expr *value);
 
   ArrayCache *getArrayCache() const;
-
-  void onConcreteAccess(unsigned offset, bool track = true) const;
-  void onSymbolicAccess(ref<Expr> offset, bool track = true) const;
 };
   
 } // End klee namespace

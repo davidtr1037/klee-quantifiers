@@ -156,29 +156,6 @@ void ObjectState::onAccess(ref<Expr> offset) {
   }
 }
 
-void ObjectState::onConcreteAccess(unsigned offset, bool track) const {
-  if (!track) {
-    return;
-  }
-
-  /* TODO: update only if the option is enabled? */
-  unsigned bound = offset + 1;
-  if (bound > actualBound) {
-    actualBound = bound;
-  }
-}
-
-/* TODO: try to use the solver */
-void ObjectState::onSymbolicAccess(ref<Expr> offset, bool track) const {
-  if (!track) {
-    return;
-  }
-
-  /* TODO: update only if the option is enabled? */
-  /* conservatively set to the max value (capacity) */
-  actualBound = size;
-}
-
 /***/
 
 const UpdateList &ObjectState::getUpdates() const {
@@ -400,7 +377,6 @@ void ObjectState::setKnownSymbolic(unsigned offset,
 /***/
 
 ref<Expr> ObjectState::read8(unsigned offset, bool track) const {
-  onConcreteAccess(offset, track);
   if (isByteConcrete(offset)) {
     return ConstantExpr::create(concreteStore[offset], Expr::Int8);
   } else if (isByteKnownSymbolic(offset)) {
@@ -414,7 +390,6 @@ ref<Expr> ObjectState::read8(unsigned offset, bool track) const {
 }
 
 ref<Expr> ObjectState::read8(ref<Expr> offset, bool track) const {
-  onSymbolicAccess(offset, track);
   assert(!isa<ConstantExpr>(offset) && "constant offset passed to symbolic read8");
   unsigned base, size;
   fastRangeCheckOffset(offset, &base, &size);
@@ -432,7 +407,6 @@ ref<Expr> ObjectState::read8(ref<Expr> offset, bool track) const {
 }
 
 void ObjectState::write8(unsigned offset, uint8_t value) {
-  onConcreteAccess(offset);
   //assert(read_only == false && "writing to read-only object!");
   concreteStore[offset] = value;
   setKnownSymbolic(offset, 0);
@@ -442,7 +416,6 @@ void ObjectState::write8(unsigned offset, uint8_t value) {
 }
 
 void ObjectState::write8(unsigned offset, ref<Expr> value) {
-  onConcreteAccess(offset);
   // can happen when ExtractExpr special cases
   if (ConstantExpr *CE = dyn_cast<ConstantExpr>(value)) {
     write8(offset, (uint8_t) CE->getZExtValue(8));
@@ -455,7 +428,6 @@ void ObjectState::write8(unsigned offset, ref<Expr> value) {
 }
 
 void ObjectState::write8(ref<Expr> offset, ref<Expr> value) {
-  onSymbolicAccess(offset);
   assert(!isa<ConstantExpr>(offset) && "constant offset passed to symbolic write8");
   unsigned base, size;
   fastRangeCheckOffset(offset, &base, &size);
