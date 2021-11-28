@@ -1301,6 +1301,7 @@ public:
   ref<Expr> bound, pre, post;
   const Array *array;
 
+  /* TODO: add AUX_VARIABLE_SIZE */
   static const Width AUX_VARIABLE_WIDTH;
 
   unsigned getNumKids() const { return 3; }
