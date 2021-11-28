@@ -1382,3 +1382,4 @@ CMPCREATE(SleExpr, Sle)
 
 /* TODO: support smaller width? */
 const Expr::Width QuantifiedExpr::AUX_VARIABLE_WIDTH = 64;
+const unsigned QuantifiedExpr::AUX_VARIABLE_SIZE = QuantifiedExpr::AUX_VARIABLE_WIDTH / 8;

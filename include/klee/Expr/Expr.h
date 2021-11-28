@@ -771,7 +771,6 @@ public:
 private:
   SelectExpr(const ref<Expr> &c, const ref<Expr> &t, const ref<Expr> &f) 
     : cond(c), trueExpr(t), falseExpr(f) {
-    /* TODO: update isTainted? */
     isTainted = c->isTainted || t->isTainted || f->isTainted;
     hasAuxVariable = c->hasAuxVariable || t->hasAuxVariable || f->hasAuxVariable;
     isPureAux = c->isPureAux && t->isPureAux && f->isPureAux;
@@ -1299,12 +1298,19 @@ class QuantifiedExpr : public NonConstantExpr {
 public:
 
   ref<Expr> bound, pre, post;
-  const Array *array;
 
-  /* TODO: add AUX_VARIABLE_SIZE */
+  const Array *boundArray;
+
+  const Array *auxArray;
+
   static const Width AUX_VARIABLE_WIDTH;
 
-  unsigned getNumKids() const { return 3; }
+  static const unsigned AUX_VARIABLE_SIZE;
+
+  unsigned getNumKids() const {
+    return 3;
+  }
+
   ref<Expr> getKid(unsigned i) const {
     switch (i) {
     case 0:
@@ -1339,18 +1345,10 @@ protected:
     isQF = false;
     size = bound->size + pre->size + post->size + 1;
 
-    if (isa<ConcatExpr>(bound)) {
-      ref<ConcatExpr> ce = dyn_cast<ConcatExpr>(bound);
-      ref<ReadExpr> re = dyn_cast<ReadExpr>(ce->getLeft());
-      if (!re.isNull()) {
-        array = re->updates.root;
-      }
-    }
-    if (isa<ReadExpr>(bound)) {
-      ref<ReadExpr> re = dyn_cast<ReadExpr>(bound);
-      array = re->updates.root;
-    }
-    assert(array);
+    boundArray = extractArray(bound);
+    assert(boundArray);
+    auxArray = extractAuxArray(pre);
+    assert(auxArray);
   }
 
   virtual int compareContents(const Expr &b) const {
@@ -1364,6 +1362,38 @@ public:
   }
 
   static bool classof(const QuantifiedExpr *) { return true; }
+
+private:
+
+  const Array *extractArray(ref<Expr> e) {
+    if (isa<ConcatExpr>(e)) {
+      ref<ConcatExpr> ce = dyn_cast<ConcatExpr>(e);
+      ref<ReadExpr> re = dyn_cast<ReadExpr>(ce->getLeft());
+      if (!re.isNull()) {
+        return re->updates.root;
+      }
+    } else if (isa<ReadExpr>(e)) {
+      ref<ReadExpr> re = dyn_cast<ReadExpr>(e);
+      return re->updates.root;
+    }
+
+    return nullptr;
+  }
+
+  const Array *extractAuxArray(ref<Expr> e) {
+    if (!isa<AndExpr>(e)) {
+      return nullptr;
+    }
+
+    ref<AndExpr> andExpr = dyn_cast<AndExpr>(e);
+    if (!isa<UleExpr>(andExpr->right)) {
+      return nullptr;
+    }
+
+    ref<UleExpr> uleExpr = dyn_cast<UleExpr>(andExpr->right);
+    return extractArray(uleExpr->right);
+  }
+
 };
 
 class ForallExpr : public QuantifiedExpr {
@@ -1430,50 +1460,11 @@ public:
 
   static bool classof(const ForallExpr *) { return true; }
 
+  /* TODO: remove? */
   std::vector<uint64_t> range;
 
 protected:
   /* TODO: add compareContents? */
-};
-
-class ExistsExpr : public QuantifiedExpr {
-
-public:
-
-  ExistsExpr(const ref<Expr> &bound,
-             const ref<Expr> &pre,
-             const ref<Expr> &post) :
-    QuantifiedExpr(bound, pre, post) {
-
-  }
-
-  static ref<Expr> alloc(const ref<Expr> &bound,
-                         const ref<Expr> &pre,
-                         const ref<Expr> &post) {
-      ref<Expr> res(new ExistsExpr(bound, pre, post));
-      res->computeHash();
-      return res;
-  }
-
-  static ref<Expr> create(const ref<Expr> &bound,
-                          const ref<Expr> &pre,
-                          const ref<Expr> &post) {
-    return ExistsExpr::alloc(bound, pre, post);
-  }
-
-  virtual ref<Expr> rebuild(ref<Expr> kids[]) const {
-    return create(kids[0], kids[1], kids[2]);
-  }
-
-  Kind getKind() const {
-    return Expr::Exists;
-  }
-
-  static bool classof(const Expr *e) {
-    return e->getKind() == Expr::Exists;
-  }
-
-  static bool classof(const ExistsExpr *) { return true; }
 };
 
 // Implementations

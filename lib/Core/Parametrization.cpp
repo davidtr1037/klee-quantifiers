@@ -319,7 +319,7 @@ static bool solveLinearEquation(TimingSolver &solver,
     assert(0);
   }
 
-  unsigned auxArraySize = QuantifiedExpr::AUX_VARIABLE_WIDTH / 8;
+  unsigned auxArraySize = QuantifiedExpr::AUX_VARIABLE_SIZE;
   const Array *array_a = getArray("a", auxArraySize);
   const Array *array_b = getArray("b", auxArraySize);
   const Array *array_m = getArrayForAuxVariable(id, auxArraySize);
