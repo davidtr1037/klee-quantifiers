@@ -266,6 +266,7 @@ static ref<Expr> computeBoundTerm(ref<Expr> e, ref<Expr> target) {
       /* e + i = target */
       return SubExpr::create(target, addExpr->left);
     } else {
+      /* TODO: at least one side shouldn't depend on the bound variable */
       /* TODO: check the other case? */
       return computeBoundTerm(
         addExpr->right,
