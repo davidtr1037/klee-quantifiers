@@ -1347,8 +1347,9 @@ protected:
 
     boundArray = extractArray(bound);
     assert(boundArray);
+
+    /* my be null if only one path is described */
     auxArray = extractAuxArray(pre);
-    assert(auxArray);
   }
 
   virtual int compareContents(const Expr &b) const {
