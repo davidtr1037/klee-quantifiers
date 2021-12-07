@@ -287,8 +287,8 @@ static ref<Expr> computeBoundTerm(ref<Expr> e, ref<Expr> target) {
 }
 
 void EqAssertion::findImpliedNegatingTerms(std::vector<ref<Expr>> &terms) {
-  /* look for: not(eq e select(...)) */
   if (!isNegated) {
+    /* TODO: support this case (although seems to be less common) */
     return;
   }
 
@@ -297,8 +297,9 @@ void EqAssertion::findImpliedNegatingTerms(std::vector<ref<Expr>> &terms) {
     return;
   }
 
-  /* look for a store: [index = e] */
+  /* the case: not(eq e select(...)) */
   unsigned seenStores = 0;
+  /* look for a store: [index = e] */
   for (ref<UpdateNode> un = r->updates.head; !un.isNull(); un = un->next) {
     if (*un->value == *assertion->left) {
       if (seenStores == 0) {
