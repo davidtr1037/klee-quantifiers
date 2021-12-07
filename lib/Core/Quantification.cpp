@@ -287,13 +287,8 @@ static ref<Expr> computeBoundTerm(ref<Expr> e, ref<Expr> target) {
 }
 
 void EqAssertion::findImpliedNegatingTerms(std::vector<ref<Expr>> &terms) {
-  /* look for: not(eq c select(...)) */
+  /* look for: not(eq e select(...)) */
   if (!isNegated) {
-    return;
-  }
-
-  ref<ConstantExpr> c = dyn_cast<ConstantExpr>(assertion->left);
-  if (c.isNull()) {
     return;
   }
 
@@ -302,16 +297,19 @@ void EqAssertion::findImpliedNegatingTerms(std::vector<ref<Expr>> &terms) {
     return;
   }
 
-  /* look for a store: [index = c] */
+  /* look for a store: [index = e] */
+  unsigned seenStores = 0;
   for (ref<UpdateNode> un = r->updates.head; !un.isNull(); un = un->next) {
-    /* TODO: this is not correct */
-    if (*un->value == *c) {
-      ref<Expr> term = computeBoundTerm(r->index, un->index);
-      if (!term.isNull()) {
-        terms.push_back(term);
+    if (*un->value == *assertion->left) {
+      if (seenStores == 0) {
+        ref<Expr> term = computeBoundTerm(r->index, un->index);
+        if (!term.isNull()) {
+          terms.push_back(term);
+        }
       }
-      return;
+      break;
     }
+    seenStores++;
   }
 }
 
