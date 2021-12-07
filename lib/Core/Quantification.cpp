@@ -245,8 +245,14 @@ static bool isBoundVariable(ref<Expr> e) {
   return false;
 }
 
+/* e depends on a bound variable */
 static ref<Expr> computeBoundTerm(ref<Expr> e, ref<Expr> target) {
   if (e->getWidth() != target->getWidth()) {
+    return nullptr;
+  }
+
+  if (target->hasBoundVariable) {
+    /* TODO: add support? */
     return nullptr;
   }
 
@@ -258,15 +264,20 @@ static ref<Expr> computeBoundTerm(ref<Expr> e, ref<Expr> target) {
   if (isa<AddExpr>(e)) {
     ref<AddExpr> addExpr = dyn_cast<AddExpr>(e);
     if (isBoundVariable(addExpr->left)) {
-      /* TODO: make sure i doesn't appear in e */
       /* i + e = target */
+      if (addExpr->right->hasBoundVariable) {
+        /* e depends on i */
+        return nullptr;
+      }
       return SubExpr::create(target, addExpr->right);
     } else if (isBoundVariable(addExpr->right)) {
-      /* TODO: make sure i doesn't appear in e */
       /* e + i = target */
+      if (addExpr->left->hasBoundVariable) {
+        /* e depends on i */
+        return nullptr;
+      }
       return SubExpr::create(target, addExpr->left);
     } else {
-      /* TODO: at least one side shouldn't depend on the bound variable */
       /* TODO: check the other case? */
       return computeBoundTerm(
         addExpr->right,

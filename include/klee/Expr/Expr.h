@@ -229,6 +229,7 @@ public:
     hasAuxVariable = false;
     isPureAux = false;
     isQF = true;
+    hasBoundVariable = false;
     size = 1;
   }
 
@@ -331,6 +332,7 @@ public:
   bool hasAuxVariable;
   bool isPureAux;
   bool isQF;
+  bool hasBoundVariable;
   uint64_t size;
 
 private:
@@ -433,6 +435,7 @@ protected:
     hasAuxVariable = l->hasAuxVariable || r->hasAuxVariable;
     isQF = l->isQF && r->isQF;
     isPureAux = l->isPureAux && r->isPureAux;
+    hasBoundVariable = l->hasBoundVariable || r->hasBoundVariable;
     size = l->size + r->size + 1;
   }
 
@@ -490,6 +493,7 @@ private:
     hasAuxVariable = src->hasAuxVariable;
     isPureAux = src->isPureAux;
     isQF = src->isQF;
+    hasBoundVariable = src->hasBoundVariable;
     size = src->size + 1;
   }
 
@@ -707,6 +711,22 @@ private:
         }
       }
     }
+
+    if (updates.root->isBoundVariable) {
+      hasBoundVariable = true;
+    } else {
+      if (index->hasAuxVariable) {
+        hasBoundVariable = true;
+      } else {
+        for (const UpdateNode *un = updates.head.get(); un; un = un->next.get()) {
+          if (un->index->hasBoundVariable || un->value->hasBoundVariable) {
+            hasBoundVariable = true;
+            break;
+          }
+        }
+      }
+    }
+
     isPureAux = updates.root->isAuxVariable && isa<ConstantExpr>(index);
 
     isQF = index->isQF;
@@ -775,6 +795,9 @@ private:
     hasAuxVariable = c->hasAuxVariable || t->hasAuxVariable || f->hasAuxVariable;
     isPureAux = c->isPureAux && t->isPureAux && f->isPureAux;
     isQF = c->isQF && t->isQF && f->isQF;
+    hasBoundVariable = c->hasBoundVariable || \
+                       t->hasBoundVariable || \
+                       f->hasBoundVariable;
     size = c->size + t->size + f->size + 1;
   }
 
@@ -843,6 +866,7 @@ private:
     hasAuxVariable = l->hasAuxVariable || r->hasAuxVariable;
     isPureAux = l->isPureAux && r->isPureAux;
     isQF = l->isQF && r->isQF;
+    hasBoundVariable = l->hasBoundVariable || r->hasBoundVariable;
     size = l->size + r->size + 1;
   }
 
@@ -912,6 +936,7 @@ private:
     hasAuxVariable = e->hasAuxVariable;
     isPureAux = e->isPureAux;
     isQF = e->isQF;
+    hasBoundVariable = e->hasBoundVariable;
     size = e->size + 1;
   }
 
@@ -966,6 +991,7 @@ private:
     isTainted = e->isTainted;
     hasAuxVariable = e->hasAuxVariable;
     isPureAux = e->isPureAux;
+    hasBoundVariable = e->hasBoundVariable;
     isQF = e->isQF;
   }
 
@@ -991,6 +1017,7 @@ public:
     hasAuxVariable = e->hasAuxVariable;
     isPureAux = e->isPureAux;
     isQF = e->isQF;
+    hasBoundVariable = e->hasBoundVariable;
     size = e->size + 1;
   }
 
@@ -1343,6 +1370,9 @@ protected:
                 pre->isPureAux && \
                 post->isPureAux;
     isQF = false;
+    hasBoundVariable = bound->hasBoundVariable || \
+                       pre->hasBoundVariable || \
+                       post->hasBoundVariable;
     size = bound->size + pre->size + post->size + 1;
 
     boundArray = extractArray(bound);
