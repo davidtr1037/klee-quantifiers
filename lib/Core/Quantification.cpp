@@ -131,6 +131,7 @@ void generateForall(PatternMatch &pm,
     coreExpr = AndExpr::create(coreExpr, substituted);
   }
 
+  /* TODO: remove? */
   std::vector<uint64_t> range;
   getKnownRangeValues(pm, range);
 
