@@ -118,6 +118,10 @@ cl::opt<bool> UseRenamingSolver("use-renaming-solver",
                                 cl::desc(""),
                                 cl::cat(SolvingCat));
 
+cl::opt<bool> UseSmallModelSolver("use-small-model-solver",
+                                  cl::init(false),
+                                  cl::desc(""),
+                                  cl::cat(SolvingCat));
 
 void KCommandLine::HideOptions(llvm::cl::OptionCategory &Category) {
   StringMap<cl::Option *> &map = cl::getRegisteredOptions();
