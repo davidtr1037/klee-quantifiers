@@ -43,6 +43,10 @@ namespace klee {
 
   ref<Expr> simplifyITE(ref<Expr> ite);
 
+  ref<Expr> getSymbolicValue(const Array *array, unsigned size);
+
+  ref<Expr> instantiate(ref<ForallExpr> e, uint64_t value);
+
   class ConstantArrayFinder : public ExprVisitor {
   protected:
     ExprVisitor::Action visitRead(const ReadExpr &re);

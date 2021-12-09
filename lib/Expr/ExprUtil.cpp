@@ -275,6 +275,39 @@ ref<Expr> klee::simplifyITE(ref<Expr> ite) {
   return e;
 }
 
+ref<Expr> klee::getSymbolicValue(const Array *array, unsigned size) {
+  assert(array->size >= size);
+  ref<Expr> r = nullptr;
+  for (unsigned i = 0; i < size; i++) {
+    ref<Expr> b = ReadExpr::create(UpdateList(array, 0),
+                                   ConstantExpr::alloc(i, Expr::Int32));
+    if (r.isNull()) {
+      r = b;
+    } else {
+      r = ConcatExpr::create(b, r);
+    }
+  }
+  return r;
+}
+
+ref<Expr> klee::instantiate(ref<ForallExpr> f, uint64_t value) {
+  std::vector<ref<ReadExpr>> reads;
+  findReads(f->post, true, reads);
+
+  std::map<ref<Expr>, ref<Expr>> map;
+  for (ref<ReadExpr> e : reads) {
+    if (e->updates.root->isBoundVariable) {
+      ref<ConstantExpr> index = dyn_cast<ConstantExpr>(e->index);
+      assert(!index.isNull());
+      uint64_t off = index->getZExtValue();
+      map[e] = ConstantExpr::create(value >> (8 * off), Expr::Int8);
+    }
+  }
+
+  ExprReplaceVisitor2 visitor(map);
+  return visitor.visit(f->post);
+}
+
 typedef std::vector< ref<Expr> >::iterator A;
 template void klee::findSymbolicObjects<A>(A, A, std::vector<const Array*> &);
 

@@ -269,21 +269,6 @@ bool checkWidthConsistency(const std::vector<ref<Expr>> &constants,
   return true;
 }
 
-ref<Expr> klee::getSymbolicValue(const Array *array, unsigned size) {
-  assert(array->size >= size);
-  ref<Expr> r = nullptr;
-  for (unsigned i = 0; i < size; i++) {
-    ref<Expr> b = ReadExpr::create(UpdateList(array, 0),
-                                   ConstantExpr::alloc(i, Expr::Int32));
-    if (r.isNull()) {
-      r = b;
-    } else {
-      r = ConcatExpr::create(b, r);
-    }
-  }
-  return r;
-}
-
 static ref<Expr> getConstantExpr(std::vector<unsigned char> &v,
                                  unsigned size) {
   assert(v.size() >= size);
