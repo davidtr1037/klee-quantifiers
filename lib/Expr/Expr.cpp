@@ -656,7 +656,7 @@ Array::Array(const std::string &_name, uint64_t _size,
              Expr::Width _range)
     : name(_name), size(_size), domain(_domain), range(_range),
       constantValues(constantValuesBegin, constantValuesEnd),
-      isBoundVariable(false), isAuxVariable(false) {
+      isBoundVariable(false), isAuxVariable(false), sizeExpr(nullptr) {
 
   assert((isSymbolicArray() || constantValues.size() == size) &&
          "Invalid size for constant array!");

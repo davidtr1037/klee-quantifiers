@@ -290,9 +290,9 @@ ref<Expr> klee::getSymbolicValue(const Array *array, unsigned size) {
   return r;
 }
 
-ref<Expr> klee::instantiate(ref<ForallExpr> f, uint64_t value) {
+ref<Expr> klee::substBoundVariables(ref<Expr> src, uint64_t value) {
   std::vector<ref<ReadExpr>> reads;
-  findReads(f->post, true, reads);
+  findReads(src, true, reads);
 
   std::map<ref<Expr>, ref<Expr>> map;
   for (ref<ReadExpr> e : reads) {
@@ -305,7 +305,11 @@ ref<Expr> klee::instantiate(ref<ForallExpr> f, uint64_t value) {
   }
 
   ExprReplaceVisitor2 visitor(map);
-  return visitor.visit(f->post);
+  return visitor.visit(src);
+}
+
+ref<Expr> klee::instantiateForall(ref<ForallExpr> f, uint64_t value) {
+  return substBoundVariables(f->post, value);
 }
 
 typedef std::vector< ref<Expr> >::iterator A;

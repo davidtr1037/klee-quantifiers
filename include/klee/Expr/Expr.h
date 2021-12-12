@@ -575,6 +575,9 @@ public:
   /* TODO: add docs */
   uint64_t id;
 
+  /* TODO: add docs and rename */
+  mutable ref<Expr> sizeExpr;
+
 private:
   unsigned hashValue;
   unsigned shapeHashValue;

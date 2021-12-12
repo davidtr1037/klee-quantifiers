@@ -46,14 +46,14 @@ Solver *constructSolverChain(Solver *coreSolver,
   if (UseFastCexSolver)
     solver = createFastCexSolver(solver);
 
+  if (UseSmallModelSolver)
+    solver = createSmallModelSolver(solver);
+
   if (UseCexCache)
     solver = createCexCachingSolver(solver);
 
   if (UseBranchCache)
     solver = createCachingSolver(solver);
-
-  if (UseSmallModelSolver)
-    solver = createSmallModelSolver(solver);
 
   if (UseRenamingSolver)
     solver = createRenamingSolver(solver);

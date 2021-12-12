@@ -109,6 +109,8 @@ ObjectState::ObjectState(const MemoryObject *mo, const Array *array)
     readOnly(false) {
   makeSymbolic();
   memset(concreteStore, 0, size);
+  /* TODO: handle other cases */
+  array->sizeExpr = mo->getSizeExpr();
 }
 
 ObjectState::ObjectState(const ObjectState &os) 

@@ -45,7 +45,9 @@ namespace klee {
 
   ref<Expr> getSymbolicValue(const Array *array, unsigned size);
 
-  ref<Expr> instantiate(ref<ForallExpr> e, uint64_t value);
+  ref<Expr> substBoundVariables(ref<Expr> e, uint64_t value);
+
+  ref<Expr> instantiateForall(ref<ForallExpr> e, uint64_t value);
 
   class ConstantArrayFinder : public ExprVisitor {
   protected:
