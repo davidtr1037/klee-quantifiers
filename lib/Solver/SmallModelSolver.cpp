@@ -79,6 +79,10 @@ void SmallModelSolver::findAuxReads(ref<Expr> e,
         /* TODO: is correct? */
         ref<Expr> index = r->index;
         ref<Expr> size = r->updates.root->sizeExpr;
+        if (size.isNull()) {
+          /* TODO: check when happens */
+          continue;
+        }
 
         if (size->getWidth() < r->index->getWidth()) {
           size = ZExtExpr::create(size, index->getWidth());
