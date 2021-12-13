@@ -179,6 +179,15 @@ bool SmallModelSolver::adjustModel(const Query &query,
       ref<ForallExpr> f = dyn_cast<ForallExpr>(e);
       ref<Expr> body = assignment.evaluate(f->post);
 
+      ref<Expr> aux = getSymbolicValue(f->auxArray, QuantifiedExpr::AUX_VARIABLE_SIZE);
+      ref<ConstantExpr> substAux = dyn_cast<ConstantExpr>(assignment.evaluate(aux));
+      assert(!substAux.isNull());
+      uint64_t m = substAux->getZExtValue();
+      if (m == 0) {
+        /* the forall condition is trivially satisfied */
+        continue;
+      }
+
       uint64_t offset = 0;
       const Array *array = nullptr;
       if (!getAccessedOffset(body, 1, offset, array)) {
@@ -186,10 +195,6 @@ bool SmallModelSolver::adjustModel(const Query &query,
       }
 
       char c = getModelValue(objects, values, array, offset);
-      ref<Expr> aux = getSymbolicValue(f->auxArray, QuantifiedExpr::AUX_VARIABLE_SIZE);
-      ref<ConstantExpr> substAux = dyn_cast<ConstantExpr>(assignment.evaluate(aux));
-      assert(!substAux.isNull());
-      uint64_t m = substAux->getZExtValue();
       for (uint64_t v = 2; v <= m; v++) {
         if (!getAccessedOffset(body, v, offset, array)) {
           return false;
