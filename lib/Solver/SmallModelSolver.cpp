@@ -52,6 +52,11 @@ bool SmallModelSolver::evalModel(const Query &query,
 }
 
 ref<Expr> SmallModelSolver::eliminateForall(ref<ForallExpr> f) {
+  if (!f->auxArray) {
+    /* TODO: handle */
+    return f;
+  }
+
   ref<Expr> e = instantiateForall(f, 1);
   ref<Expr> aux = getSymbolicValue(f->auxArray,
                                    QuantifiedExpr::AUX_VARIABLE_SIZE);
@@ -122,7 +127,7 @@ bool SmallModelSolver::getAccessedOffset(ref<Expr> e,
   std::vector<ref<ReadExpr>> reads;
   findReads(e, true, reads);
   for (ref<ReadExpr> r : reads) {
-    if (r->index->hasBoundVariable) {
+    if (r->index->hasBoundVariable && r->updates.root->isSymbolicArray()) {
       ref<Expr> index = substBoundVariables(r->index, value);
       if (isa<ConstantExpr>(index)) {
         offset = dyn_cast<ConstantExpr>(index)->getZExtValue();
@@ -177,6 +182,10 @@ bool SmallModelSolver::adjustModel(const Query &query,
   for (ref<Expr> e : query.constraints) {
     if (isa<ForallExpr>(e)) {
       ref<ForallExpr> f = dyn_cast<ForallExpr>(e);
+      if (!f->auxArray) {
+        /* TODO: handle */
+        continue;
+      }
       ref<Expr> body = assignment.evaluate(f->post);
 
       ref<Expr> aux = getSymbolicValue(f->auxArray, QuantifiedExpr::AUX_VARIABLE_SIZE);
