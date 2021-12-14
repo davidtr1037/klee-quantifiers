@@ -180,6 +180,10 @@ bool SmallModelSolver::adjustModel(const Query &query,
                                    const std::vector<const Array *> &objects,
                                    std::vector<std::vector<unsigned char>> &values) {
   Assignment assignment(objects, values, true);
+  if (evalModel(query, assignment)) {
+    return true;
+  }
+
   for (ref<Expr> e : query.constraints) {
     if (isa<ForallExpr>(e)) {
       ref<ForallExpr> f = dyn_cast<ForallExpr>(e);
