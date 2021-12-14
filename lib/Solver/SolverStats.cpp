@@ -23,6 +23,8 @@ Statistic stats::queryConstructs("QueryConstructs", "QB");
 Statistic stats::queryCounterexamples("QueriesCEX", "Qcex");
 Statistic stats::queryTime("QueryTime", "Qtime");
 Statistic stats::auxilaryQueries("AuxilaryQueries", "AuxQ");
+Statistic stats::smallModelHits("SmallModelHits", "SMHits");
+Statistic stats::smallModelMisses("SmallModelMisses", "SMMisses");
 
 #ifdef KLEE_ARRAY_DEBUG
 Statistic stats::arrayHashTime("ArrayHashTime", "AHtime");

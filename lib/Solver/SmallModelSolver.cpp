@@ -9,6 +9,7 @@
 #include "klee/Solver/SolverImpl.h"
 #include "klee/Solver/SolverStats.h"
 #include "klee/Support/OptionCategories.h"
+#include "klee/Support/ErrorHandling.h"
 
 using namespace llvm;
 using namespace klee;
@@ -222,21 +223,26 @@ SmallModelSolver::SmallModelSolver(Solver *solver) : solver(solver) {
 }
 
 SmallModelSolver::~SmallModelSolver() {
+  klee_message("Small model hits: %lu", (uint64_t)(stats::smallModelHits));
+  klee_message("Small model misses: %lu", (uint64_t)(stats::smallModelMisses));
   delete solver;
 }
 
 bool SmallModelSolver::computeTruth(const Query& query,
                                     bool &isValid) {
+  ++stats::smallModelMisses;
   return solver->impl->computeTruth(query, isValid);
 }
 
 bool SmallModelSolver::computeValidity(const Query& query,
                                        Solver::Validity &result) {
+  ++stats::smallModelMisses;
   return solver->impl->computeValidity(query, result);
 }
 
 bool SmallModelSolver::computeValue(const Query& query,
                                     ref<Expr> &result) {
+  ++stats::smallModelMisses;
   return solver->impl->computeValue(query, result);
 }
 
@@ -288,8 +294,11 @@ bool SmallModelSolver::computeInitialValues(const Query& query,
                                                 expected));
       assert(hasSolution == expected);
     }
+    ++stats::smallModelHits;
     return true;
   }
+
+  ++stats::smallModelMisses;
 
   /* TODO: ugly... */
   values.clear();
