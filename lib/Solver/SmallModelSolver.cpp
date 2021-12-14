@@ -201,13 +201,15 @@ bool SmallModelSolver::adjustModel(const Query &query,
       uint64_t offset = 0;
       const Array *array = nullptr;
       if (!getAccessedOffset(body, 1, offset, array)) {
-        return false;
+        /* there are no reads that depend on the bound variable */
+        continue;
       }
 
       char c = getModelValue(objects, values, array, offset);
       for (uint64_t v = 2; v <= m; v++) {
         if (!getAccessedOffset(body, v, offset, array)) {
-          return false;
+          /* shouldn't happen */
+          assert(0);
         }
         setModelValue(objects, values, array, offset, c);
       }
