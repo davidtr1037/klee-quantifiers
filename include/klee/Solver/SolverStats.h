@@ -29,6 +29,7 @@ namespace stats {
   extern Statistic auxilaryQueries;
   extern Statistic smallModelHits;
   extern Statistic smallModelMisses;
+  extern Statistic smallModelUnsupported;
   
 #ifdef KLEE_ARRAY_DEBUG
   extern Statistic arrayHashTime;

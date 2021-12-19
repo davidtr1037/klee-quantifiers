@@ -718,7 +718,7 @@ private:
     if (updates.root->isBoundVariable) {
       hasBoundVariable = true;
     } else {
-      if (index->hasAuxVariable) {
+      if (index->hasBoundVariable) {
         hasBoundVariable = true;
       } else {
         for (const UpdateNode *un = updates.head.get(); un; un = un->next.get()) {

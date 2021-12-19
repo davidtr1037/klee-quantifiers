@@ -7,6 +7,38 @@
 
 using namespace klee;
 
+struct ArrayAccess {
+  const Array *array;
+  uint64_t offset;
+
+  ArrayAccess() :
+    array(nullptr), offset(0) {
+
+  }
+
+  ArrayAccess(const Array *array, uint64_t offset) :
+    array(array), offset(offset) {
+
+  }
+
+  bool operator==(const ArrayAccess &other) const {
+    return array == other.array && offset == other.offset;
+  }
+};
+
+struct ArrayAccessHash {
+
+  std::size_t operator() (const ArrayAccess &access) const {
+    std::size_t h1 = std::hash<const Array *>()(access.array);
+    std::size_t h2 = std::hash<uint64_t>()(access.offset);
+    return h1 ^ h2;
+  }
+
+};
+
+typedef std::vector<ref<Expr>> ExprBucket;
+typedef std::unordered_map<ArrayAccess, ExprBucket, ArrayAccessHash> Access2Expr;
+
 class SmallModelSolver : public SolverImpl {
 
 protected:
@@ -19,8 +51,16 @@ public:
 
   virtual ~SmallModelSolver();
 
-  void dumpModel(const std::vector<const Array *> &objects,
-                 const std::vector<std::vector<unsigned char>> &values);
+  void dumpModel(const Assignment &assignment);
+
+  char getModelValue(const Assignment &assignment,
+                     const Array *object,
+                     unsigned index);
+
+  void setModelValue(Assignment &assignment,
+                     const Array *object,
+                     unsigned index,
+                     char value);
 
   bool evalModel(const Query &query,
                  Assignment &assignment);
@@ -29,29 +69,47 @@ public:
 
   ref<Expr> transform(ref<Expr> e);
 
+  uint64_t getAuxValue(ref<ForallExpr> f);
+
+  uint64_t getAuxValue(ref<ForallExpr> f,
+                       const Assignment &assignment);
+
+  void findDeps(ref<Expr> e,
+                const Assignment &assignment,
+                std::vector<ArrayAccess> &result);
+
   void findAuxReads(ref<Expr> e,
                     std::vector<ref<Expr>> &result);
 
   void transform(const Query &query,
                  ConstraintSet &constraints);
 
-  bool getAccessedOffset(ref<Expr> e,
-                         uint64_t value,
-                         uint64_t &offset,
-                         const Array *&array);
+  void getArrays(ref<Expr> e,
+                 std::set<const Array *> &result);
 
-  char getModelValue(const std::vector<const Array *> &objects,
-                     std::vector<std::vector<unsigned char>> &values,
-                     const Array *object,
-                     unsigned index);
+  void getArrayAccesses(ref<Expr> e,
+                        uint64_t value,
+                        std::vector<ArrayAccess> &result);
 
-  void setModelValue(const std::vector<const Array *> &objects,
-                     std::vector<std::vector<unsigned char>> &values,
-                     const Array *object,
-                     unsigned index,
-                     char value);
+  bool getArrayAccess(ref<Expr> e,
+                      uint64_t value,
+                      ArrayAccess &result);
+
+  void extendModel(const Query &query,
+                   Assignment &assignment,
+                   std::vector<ArrayAccess> conflicting);
+
+  void extendModel(const Query &query,
+                   Assignment &assignment);
+
+  /* TODO: the third parameter should be const */
+  bool adjustModelForConflicts(const Query &query,
+                               const Query &smQuery,
+                               const Assignment &assignment,
+                               Assignment &adjusted);
 
   bool adjustModel(const Query &query,
+                   const Query &smQuery,
                    const std::vector<const Array *> &objects,
                    std::vector<std::vector<unsigned char>> &values);
 
