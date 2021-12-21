@@ -14,6 +14,7 @@ klee_add_component(kleaverExpr
   Assignment.cpp
   AssignmentGenerator.cpp
   Constraints.cpp
+  EMatching.cpp
   ExprBuilder.cpp
   Expr.cpp
   ExprEvaluator.cpp

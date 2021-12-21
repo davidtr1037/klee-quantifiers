@@ -19,6 +19,7 @@
 #include "klee/Expr/ExprVisitor.h"
 #include "klee/Expr/ExprUtil.h"
 #include "klee/Expr/ExprRename.h"
+#include "klee/Expr/EMatching.h"
 #include "klee/Module/Cell.h"
 #include "klee/Module/InstructionInfoTable.h"
 #include "klee/Module/KInstruction.h"
