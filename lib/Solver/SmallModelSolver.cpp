@@ -504,7 +504,6 @@ bool SmallModelSolver::computeValue(const Query& query,
 void SmallModelSolver::buildConstraints(const Query &query,
                                         ConstraintSet &constraints) {
   if (GenerateLemmasForSmallModel && !isa<ConstantExpr>(query.expr)) {
-    /* assuming that the query is satisfiable */
     for (ref<Expr> e : query.constraints) {
       if (isa<ForallExpr>(e)) {
         std::vector<EqAssertion> assertions;
@@ -514,6 +513,13 @@ void SmallModelSolver::buildConstraints(const Query &query,
         std::vector<ref<Expr>> terms;
         for (EqAssertion &a : assertions) {
           a.findNegatingTerms(Expr::createIsZero(query.expr), terms);
+          /* TODO: refactor */
+          for (ref<Expr> constraint : query.constraints) {
+            if (!isa<ForallExpr>(constraint)) {
+              /* TODO: avoid trivial terms */
+              a.findNegatingTerms(constraint, terms);
+            }
+          }
         }
 
         /* TODO: add an API for that? */
