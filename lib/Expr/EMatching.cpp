@@ -8,33 +8,6 @@
 using namespace klee;
 using namespace llvm;
 
-static void findAssertions(ref<ForallExpr> f,
-                           std::vector<EqAssertion> &assertions) {
-  std::list<ref<Expr>> worklist;
-  worklist.push_front(f->post);
-  while (!worklist.empty()) {
-    ref<Expr> e = worklist.front();
-    worklist.pop_front();
-
-    if (isa<AndExpr>(e)) {
-      ref<AndExpr> andExpr = dyn_cast<AndExpr>(e);
-      worklist.push_front(andExpr->right);
-      worklist.push_front(andExpr->left);
-    } else if (isa<EqExpr>(e)) {
-      ref<EqExpr> eqExpr = dyn_cast<EqExpr>(e);
-      if (eqExpr->left->getWidth() == Expr::Bool && eqExpr->left->isFalse()) {
-        if (isa<EqExpr>(eqExpr->right)) {
-          assertions.push_back(
-            EqAssertion(dyn_cast<EqExpr>(eqExpr->right), true)
-          );
-        }
-      } else {
-        assertions.push_back(EqAssertion(eqExpr, false));
-      }
-    }
-  }
-}
-
 static bool isBoundVariable(ref<Expr> e) {
   if (isa<ReadExpr>(e)) {
     return dyn_cast<ReadExpr>(e)->updates.root->isBoundVariable;
@@ -192,6 +165,33 @@ void EqAssertion::findNegatingTerms(const ConstraintSet &constraints,
   if (checkConstraints) {
     for (ref<Expr> constraint : constraints) {
       findNegatingTerms(constraint, terms);
+    }
+  }
+}
+
+void klee::findAssertions(ref<ForallExpr> f,
+                          std::vector<EqAssertion> &assertions) {
+  std::list<ref<Expr>> worklist;
+  worklist.push_front(f->post);
+  while (!worklist.empty()) {
+    ref<Expr> e = worklist.front();
+    worklist.pop_front();
+
+    if (isa<AndExpr>(e)) {
+      ref<AndExpr> andExpr = dyn_cast<AndExpr>(e);
+      worklist.push_front(andExpr->right);
+      worklist.push_front(andExpr->left);
+    } else if (isa<EqExpr>(e)) {
+      ref<EqExpr> eqExpr = dyn_cast<EqExpr>(e);
+      if (eqExpr->left->getWidth() == Expr::Bool && eqExpr->left->isFalse()) {
+        if (isa<EqExpr>(eqExpr->right)) {
+          assertions.push_back(
+            EqAssertion(dyn_cast<EqExpr>(eqExpr->right), true)
+          );
+        }
+      } else {
+        assertions.push_back(EqAssertion(eqExpr, false));
+      }
     }
   }
 }

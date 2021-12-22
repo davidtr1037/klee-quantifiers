@@ -32,6 +32,9 @@ struct EqAssertion {
                          std::vector<ref<Expr>> &terms);
 };
 
+void findAssertions(ref<ForallExpr> f,
+                    std::vector<EqAssertion> &assertions);
+
 void generateLemmaFromForall(ref<ForallExpr> f,
                              ConstraintSet &constraints,
                              bool checkImplied,

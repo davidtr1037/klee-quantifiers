@@ -121,6 +121,9 @@ public:
 
   bool computeValue(const Query &query, ref<Expr> &result);
 
+  void buildConstraints(const Query &query,
+                        ConstraintSet &constraints);
+
   bool computeInitialValuesUsingSmallModel(const Query &query,
                                            const std::vector<const Array *> &objects,
                                            std::vector<std::vector<unsigned char> > &values,

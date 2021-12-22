@@ -5,6 +5,7 @@
 #include "klee/Expr/Expr.h"
 #include "klee/Expr/ExprUtil.h"
 #include "klee/Expr/Assignment.h"
+#include "klee/Expr/EMatching.h"
 #include "klee/Solver/IncompleteSolver.h"
 #include "klee/Solver/SolverImpl.h"
 #include "klee/Solver/SolverStats.h"
@@ -16,6 +17,13 @@ using namespace klee;
 
 cl::opt<bool> ValidateSmallModel(
   "validate-small-model",
+  cl::init(false),
+  cl::desc(""),
+  cl::cat(SolvingCat)
+);
+
+cl::opt<bool> GenerateLemmasForSmallModel(
+  "generate-lemmas-for-small-model",
   cl::init(false),
   cl::desc(""),
   cl::cat(SolvingCat)
@@ -493,13 +501,47 @@ bool SmallModelSolver::computeValue(const Query& query,
   return solver->impl->computeValue(query, result);
 }
 
+void SmallModelSolver::buildConstraints(const Query &query,
+                                        ConstraintSet &constraints) {
+  if (GenerateLemmasForSmallModel && !isa<ConstantExpr>(query.expr)) {
+    /* assuming that the query is satisfiable */
+    for (ref<Expr> e : query.constraints) {
+      if (isa<ForallExpr>(e)) {
+        std::vector<EqAssertion> assertions;
+        ref<ForallExpr> f = dyn_cast<ForallExpr>(e);
+        findAssertions(f, assertions);
+
+        std::vector<ref<Expr>> terms;
+        for (EqAssertion &a : assertions) {
+          a.findNegatingTerms(Expr::createIsZero(query.expr), terms);
+        }
+
+        ref<Expr> aux = getSymbolicValue(f->auxArray, f->auxArray->size);
+        for (ref<Expr> term : terms) {
+          term = ZExtExpr::create(term, QuantifiedExpr::AUX_VARIABLE_WIDTH);
+          ref<Expr> lemma = OrExpr::create(
+            EqExpr::create(ConstantExpr::create(0, term->getWidth()), aux),
+            OrExpr::create(
+              UltExpr::create(term, ConstantExpr::create(1, term->getWidth())),
+              UltExpr::create(aux, term)
+            )
+          );
+          constraints.push_back(lemma);
+        }
+      }
+    }
+  }
+
+  /* TODO: rename */
+  transform(query, constraints);
+}
+
 bool SmallModelSolver::computeInitialValuesUsingSmallModel(const Query &query,
                                                            const std::vector<const Array *> &objects,
                                                            std::vector<std::vector<unsigned char>> &values,
                                                            bool &hasSolution) {
   ConstraintSet constraints;
-  transform(query, constraints);
-  /* TODO: rename */
+  buildConstraints(query, constraints);
   Query smQuery(constraints, transform(query.expr));
 
   bool hasSmallModelSolution;
