@@ -513,6 +513,13 @@ void SmallModelSolver::buildConstraints(const Query &query,
         std::vector<ref<Expr>> terms;
         for (EqAssertion &a : assertions) {
           a.findNegatingTerms(Expr::createIsZero(query.expr), terms);
+          /* TODO: refactor */
+          for (ref<Expr> constraint : query.constraints) {
+            if (!isa<ForallExpr>(constraint)) {
+              /* TODO: avoid trivial terms */
+              a.findNegatingTerms(constraint, terms);
+            }
+          }
         }
 
         ref<Expr> aux = getSymbolicValue(f->auxArray, f->auxArray->size);
