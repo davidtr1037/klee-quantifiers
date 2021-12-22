@@ -503,7 +503,7 @@ bool SmallModelSolver::computeValue(const Query& query,
 
 void SmallModelSolver::buildConstraints(const Query &query,
                                         ConstraintSet &constraints) {
-  if (GenerateLemmasForSmallModel && !isa<ConstantExpr>(query.expr)) {
+  if (GenerateLemmasForSmallModel) {
     for (ref<Expr> e : query.constraints) {
       if (isa<ForallExpr>(e)) {
         std::vector<EqAssertion> assertions;
