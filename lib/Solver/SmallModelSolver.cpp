@@ -122,7 +122,11 @@ void SmallModelSolver::setModelValue(Assignment &assignment,
   auto i = assignment.bindings.find(object);
   assert(i != assignment.bindings.end());
   std::vector<unsigned char> &values = i->second;
-  assert(index < values.size());
+  if (index >= values.size()) {
+    /* TODO: actually might happen? */
+    klee_warning("invalid offset for symbolic array");
+    assert(0);
+  }
   values[index] = value;
 }
 
