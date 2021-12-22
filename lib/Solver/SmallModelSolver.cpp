@@ -516,7 +516,14 @@ void SmallModelSolver::buildConstraints(const Query &query,
           a.findNegatingTerms(Expr::createIsZero(query.expr), terms);
         }
 
-        ref<Expr> aux = getSymbolicValue(f->auxArray, f->auxArray->size);
+        /* TODO: add an API for that? */
+        ref<Expr> aux;
+        if (f->auxArray) {
+          aux = getSymbolicValue(f->auxArray, f->auxArray->size);
+        } else {
+          uint64_t m = getAuxValue(f);
+          aux = ConstantExpr::create(m, QuantifiedExpr::AUX_VARIABLE_WIDTH);
+        }
         for (ref<Expr> term : terms) {
           term = ZExtExpr::create(term, QuantifiedExpr::AUX_VARIABLE_WIDTH);
           ref<Expr> lemma = OrExpr::create(
