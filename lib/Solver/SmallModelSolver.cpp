@@ -36,6 +36,40 @@ cl::opt<bool> AdjustForConflicts(
   cl::cat(SolvingCat)
 );
 
+bool SmallModelSolver::hasModelWithFixedAuxVars(const Query &query,
+                                                const Assignment &assignment) {
+  ConstraintSet constraints;
+  std::vector<const Array *> objects;
+  std::vector<std::vector<unsigned char>> values;
+
+  for (auto i : assignment.bindings) {
+    const Array *array = i.first;
+    objects.push_back(array);
+    if (array->isAuxVariable) {
+      ref<Expr> aux = getSymbolicValue(array, QuantifiedExpr::AUX_VARIABLE_SIZE);
+      /* TODO: consider all the bytes */
+      constraints.push_back(
+        EqExpr::create(
+          aux,
+          ConstantExpr::create(i.second[0], QuantifiedExpr::AUX_VARIABLE_WIDTH)
+        )
+      );
+    }
+  }
+
+  for (ref<Expr> e : query.constraints) {
+    constraints.push_back(e);
+  }
+  Query test(constraints, query.expr);
+
+  bool hasSolution;
+  assert(solver->impl->computeInitialValues(test,
+                                            objects,
+                                            values,
+                                            hasSolution));
+  return hasSolution;
+}
+
 static void update(Access2Expr &map,
                    std::vector<ArrayAccess> &accesses,
                    ref<Expr> e) {

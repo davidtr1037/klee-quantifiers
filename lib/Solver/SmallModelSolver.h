@@ -51,6 +51,9 @@ public:
 
   virtual ~SmallModelSolver();
 
+  bool hasModelWithFixedAuxVars(const Query &query,
+                                const Assignment &assignment);
+
   void dumpModel(const Assignment &assignment);
 
   char getModelValue(const Assignment &assignment,
