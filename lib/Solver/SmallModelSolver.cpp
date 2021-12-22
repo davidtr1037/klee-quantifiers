@@ -504,7 +504,6 @@ bool SmallModelSolver::computeValue(const Query& query,
 void SmallModelSolver::buildConstraints(const Query &query,
                                         ConstraintSet &constraints) {
   if (GenerateLemmasForSmallModel && !isa<ConstantExpr>(query.expr)) {
-    /* assuming that the query is satisfiable */
     for (ref<Expr> e : query.constraints) {
       if (isa<ForallExpr>(e)) {
         std::vector<EqAssertion> assertions;
