@@ -1,5 +1,4 @@
 #include "SmallModelSolver.h"
-#include "klee/Solver/Solver.h"
 
 #include "klee/Expr/Constraints.h"
 #include "klee/Expr/Expr.h"
@@ -7,6 +6,7 @@
 #include "klee/Expr/Assignment.h"
 #include "klee/Expr/EMatching.h"
 #include "klee/Solver/IncompleteSolver.h"
+#include "klee/Solver/Solver.h"
 #include "klee/Solver/SolverImpl.h"
 #include "klee/Solver/SolverStats.h"
 #include "klee/Support/OptionCategories.h"
@@ -31,6 +31,13 @@ cl::opt<bool> GenerateLemmasForSmallModel(
 
 cl::opt<bool> AdjustForConflicts(
   "adjust-for-conflicts",
+  cl::init(false),
+  cl::desc(""),
+  cl::cat(SolvingCat)
+);
+
+cl::opt<bool> InstantiateAuxVariable(
+  "instantiate-aux-variable",
   cl::init(false),
   cl::desc(""),
   cl::cat(SolvingCat)
@@ -149,17 +156,25 @@ bool SmallModelSolver::evalModel(const Query &query,
 
 ref<Expr> SmallModelSolver::eliminateForall(ref<ForallExpr> f) {
   if (!f->auxArray) {
+    /* TODO: is it better to just unfold the forall? */
     uint64_t m = getAuxValue(f);
     if (m >= 1) {
-      return instantiateForall(f, 1);
+      ref<Expr> e = instantiateForall(f, 1);
+      if (InstantiateAuxVariable) {
+        e = AndExpr::create(e, instantiateForall(f, m));
+      }
+      return e;
     } else {
       return ConstantExpr::create(1, Expr::Bool);
     }
   }
 
-  ref<Expr> e = instantiateForall(f, 1);
   ref<Expr> aux = getSymbolicValue(f->auxArray,
                                    QuantifiedExpr::AUX_VARIABLE_SIZE);
+  ref<Expr> e = instantiateForall(f, 1);
+  if (InstantiateAuxVariable) {
+    e = AndExpr::create(e, instantiateForall(f, aux));
+  }
   return OrExpr::create(
     EqExpr::create(aux, ConstantExpr::create(0, aux->getWidth())),
     e

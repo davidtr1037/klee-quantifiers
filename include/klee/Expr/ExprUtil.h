@@ -45,6 +45,10 @@ namespace klee {
 
   ref<Expr> getSymbolicValue(const Array *array, unsigned size);
 
+  ref<Expr> substBoundVariables(ref<Expr> e, ref<Expr> value);
+
+  ref<Expr> instantiateForall(ref<ForallExpr> e, ref<Expr> value);
+
   ref<Expr> substBoundVariables(ref<Expr> e, uint64_t value);
 
   ref<Expr> instantiateForall(ref<ForallExpr> e, uint64_t value);

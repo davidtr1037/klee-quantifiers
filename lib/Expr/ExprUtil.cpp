@@ -290,6 +290,28 @@ ref<Expr> klee::getSymbolicValue(const Array *array, unsigned size) {
   return r;
 }
 
+ref<Expr> klee::substBoundVariables(ref<Expr> src, ref<Expr> value) {
+  std::vector<ref<ReadExpr>> reads;
+  findReads(src, true, reads);
+
+  std::map<ref<Expr>, ref<Expr>> map;
+  for (ref<ReadExpr> e : reads) {
+    if (e->updates.root->isBoundVariable) {
+      ref<ConstantExpr> index = dyn_cast<ConstantExpr>(e->index);
+      assert(!index.isNull());
+      uint64_t off = index->getZExtValue();
+      map[e] = ExtractExpr::create(value, off * 8, Expr::Int8);
+    }
+  }
+
+  ExprReplaceVisitor2 visitor(map);
+  return visitor.visit(src);
+}
+
+ref<Expr> klee::instantiateForall(ref<ForallExpr> f, ref<Expr> value) {
+  return substBoundVariables(f->post, value);
+}
+
 ref<Expr> klee::substBoundVariables(ref<Expr> src, uint64_t value) {
   std::vector<ref<ReadExpr>> reads;
   findReads(src, true, reads);
