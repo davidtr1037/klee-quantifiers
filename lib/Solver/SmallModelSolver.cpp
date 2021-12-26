@@ -43,6 +43,13 @@ cl::opt<bool> InstantiateAuxVariable(
   cl::cat(SolvingCat)
 );
 
+cl::opt<bool> DuplicateSmallModel(
+  "duplicate-small-model",
+  cl::init(false),
+  cl::desc(""),
+  cl::cat(SolvingCat)
+);
+
 SmallModelSolver::SmallModelSolver(Solver *solver) : solver(solver) {
 
 }
@@ -525,10 +532,12 @@ bool SmallModelSolver::adjustModel(const Query &query,
     return true;
   }
 
-  extendModel(query, assignment);
-  if (evalModel(query, assignment)) {
-    fillValues(assignment, objects, values);
-    return true;
+  if (DuplicateSmallModel) {
+    extendModel(query, assignment);
+    if (evalModel(query, assignment)) {
+      fillValues(assignment, objects, values);
+      return true;
+    }
   }
 
   if (AdjustForConflicts) {
