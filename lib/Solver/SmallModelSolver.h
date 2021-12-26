@@ -100,16 +100,21 @@ public:
 
   void extendModel(const Query &query,
                    Assignment &assignment,
-                   std::vector<ArrayAccess> conflicting);
+                   const std::vector<ArrayAccess> &conflicts);
 
   void extendModel(const Query &query,
                    Assignment &assignment);
 
-  /* TODO: the third parameter should be const */
-  bool adjustModelForConflicts(const Query &query,
-                               const Query &smQuery,
-                               const Assignment &assignment,
-                               Assignment &adjusted);
+  void findConflicts(const Query &query,
+                     const Assignment &assignment,
+                     std::vector<ArrayAccess> &conflicts,
+                     Access2Expr access2expr,
+                     std::set<const Array *> &keepSymbolic);
+
+  bool adjustModelWithConflicts(const Query &query,
+                                const Query &smQuery,
+                                const Assignment &assignment,
+                                Assignment &adjusted);
 
   bool adjustModel(const Query &query,
                    const Query &smQuery,

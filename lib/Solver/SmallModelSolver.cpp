@@ -43,6 +43,20 @@ cl::opt<bool> InstantiateAuxVariable(
   cl::cat(SolvingCat)
 );
 
+SmallModelSolver::SmallModelSolver(Solver *solver) : solver(solver) {
+
+}
+
+SmallModelSolver::~SmallModelSolver() {
+  klee_message("Small model hits: %lu",
+               (uint64_t)(stats::smallModelHits));
+  klee_message("Small model misses: %lu",
+               (uint64_t)(stats::smallModelMisses));
+  klee_message("Small model unsupported: %lu",
+               (uint64_t)(stats::smallModelUnsupported));
+  delete solver;
+}
+
 bool SmallModelSolver::hasModelWithFixedAuxVars(const Query &query,
                                                 const Assignment &assignment) {
   ConstraintSet constraints;
@@ -251,6 +265,7 @@ void SmallModelSolver::findAuxReads(ref<Expr> e,
           continue;
         }
 
+        /* TODO: always adjust to Expr::Int32? */
         if (size->getWidth() < r->index->getWidth()) {
           size = ZExtExpr::create(size, index->getWidth());
         }
@@ -270,14 +285,13 @@ void SmallModelSolver::transform(const Query &query,
     constraints.push_back(transform(e));
   }
 
-  /* TODO: rename */
-  std::vector<ref<Expr>> additional;
+  std::vector<ref<Expr>> boundConstraints;
   for (ref<Expr> e : query.constraints) {
-    findAuxReads(e, additional);
+    findAuxReads(e, boundConstraints);
   }
-  findAuxReads(query.expr, additional);
+  findAuxReads(query.expr, boundConstraints);
 
-  for (ref<Expr> e : additional) {
+  for (ref<Expr> e : boundConstraints) {
     constraints.push_back(e);
   }
 }
@@ -326,7 +340,7 @@ bool SmallModelSolver::getArrayAccess(ref<Expr> e,
 
 void SmallModelSolver::extendModel(const Query &query,
                                    Assignment &assignment,
-                                   std::vector<ArrayAccess> conflicting) {
+                                   const std::vector<ArrayAccess> &conflicts) {
   for (ref<Expr> e : query.constraints) {
     if (isa<ForallExpr>(e)) {
       ref<ForallExpr> f = dyn_cast<ForallExpr>(e);
@@ -343,15 +357,15 @@ void SmallModelSolver::extendModel(const Query &query,
         continue;
       }
 
-      char c = getModelValue(assignment, access.array, access.offset);
-      for (uint64_t v = 2; v <= m; v++) {
-        if (!getArrayAccess(body, v, access)) {
+      char v = getModelValue(assignment, access.array, access.offset);
+      for (uint64_t i = 2; i <= m; i++) {
+        if (!getArrayAccess(body, i, access)) {
           /* shouldn't happen */
           assert(0);
         }
         /* TODO: optimize lookup */
-        if (std::find(conflicting.begin(), conflicting.end(), access) == conflicting.end()) {
-          setModelValue(assignment, access.array, access.offset, c);
+        if (std::find(conflicts.begin(), conflicts.end(), access) == conflicts.end()) {
+          setModelValue(assignment, access.array, access.offset, v);
         }
       }
     }
@@ -360,25 +374,21 @@ void SmallModelSolver::extendModel(const Query &query,
 
 void SmallModelSolver::extendModel(const Query &query,
                                    Assignment &assignment) {
-  std::vector<ArrayAccess> conflicting;
-  extendModel(query, assignment, conflicting);
+  std::vector<ArrayAccess> conflicts;
+  extendModel(query, assignment, conflicts);
 }
 
-bool SmallModelSolver::adjustModelForConflicts(const Query &query,
-                                               const Query &smQuery,
-                                               const Assignment &assignment,
-                                               Assignment &adjusted) {
+void SmallModelSolver::findConflicts(const Query &query,
+                                     const Assignment &assignment,
+                                     std::vector<ArrayAccess> &conflicts,
+                                     Access2Expr access2expr,
+                                     std::set<const Array *> &keepSymbolic) {
   std::vector<ref<Expr>> all;
   all.push_back(Expr::createIsZero(query.expr));
   for (ref<Expr> constraint : query.constraints) {
     all.push_back(constraint);
   }
 
-  std::set<const Array *> keepSymbolic;
-  /* TODO: rename to conflicts? */
-  std::vector<ArrayAccess> conflicting;
-  Access2Expr access2expr;
-  /* TODO: map an access to a set of instantiations */
   for (ref<Expr> constraint : all) {
     if (isa<ForallExpr>(constraint)) {
       ref<ForallExpr> f = dyn_cast<ForallExpr>(constraint);
@@ -389,7 +399,6 @@ bool SmallModelSolver::adjustModelForConflicts(const Query &query,
 
       uint64_t m = getAuxValue(f, assignment);
       for (unsigned i = 1; i <= m; i++) {
-        /* TODO: use substBoundVariables? */
         ref<Expr> instantiation = instantiateForall(f, i);
         ref<Expr> e = assignment.evaluate(instantiation);
         std::vector<ArrayAccess> accesses;
@@ -400,25 +409,36 @@ bool SmallModelSolver::adjustModelForConflicts(const Query &query,
         }
         if (e->isFalse()) {
           for (ArrayAccess &access : accesses) {
-            conflicting.push_back(access);
+            conflicts.push_back(access);
           }
         }
       }
     } else {
       ref<Expr> e = assignment.evaluate(constraint);
-      std::vector<ArrayAccess> accesses;
-      findDeps(constraint, assignment, accesses);
       if (e->isFalse()) {
+        std::vector<ArrayAccess> accesses;
+        findDeps(constraint, assignment, accesses);
         for (ArrayAccess &access : accesses) {
-          conflicting.push_back(access);
+          conflicts.push_back(access);
         }
       }
     }
   }
+}
+
+bool SmallModelSolver::adjustModelWithConflicts(const Query &query,
+                                                const Query &smQuery,
+                                                const Assignment &assignment,
+                                                Assignment &adjusted) {
+
+  std::vector<ArrayAccess> conflicts;
+  Access2Expr access2expr;
+  std::set<const Array *> keepSymbolic;
+  findConflicts(query, assignment, conflicts, access2expr, keepSymbolic);
 
   /* TODO: for each conflict, add the associated constraints */
   std::vector<ref<Expr>> toAdd;
-  for (ArrayAccess &dep : conflicting) {
+  for (ArrayAccess &dep : conflicts) {
     if (keepSymbolic.find(dep.array) != keepSymbolic.end()) {
       auto i = access2expr.find(dep);
       if (i != access2expr.end()) {
@@ -441,6 +461,7 @@ bool SmallModelSolver::adjustModelForConflicts(const Query &query,
     }
   }
 
+  /* we want to allow free varaibles here */
   Assignment partialAssignment(partialObjects, partialValues, true);
   ConstraintSet constraints;
   for (ref<Expr> e : smQuery.constraints) {
@@ -481,14 +502,13 @@ bool SmallModelSolver::adjustModelForConflicts(const Query &query,
     fullValues.push_back(valuesToKeep[i]);
   }
 
+  /* TODO: add API for this */
   for (unsigned i = 0; i < fullObjects.size(); i++) {
     adjusted.bindings[fullObjects[i]] = fullValues[i];
   }
 
-  /* TODO: eval model? */
-
-  /* TODO: extend (with conflicts) and eval model */
-  extendModel(query, adjusted, conflicting);
+  /* TODO: eval model before patching? */
+  extendModel(query, adjusted, conflicts);
   if (evalModel(query, adjusted)) {
     return true;
   }
@@ -513,27 +533,13 @@ bool SmallModelSolver::adjustModel(const Query &query,
 
   if (AdjustForConflicts) {
     Assignment adjusted;
-    if (adjustModelForConflicts(query, smQuery, assignment, adjusted)) {
+    if (adjustModelWithConflicts(query, smQuery, assignment, adjusted)) {
       fillValues(adjusted, objects, values);
       return true;
     }
   }
 
   return false;
-}
-
-SmallModelSolver::SmallModelSolver(Solver *solver) : solver(solver) {
-
-}
-
-SmallModelSolver::~SmallModelSolver() {
-  klee_message("Small model hits: %lu",
-               (uint64_t)(stats::smallModelHits));
-  klee_message("Small model misses: %lu",
-               (uint64_t)(stats::smallModelMisses));
-  klee_message("Small model unsupported: %lu",
-               (uint64_t)(stats::smallModelUnsupported));
-  delete solver;
 }
 
 bool SmallModelSolver::computeTruth(const Query& query,
@@ -559,12 +565,13 @@ void SmallModelSolver::buildConstraints(const Query &query,
   if (GenerateLemmasForSmallModel) {
     for (ref<Expr> e : query.constraints) {
       if (isa<ForallExpr>(e)) {
-        std::vector<EqAssertion> assertions;
         ref<ForallExpr> f = dyn_cast<ForallExpr>(e);
+        std::vector<EqAssertion> assertions;
         findAssertions(f, assertions);
 
         std::vector<ref<Expr>> terms;
         for (EqAssertion &a : assertions) {
+          /* guaranteed to be quantifier-free */
           a.findNegatingTerms(Expr::createIsZero(query.expr), terms);
           /* TODO: refactor */
           for (ref<Expr> constraint : query.constraints) {
@@ -608,6 +615,7 @@ bool SmallModelSolver::computeInitialValuesUsingSmallModel(const Query &query,
                                                            bool &hasSolution) {
   ConstraintSet constraints;
   buildConstraints(query, constraints);
+  /* TODO: rename */
   Query smQuery(constraints, transform(query.expr));
 
   bool hasSmallModelSolution;
