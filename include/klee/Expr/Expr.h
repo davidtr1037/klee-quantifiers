@@ -1331,6 +1331,8 @@ public:
 
   const Array *boundArray;
 
+  ref<Expr> auxExpr;
+
   const Array *auxArray;
 
   static const Width AUX_VARIABLE_WIDTH;
@@ -1381,6 +1383,8 @@ protected:
     boundArray = extractArray(bound);
     assert(boundArray);
 
+    /* must not be null */
+    auxExpr = extractAuxExpr(pre);
     /* my be null if only one path is described */
     auxArray = extractAuxArray(pre);
   }
@@ -1414,7 +1418,7 @@ private:
     return nullptr;
   }
 
-  const Array *extractAuxArray(ref<Expr> e) {
+  ref<Expr> extractAuxExpr(ref<Expr> e) {
     if (!isa<AndExpr>(e)) {
       return nullptr;
     }
@@ -1425,7 +1429,16 @@ private:
     }
 
     ref<UleExpr> uleExpr = dyn_cast<UleExpr>(andExpr->right);
-    return extractArray(uleExpr->right);
+    return uleExpr->right;
+  }
+
+  const Array *extractAuxArray(ref<Expr> e) {
+    ref<Expr> aux = extractAuxExpr(e);
+    if (aux.isNull()) {
+      return nullptr;
+    }
+
+    return extractArray(aux);
   }
 
 };

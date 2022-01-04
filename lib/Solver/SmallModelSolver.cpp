@@ -190,7 +190,7 @@ ref<Expr> SmallModelSolver::eliminateForall(ref<ForallExpr> f) {
     }
   }
 
-  ref<Expr> aux = getAuxExpr(f);
+  ref<Expr> aux = f->auxExpr;
   ref<Expr> e = instantiateForall(f, 1);
   if (InstantiateAuxVariable) {
     e = AndExpr::create(e, instantiateForall(f, aux));
@@ -209,17 +209,9 @@ ref<Expr> SmallModelSolver::transform(ref<Expr> e) {
   }
 }
 
-ref<Expr> SmallModelSolver::getAuxExpr(ref<ForallExpr> f) {
-  assert(isa<AndExpr>(f->pre));
-  ref<AndExpr> andExpr = dyn_cast<AndExpr>(f->pre);
-  assert(isa<UleExpr>(andExpr->right));
-  ref<UleExpr> uleExpr = dyn_cast<UleExpr>(andExpr->right);
-  return uleExpr->right;
-}
-
 uint64_t SmallModelSolver::getAuxValue(ref<ForallExpr> f) {
   assert(!f->auxArray);
-  ref<Expr> aux = getAuxExpr(f);
+  ref<Expr> aux = f->auxExpr;
   assert(isa<ConstantExpr>(aux));
   return dyn_cast<ConstantExpr>(aux)->getZExtValue();
 }
@@ -227,7 +219,7 @@ uint64_t SmallModelSolver::getAuxValue(ref<ForallExpr> f) {
 uint64_t SmallModelSolver::getAuxValue(ref<ForallExpr> f,
                                        const Assignment &assignment) {
   if (f->auxArray) {
-    ref<Expr> aux = getAuxExpr(f);
+    ref<Expr> aux = f->auxExpr;
     ref<Expr> v = assignment.evaluate(aux);
     assert(isa<ConstantExpr>(v));
     return dyn_cast<ConstantExpr>(v)->getZExtValue();
@@ -594,7 +586,7 @@ void SmallModelSolver::buildConstraints(const Query &query,
           }
         }
 
-        ref<Expr> aux = getAuxExpr(f);
+        ref<Expr> aux = f->auxExpr;
         for (ref<Expr> term : terms) {
           term = ZExtExpr::create(term, QuantifiedExpr::AUX_VARIABLE_WIDTH);
           ref<Expr> lemma = OrExpr::create(
