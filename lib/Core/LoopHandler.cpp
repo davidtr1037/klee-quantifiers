@@ -85,6 +85,12 @@ cl::opt<bool> RestrictPatternBaseMerging(
     cl::desc(""),
     cl::cat(klee::LoopCat));
 
+cl::opt<unsigned> MaxPatterns(
+    "max-patterns",
+    cl::init(10),
+    cl::desc(""),
+    cl::cat(klee::LoopCat));
+
 LoopHandler::LoopHandler(Executor *executor,
                          ExecutionState *es,
                          Loop *loop,
@@ -233,6 +239,7 @@ bool LoopHandler::shouldForceCFGBasedMerging() const {
   }
 }
 
+/* TODO: add a threshold for pattern based merging */
 void LoopHandler::splitStates(vector<MergeGroupInfo> &result) {
   if (SplitByPattern && !shouldForceCFGBasedMerging()) {
     for (auto &i: mergeGroupsByExit) {
@@ -253,31 +260,39 @@ void LoopHandler::splitStates(vector<MergeGroupInfo> &result) {
       } else {
         extractPatternsBackward(tree, ids, matches);
       }
+
+      /* must be non-empty */
       assert(!matches.empty());
 
-      if (SplitByCFG) {
-        std::vector<MergeSubGroupInfo> subGroups;
-        for (PatternMatch &pm : matches) {
-          StateSet states;
-          for (StateMatch &sm : pm.matches) {
-            auto i = m.find(sm.stateID);
-            assert(i != m.end());
-            states.push_back(i->second);
-          }
-          subGroups.push_back(MergeSubGroupInfo(states, {pm}));
-        }
-        MergeGroupInfo groupInfo(subGroups);
+      if (matches.size() > MaxPatterns) {
+        klee_warning("max patterns exceeded: %lu", matches.size());
+        MergeGroupInfo groupInfo({MergeSubGroupInfo(states)});
         result.push_back(groupInfo);
       } else {
-        for (PatternMatch &pm : matches) {
-          StateSet states;
-          for (StateMatch &sm : pm.matches) {
-            auto i = m.find(sm.stateID);
-            assert(i != m.end());
-            states.push_back(i->second);
+        if (SplitByCFG) {
+          std::vector<MergeSubGroupInfo> subGroups;
+          for (PatternMatch &pm : matches) {
+            StateSet states;
+            for (StateMatch &sm : pm.matches) {
+              auto i = m.find(sm.stateID);
+              assert(i != m.end());
+              states.push_back(i->second);
+            }
+            subGroups.push_back(MergeSubGroupInfo(states, {pm}));
           }
-          MergeGroupInfo groupInfo({MergeSubGroupInfo(states, {pm})});
+          MergeGroupInfo groupInfo(subGroups);
           result.push_back(groupInfo);
+        } else {
+          for (PatternMatch &pm : matches) {
+            StateSet states;
+            for (StateMatch &sm : pm.matches) {
+              auto i = m.find(sm.stateID);
+              assert(i != m.end());
+              states.push_back(i->second);
+            }
+            MergeGroupInfo groupInfo({MergeSubGroupInfo(states, {pm})});
+            result.push_back(groupInfo);
+          }
         }
       }
     }

@@ -129,7 +129,7 @@ namespace {
             cl::cat(ModuleCat));
 
   cl::opt<bool>
-  UseCFGPass("use-cfg-pass", cl::desc(""), cl::init(false), cl::cat(ModuleCat));
+  UseCFGPass("use-cfg-pass", cl::desc(""), cl::init(true), cl::cat(ModuleCat));
 }
 
 /***/
