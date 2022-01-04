@@ -175,6 +175,25 @@ bool SmallModelSolver::evalModel(const Query &query,
   return true;
 }
 
+uint64_t SmallModelSolver::getAuxValue(ref<ForallExpr> f) {
+  assert(!f->auxArray);
+  ref<Expr> aux = f->auxExpr;
+  assert(isa<ConstantExpr>(aux));
+  return dyn_cast<ConstantExpr>(aux)->getZExtValue();
+}
+
+uint64_t SmallModelSolver::getAuxValue(ref<ForallExpr> f,
+                                       const Assignment &assignment) {
+  if (f->auxArray) {
+    ref<Expr> aux = f->auxExpr;
+    ref<Expr> v = assignment.evaluate(aux);
+    assert(isa<ConstantExpr>(v));
+    return dyn_cast<ConstantExpr>(v)->getZExtValue();
+  } else {
+    return getAuxValue(f);
+  }
+}
+
 ref<Expr> SmallModelSolver::eliminateForall(ref<ForallExpr> f) {
   if (!f->auxArray) {
     /* TODO: is it better to just unfold the forall? */
@@ -206,25 +225,6 @@ ref<Expr> SmallModelSolver::transform(ref<Expr> e) {
     return eliminateForall(dyn_cast<ForallExpr>(e));
   } else {
     return e;
-  }
-}
-
-uint64_t SmallModelSolver::getAuxValue(ref<ForallExpr> f) {
-  assert(!f->auxArray);
-  ref<Expr> aux = f->auxExpr;
-  assert(isa<ConstantExpr>(aux));
-  return dyn_cast<ConstantExpr>(aux)->getZExtValue();
-}
-
-uint64_t SmallModelSolver::getAuxValue(ref<ForallExpr> f,
-                                       const Assignment &assignment) {
-  if (f->auxArray) {
-    ref<Expr> aux = f->auxExpr;
-    ref<Expr> v = assignment.evaluate(aux);
-    assert(isa<ConstantExpr>(v));
-    return dyn_cast<ConstantExpr>(v)->getZExtValue();
-  } else {
-    return getAuxValue(f);
   }
 }
 

@@ -68,14 +68,14 @@ public:
   bool evalModel(const Query &query,
                  Assignment &assignment);
 
-  ref<Expr> eliminateForall(ref<ForallExpr>);
-
-  ref<Expr> transform(ref<Expr> e);
-
   uint64_t getAuxValue(ref<ForallExpr> f);
 
   uint64_t getAuxValue(ref<ForallExpr> f,
                        const Assignment &assignment);
+
+  ref<Expr> eliminateForall(ref<ForallExpr>);
+
+  ref<Expr> transform(ref<Expr> e);
 
   void findDeps(ref<Expr> e,
                 const Assignment &assignment,
