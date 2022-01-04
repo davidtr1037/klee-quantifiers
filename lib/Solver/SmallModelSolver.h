@@ -72,6 +72,8 @@ public:
 
   ref<Expr> transform(ref<Expr> e);
 
+  ref<Expr> getAuxExpr(ref<ForallExpr> f);
+
   uint64_t getAuxValue(ref<ForallExpr> f);
 
   uint64_t getAuxValue(ref<ForallExpr> f,

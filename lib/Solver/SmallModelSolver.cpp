@@ -190,8 +190,7 @@ ref<Expr> SmallModelSolver::eliminateForall(ref<ForallExpr> f) {
     }
   }
 
-  ref<Expr> aux = getSymbolicValue(f->auxArray,
-                                   QuantifiedExpr::AUX_VARIABLE_SIZE);
+  ref<Expr> aux = getAuxExpr(f);
   ref<Expr> e = instantiateForall(f, 1);
   if (InstantiateAuxVariable) {
     e = AndExpr::create(e, instantiateForall(f, aux));
@@ -210,21 +209,25 @@ ref<Expr> SmallModelSolver::transform(ref<Expr> e) {
   }
 }
 
-uint64_t SmallModelSolver::getAuxValue(ref<ForallExpr> f) {
-  assert(!f->auxArray);
+ref<Expr> SmallModelSolver::getAuxExpr(ref<ForallExpr> f) {
   assert(isa<AndExpr>(f->pre));
   ref<AndExpr> andExpr = dyn_cast<AndExpr>(f->pre);
   assert(isa<UleExpr>(andExpr->right));
   ref<UleExpr> uleExpr = dyn_cast<UleExpr>(andExpr->right);
-  assert(isa<ConstantExpr>(uleExpr->right));
-  return dyn_cast<ConstantExpr>(uleExpr->right)->getZExtValue();
+  return uleExpr->right;
+}
+
+uint64_t SmallModelSolver::getAuxValue(ref<ForallExpr> f) {
+  assert(!f->auxArray);
+  ref<Expr> aux = getAuxExpr(f);
+  assert(isa<ConstantExpr>(aux));
+  return dyn_cast<ConstantExpr>(aux)->getZExtValue();
 }
 
 uint64_t SmallModelSolver::getAuxValue(ref<ForallExpr> f,
                                        const Assignment &assignment) {
   if (f->auxArray) {
-    ref<Expr> aux = getSymbolicValue(f->auxArray,
-                                     QuantifiedExpr::AUX_VARIABLE_SIZE);
+    ref<Expr> aux = getAuxExpr(f);
     ref<Expr> v = assignment.evaluate(aux);
     assert(isa<ConstantExpr>(v));
     return dyn_cast<ConstantExpr>(v)->getZExtValue();
@@ -591,14 +594,7 @@ void SmallModelSolver::buildConstraints(const Query &query,
           }
         }
 
-        /* TODO: add an API for that? */
-        ref<Expr> aux;
-        if (f->auxArray) {
-          aux = getSymbolicValue(f->auxArray, f->auxArray->size);
-        } else {
-          uint64_t m = getAuxValue(f);
-          aux = ConstantExpr::create(m, QuantifiedExpr::AUX_VARIABLE_WIDTH);
-        }
+        ref<Expr> aux = getAuxExpr(f);
         for (ref<Expr> term : terms) {
           term = ZExtExpr::create(term, QuantifiedExpr::AUX_VARIABLE_WIDTH);
           ref<Expr> lemma = OrExpr::create(
