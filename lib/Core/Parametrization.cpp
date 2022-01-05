@@ -193,6 +193,10 @@ static bool findDistinctTerms(ref<Expr> e1,
     return false;
   }
 
+  if (e1->getWidth() != e2->getWidth()) {
+    return false;
+  }
+
   if (isa<ConstantExpr>(e1)) {
     r1 = e1;
     r2 = e2;
