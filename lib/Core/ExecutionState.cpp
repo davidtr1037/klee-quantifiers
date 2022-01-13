@@ -761,7 +761,7 @@ ExecutionState *ExecutionState::mergeStatesOptimized(std::vector<ExecutionState 
              suffixes,
              loopHandler,
              isEncodedWithABV,
-             matches,
+             matches[0],
              usedAuxVariables);
 
   /* heap */
@@ -771,7 +771,7 @@ ExecutionState *ExecutionState::mergeStatesOptimized(std::vector<ExecutionState 
             mutated,
             loopHandler,
             isEncodedWithABV,
-            matches,
+            matches[0],
             usedAuxVariables);
 
   if (OptimizeArrayValuesUsingITERewrite) {
@@ -843,7 +843,7 @@ void ExecutionState::mergeStack(ExecutionState *merged,
                                 std::vector<ref<Expr>> &suffixes,
                                 LoopHandler *loopHandler,
                                 bool isEncodedWithABV,
-                                std::vector<PatternMatch> &matches,
+                                PatternMatch &pm,
                                 bool &usedAuxVariables) {
   usedAuxVariables = false;
 
@@ -885,7 +885,7 @@ void ExecutionState::mergeStack(ExecutionState *merged,
       if (isEncodedWithABV && isa<SelectExpr>(v)) {
         ref<Expr> e = mergeValuesUsingPattern(valuesMap,
                                               loopHandler,
-                                              matches[0],
+                                              pm,
                                               merged->getMergeID());
         if (!e.isNull()) {
           v = e;
@@ -905,7 +905,7 @@ void ExecutionState::mergeHeap(ExecutionState *merged,
                                std::set<const MemoryObject*> &mutated,
                                LoopHandler *loopHandler,
                                bool isEncodedWithABV,
-                               std::vector<PatternMatch> &matches,
+                               PatternMatch &pm,
                                bool &usedAuxVariables) {
   usedAuxVariables = false;
 
@@ -982,7 +982,7 @@ void ExecutionState::mergeHeap(ExecutionState *merged,
         if (isEncodedWithABV && isa<SelectExpr>(v)) {
           ref<Expr> e = mergeValuesUsingPattern(valuesMap,
                                                 loopHandler,
-                                                matches[0],
+                                                pm,
                                                 merged->getMergeID());
           if (!e.isNull()) {
             v = e;
