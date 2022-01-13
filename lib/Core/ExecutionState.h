@@ -295,24 +295,26 @@ public:
   /* TODO: too many parameters */
   static void mergeStack(ExecutionState *merged,
                          std::vector<ExecutionState *> &states,
-                         std::vector<ref<Expr>> &suffixes,
+                         const std::vector<ref<Expr>> &suffixes,
                          LoopHandler *loopHandler,
                          bool isEncodedWithABV,
                          PatternMatch &pm,
+                         bool dryMode,
                          bool &usedAuxVariables);
 
   /* TODO: too many parameters */
   static void mergeHeap(ExecutionState *merged,
                         std::vector<ExecutionState *> &states,
-                        std::vector<ref<Expr>> &suffixes,
-                        std::set<const MemoryObject*> &mutated,
+                        const std::vector<ref<Expr>> &suffixes,
+                        const std::set<const MemoryObject*> &mutated,
                         LoopHandler *loopHandler,
                         bool isEncodedWithABV,
                         PatternMatch &pm,
+                        bool dryMode,
                         bool &usedAuxVariables);
 
-  static ref<Expr> mergeValues(std::vector<ref<Expr>> &suffixes,
-                               std::vector<ref<Expr>> &values);
+  static ref<Expr> mergeValues(const std::vector<ref<Expr>> &suffixes,
+                               const std::vector<ref<Expr>> &values);
 
   static ref<Expr> mergeValuesUsingExecTree(State2Value &valuesMap,
                                             LoopHandler *loopHandler);
@@ -363,6 +365,11 @@ public:
   static bool compareHeap(ExecutionState &s1,
                           ExecutionState &s2,
                           std::set<const MemoryObject *> &mutated);
+
+  static bool shouldUsePatternBasedMerging(ExecutionState *merged,
+                                           std::vector<ExecutionState *> &states,
+                                           LoopHandler *loopHandler,
+                                           PatternMatch &pm);
 
   std::uint32_t getMergeID() const;
 

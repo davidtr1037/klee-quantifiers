@@ -762,6 +762,7 @@ ExecutionState *ExecutionState::mergeStatesOptimized(std::vector<ExecutionState 
              loopHandler,
              isEncodedWithABV,
              matches[0],
+             false,
              usedAuxVariables);
 
   /* heap */
@@ -772,6 +773,7 @@ ExecutionState *ExecutionState::mergeStatesOptimized(std::vector<ExecutionState 
             loopHandler,
             isEncodedWithABV,
             matches[0],
+            false,
             usedAuxVariables);
 
   if (OptimizeArrayValuesUsingITERewrite) {
@@ -840,10 +842,11 @@ bool ExecutionState::canMerge(std::vector<ExecutionState *> &states,
 
 void ExecutionState::mergeStack(ExecutionState *merged,
                                 std::vector<ExecutionState *> &states,
-                                std::vector<ref<Expr>> &suffixes,
+                                const std::vector<ref<Expr>> &suffixes,
                                 LoopHandler *loopHandler,
                                 bool isEncodedWithABV,
                                 PatternMatch &pm,
+                                bool dryMode,
                                 bool &usedAuxVariables) {
   usedAuxVariables = false;
 
@@ -852,21 +855,23 @@ void ExecutionState::mergeStack(ExecutionState *merged,
     auto result = LivenessAnalysis::analyzeCached(sf.kf->function);
 
     for (unsigned reg = 0; reg < sf.kf->numRegisters; reg++) {
-      ref<Expr> &v = sf.locals[reg].value;
       bool ignore = false;
       for (ExecutionState *es : states) {
-        ref<Expr> v = es->stack[i].locals[reg].value;
-        if (v.isNull()) {
+        ref<Expr> e = es->stack[i].locals[reg].value;
+        if (e.isNull()) {
           ignore = true;
           break;
         }
       }
       if (ignore) {
-        /* for consistency */
-        v = nullptr;
+        if (!dryMode) {
+          /* for consistency */
+          sf.locals[reg].value = nullptr;
+        }
         continue;
       }
 
+      /* TODO: update only if needed */
       std::vector<ref<Expr>> values;
       /* TODO: update only if needed */
       State2Value valuesMap;
@@ -876,6 +881,7 @@ void ExecutionState::mergeStack(ExecutionState *merged,
         valuesMap[es->getID()] = e;
       }
 
+      ref<Expr> v;
       if (OptimizeITEUsingExecTree && loopHandler->canUseExecTree) {
         v = mergeValuesUsingExecTree(valuesMap, loopHandler);
       } else {
@@ -894,25 +900,29 @@ void ExecutionState::mergeStack(ExecutionState *merged,
           }
         }
       }
-      stats::mergedValuesSize += v->size;
+
+      if (!dryMode) {
+        sf.locals[reg].value = v;
+        stats::mergedValuesSize += v->size;
+      }
     }
   }
 }
 
 void ExecutionState::mergeHeap(ExecutionState *merged,
                                std::vector<ExecutionState *> &states,
-                               std::vector<ref<Expr>> &suffixes,
-                               std::set<const MemoryObject*> &mutated,
+                               const std::vector<ref<Expr>> &suffixes,
+                               const std::set<const MemoryObject*> &mutated,
                                LoopHandler *loopHandler,
                                bool isEncodedWithABV,
                                PatternMatch &pm,
+                               bool dryMode,
                                bool &usedAuxVariables) {
   usedAuxVariables = false;
 
   for (const MemoryObject *mo : mutated) {
     const ObjectState *os = merged->addressSpace.findObject(mo);
     assert(os && !os->readOnly && "objects mutated but not writable in merging state");
-    ObjectState *wos = merged->addressSpace.getWriteable(mo, os);
 
     /* TODO: more like knownInvalidOffset */
     std::vector<unsigned> minInvalidOffset(states.size());
@@ -931,7 +941,6 @@ void ExecutionState::mergeHeap(ExecutionState *merged,
         ExecutionState *es = states[j];
         const ObjectState *other = es->addressSpace.findObject(mo);
         assert(other);
-        assert(wos->getObject()->capacity == other->getObject()->capacity);
 
         /* don't track this read, otherwise the optimization is useless */
         ref<Expr> e = other->read8(i, false);
@@ -997,22 +1006,25 @@ void ExecutionState::mergeHeap(ExecutionState *merged,
       }
     }
 
-    assert(toWrite.size() == mo->capacity);
-    for (unsigned i = 0; i < toWrite.size(); i++) {
-      ref<Expr> v = toWrite[i];
-      if (!v.isNull()) {
-        wos->write(i, v);
+    if (!dryMode) {
+      ObjectState *wos = merged->addressSpace.getWriteable(mo, os);
+      assert(toWrite.size() == mo->capacity);
+      for (unsigned i = 0; i < toWrite.size(); i++) {
+        ref<Expr> v = toWrite[i];
+        if (!v.isNull()) {
+          wos->write(i, v);
+        }
       }
-    }
 
-    if (OptimizeArrayValuesByTracking) {
-      wos->setActualBound(0);
+      if (OptimizeArrayValuesByTracking) {
+        wos->setActualBound(0);
+      }
     }
   }
 }
 
-ref<Expr> ExecutionState::mergeValues(std::vector<ref<Expr>> &suffixes,
-                                      std::vector<ref<Expr>> &values) {
+ref<Expr> ExecutionState::mergeValues(const std::vector<ref<Expr>> &suffixes,
+                                      const std::vector<ref<Expr>> &values) {
   assert(!values.empty() && suffixes.size() == values.size());
 
   ref<Expr> summary = values[values.size() - 1];
@@ -1419,6 +1431,42 @@ bool ExecutionState::compareHeap(ExecutionState &s1,
   }
 
   return true;
+}
+
+bool ExecutionState::shouldUsePatternBasedMerging(ExecutionState *merged,
+                                                  std::vector<ExecutionState *> &states,
+                                                  LoopHandler *loopHandler,
+                                                  PatternMatch &pm) {
+  /* TODO: define a function for extracting the mutated objects */
+  std::set<const MemoryObject*> mutated;
+  if (!canMerge(states, mutated)) {
+    return false;
+  }
+
+  bool usedAuxVariables;
+  mergeStack(merged,
+             states,
+             {},
+             loopHandler,
+             true,
+             pm,
+             true,
+             usedAuxVariables);
+  if (usedAuxVariables) {
+    return true;
+  }
+
+  mergeHeap(merged,
+            states,
+            {},
+            mutated,
+            loopHandler,
+            true,
+            pm,
+            true,
+            usedAuxVariables);
+
+  return usedAuxVariables;
 }
 
 std::uint32_t ExecutionState::getMergeID() const {
