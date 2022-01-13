@@ -118,8 +118,8 @@ LoopHandler::~LoopHandler() {
   }
 
   assert(activeStates == 0);
-  for (auto &i: mergeGroupsByExit) {
-    vector<ExecutionState *> &states = i.second;
+  for (const auto &i: mergeGroupsByExit) {
+    const vector<ExecutionState *> &states = i.second;
     assert(states.empty());
   }
 }
@@ -243,8 +243,8 @@ bool LoopHandler::shouldForceCFGBasedMerging() const {
 /* TODO: add a threshold for pattern based merging */
 void LoopHandler::splitStates(vector<MergeGroupInfo> &result) {
   if (SplitByPattern && !shouldForceCFGBasedMerging()) {
-    for (auto &i: mergeGroupsByExit) {
-      StateSet &states = i.second;
+    for (const auto &i: mergeGroupsByExit) {
+      const StateSet &states = i.second;
 
       set<uint32_t> ids;
       /* TODO: add this mapping to LoopHandler */
@@ -298,8 +298,8 @@ void LoopHandler::splitStates(vector<MergeGroupInfo> &result) {
       }
     }
   } else {
-    for (auto &i: mergeGroupsByExit) {
-      StateSet &states = i.second;
+    for (const auto &i: mergeGroupsByExit) {
+      const StateSet &states = i.second;
       MergeGroupInfo groupInfo({MergeSubGroupInfo(states)});
       result.push_back(groupInfo);
     }
