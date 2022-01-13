@@ -265,6 +265,16 @@ void LoopHandler::splitStates(vector<MergeGroupInfo> &result) {
       /* must be non-empty */
       assert(!matches.empty());
 
+      vector<StateSet> matchedStates(matches.size());
+      for (unsigned i = 0; i < matches.size(); i++) {
+        PatternMatch &pm = matches[i];
+        for (StateMatch &sm : pm.matches) {
+          auto j = m.find(sm.stateID);
+          assert(j != m.end());
+          matchedStates[i].push_back(j->second);
+        }
+      }
+
       if (matches.size() > MaxPatterns) {
         klee_warning("max patterns exceeded: %lu", matches.size());
         MergeGroupInfo groupInfo({MergeSubGroupInfo(states)});
@@ -272,25 +282,17 @@ void LoopHandler::splitStates(vector<MergeGroupInfo> &result) {
       } else {
         if (SplitByCFG) {
           std::vector<MergeSubGroupInfo> subGroups;
-          for (PatternMatch &pm : matches) {
-            StateSet states;
-            for (StateMatch &sm : pm.matches) {
-              auto i = m.find(sm.stateID);
-              assert(i != m.end());
-              states.push_back(i->second);
-            }
+          for (unsigned i = 0; i < matches.size(); i++) {
+            PatternMatch &pm = matches[i];
+            StateSet &states = matchedStates[i];
             subGroups.push_back(MergeSubGroupInfo(states, {pm}));
           }
           MergeGroupInfo groupInfo(subGroups);
           result.push_back(groupInfo);
         } else {
-          for (PatternMatch &pm : matches) {
-            StateSet states;
-            for (StateMatch &sm : pm.matches) {
-              auto i = m.find(sm.stateID);
-              assert(i != m.end());
-              states.push_back(i->second);
-            }
+          for (unsigned i = 0; i < matches.size(); i++) {
+            PatternMatch &pm = matches[i];
+            StateSet &states = matchedStates[i];
             MergeGroupInfo groupInfo({MergeSubGroupInfo(states, {pm})});
             result.push_back(groupInfo);
           }
