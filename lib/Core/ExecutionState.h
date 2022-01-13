@@ -366,9 +366,9 @@ public:
                           ExecutionState &s2,
                           std::set<const MemoryObject *> &mutated);
 
-  static bool shouldUsePatternBasedMerging(std::vector<ExecutionState *> &states,
-                                           PatternMatch &pm,
-                                           LoopHandler *loopHandler);
+  static bool isUsingAuxVariablesForMemoryMerging(std::vector<ExecutionState *> &states,
+                                                  PatternMatch &pm,
+                                                  LoopHandler *loopHandler);
 
   std::uint32_t getMergeID() const;
 

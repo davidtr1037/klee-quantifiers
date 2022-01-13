@@ -1433,10 +1433,9 @@ bool ExecutionState::compareHeap(ExecutionState &s1,
   return true;
 }
 
-/* TODO: remove the first parameter? */
-bool ExecutionState::shouldUsePatternBasedMerging(std::vector<ExecutionState *> &states,
-                                                  PatternMatch &pm,
-                                                  LoopHandler *loopHandler) {
+bool ExecutionState::isUsingAuxVariablesForMemoryMerging(std::vector<ExecutionState *> &states,
+                                                         PatternMatch &pm,
+                                                         LoopHandler *loopHandler) {
   /* TODO: define a function for extracting the mutated objects */
   std::set<const MemoryObject*> mutated;
   if (!canMerge(states, mutated)) {
