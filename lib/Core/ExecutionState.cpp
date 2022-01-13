@@ -752,13 +752,16 @@ ExecutionState *ExecutionState::mergeStatesOptimized(std::vector<ExecutionState 
     klee_message("partial merge constraint size %lu", orExpr->size);
   }
 
+  bool usedAuxVariables;
+
   /* local vars */
   mergeLocalVars(merged,
                  states,
                  suffixes,
                  loopHandler,
                  isEncodedWithABV,
-                 matches);
+                 matches,
+                 usedAuxVariables);
 
   /* heap */
   mergeHeap(merged,
@@ -767,7 +770,8 @@ ExecutionState *ExecutionState::mergeStatesOptimized(std::vector<ExecutionState 
             mutated,
             loopHandler,
             isEncodedWithABV,
-            matches);
+            matches,
+            usedAuxVariables);
 
   if (OptimizeArrayValuesUsingITERewrite) {
     merged->optimizeArrayValues(mutated, loopHandler->solver);
@@ -838,7 +842,10 @@ void ExecutionState::mergeLocalVars(ExecutionState *merged,
                                     std::vector<ref<Expr>> &suffixes,
                                     LoopHandler *loopHandler,
                                     bool isEncodedWithABV,
-                                    std::vector<PatternMatch> &matches) {
+                                    std::vector<PatternMatch> &matches,
+                                    bool &usedAuxVariables) {
+  usedAuxVariables = false;
+
   for (unsigned i = 0; i < merged->stack.size(); i++) {
     StackFrame &sf = merged->stack[i];
     for (unsigned reg = 0; reg < sf.kf->numRegisters; reg++) {
@@ -881,6 +888,7 @@ void ExecutionState::mergeLocalVars(ExecutionState *merged,
                                                 merged->getMergeID());
           if (!e.isNull()) {
             v = e;
+            usedAuxVariables = true;
           }
         }
       }
@@ -895,7 +903,10 @@ void ExecutionState::mergeHeap(ExecutionState *merged,
                                std::set<const MemoryObject*> &mutated,
                                LoopHandler *loopHandler,
                                bool isEncodedWithABV,
-                               std::vector<PatternMatch> &matches) {
+                               std::vector<PatternMatch> &matches,
+                               bool &usedAuxVariables) {
+  usedAuxVariables = false;
+
   for (const MemoryObject *mo : mutated) {
     const ObjectState *os = merged->addressSpace.findObject(mo);
     assert(os && !os->readOnly && "objects mutated but not writable in merging state");
@@ -974,6 +985,7 @@ void ExecutionState::mergeHeap(ExecutionState *merged,
                                                   merged->getMergeID());
             if (!e.isNull()) {
               v = e;
+              usedAuxVariables = true;
             }
           }
         }

@@ -298,7 +298,8 @@ public:
                              std::vector<ref<Expr>> &suffixes,
                              LoopHandler *loopHandler,
                              bool isEncodedWithABV,
-                             std::vector<PatternMatch> &matches);
+                             std::vector<PatternMatch> &matches,
+                             bool &usedAuxVariables);
 
   /* TODO: too many parameters */
   static void mergeHeap(ExecutionState *merged,
@@ -307,7 +308,8 @@ public:
                         std::set<const MemoryObject*> &mutated,
                         LoopHandler *loopHandler,
                         bool isEncodedWithABV,
-                        std::vector<PatternMatch> &matches);
+                        std::vector<PatternMatch> &matches,
+                        bool &usedAuxVariables);
 
   static ref<Expr> mergeValues(std::vector<ref<Expr>> &suffixes,
                                std::vector<ref<Expr>> &values);
