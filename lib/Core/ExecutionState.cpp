@@ -83,6 +83,7 @@ cl::opt<bool> DumpExecutionTree(
     cl::desc(""),
     cl::cat(MergeCat));
 
+/* TODO: rename to UseQuantifiers? */
 cl::opt<bool> klee::OptimizeUsingQuantifiers(
     "optimize-using-quantifiers", cl::init(false),
     cl::desc(""),
@@ -837,6 +838,7 @@ bool ExecutionState::canMerge(std::vector<ExecutionState *> &states,
   return true;
 }
 
+/* TODO: rename to mergeStack? */
 void ExecutionState::mergeLocalVars(ExecutionState *merged,
                                     std::vector<ExecutionState *> &states,
                                     std::vector<ref<Expr>> &suffixes,
