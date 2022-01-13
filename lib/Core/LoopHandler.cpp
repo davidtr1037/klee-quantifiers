@@ -254,7 +254,6 @@ bool LoopHandler::shouldUsePatternBasedMerging(vector<PatternMatch> &matches,
   return false;
 }
 
-/* TODO: add a threshold for pattern based merging */
 void LoopHandler::splitStates(vector<MergeGroupInfo> &result) {
   if (SplitByPattern && !shouldForceCFGBasedMerging()) {
     for (const auto &i: mergeGroupsByExit) {
