@@ -1434,8 +1434,7 @@ bool ExecutionState::compareHeap(ExecutionState &s1,
 }
 
 /* TODO: remove the first parameter? */
-bool ExecutionState::shouldUsePatternBasedMerging(ExecutionState *merged,
-                                                  std::vector<ExecutionState *> &states,
+bool ExecutionState::shouldUsePatternBasedMerging(std::vector<ExecutionState *> &states,
                                                   PatternMatch &pm,
                                                   LoopHandler *loopHandler) {
   /* TODO: define a function for extracting the mutated objects */
@@ -1444,6 +1443,8 @@ bool ExecutionState::shouldUsePatternBasedMerging(ExecutionState *merged,
     return false;
   }
 
+  assert(!states.empty());
+  ExecutionState *merged = states[0];
   /* TODO: fix this hack! */
   std::vector<ref<Expr>> suffixes(states.size());
   bool usedAuxVariables;

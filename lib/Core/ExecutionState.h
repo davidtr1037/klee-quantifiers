@@ -366,8 +366,7 @@ public:
                           ExecutionState &s2,
                           std::set<const MemoryObject *> &mutated);
 
-  static bool shouldUsePatternBasedMerging(ExecutionState *merged,
-                                           std::vector<ExecutionState *> &states,
+  static bool shouldUsePatternBasedMerging(std::vector<ExecutionState *> &states,
                                            PatternMatch &pm,
                                            LoopHandler *loopHandler);
 

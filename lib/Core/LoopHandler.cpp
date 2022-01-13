@@ -245,8 +245,7 @@ bool LoopHandler::shouldUsePatternBasedMerging(vector<PatternMatch> &matches,
   for (unsigned i = 0; i < matches.size(); i++) {
     PatternMatch &pm = matches[i];
     StateSet &states = matchedStates[i];
-    ExecutionState *merged = states[0];
-    if (ExecutionState::shouldUsePatternBasedMerging(merged, states, pm, this)) {
+    if (ExecutionState::shouldUsePatternBasedMerging(states, pm, this)) {
       return true;
     }
   }
