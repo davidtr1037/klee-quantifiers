@@ -850,6 +850,8 @@ void ExecutionState::mergeLocalVars(ExecutionState *merged,
 
   for (unsigned i = 0; i < merged->stack.size(); i++) {
     StackFrame &sf = merged->stack[i];
+    auto result = LivenessAnalysis::analyzeCached(sf.kf->function);
+
     for (unsigned reg = 0; reg < sf.kf->numRegisters; reg++) {
       bool ignore = false;
       for (ExecutionState *es : states) {
@@ -889,7 +891,9 @@ void ExecutionState::mergeLocalVars(ExecutionState *merged,
                                               merged->getMergeID());
         if (!e.isNull()) {
           v = e;
-          usedAuxVariables = true;
+          if (!usedAuxVariables && isLiveRegAt(result, sf.kf, merged->pc, reg)) {
+            usedAuxVariables = true;
+          }
         }
       }
       stats::mergedValuesSize += v->size;
