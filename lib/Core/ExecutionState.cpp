@@ -756,13 +756,13 @@ ExecutionState *ExecutionState::mergeStatesOptimized(std::vector<ExecutionState 
   bool usedAuxVariables;
 
   /* local vars */
-  mergeLocalVars(merged,
-                 states,
-                 suffixes,
-                 loopHandler,
-                 isEncodedWithABV,
-                 matches,
-                 usedAuxVariables);
+  mergeStack(merged,
+             states,
+             suffixes,
+             loopHandler,
+             isEncodedWithABV,
+             matches,
+             usedAuxVariables);
 
   /* heap */
   mergeHeap(merged,
@@ -838,14 +838,13 @@ bool ExecutionState::canMerge(std::vector<ExecutionState *> &states,
   return true;
 }
 
-/* TODO: rename to mergeStack? */
-void ExecutionState::mergeLocalVars(ExecutionState *merged,
-                                    std::vector<ExecutionState *> &states,
-                                    std::vector<ref<Expr>> &suffixes,
-                                    LoopHandler *loopHandler,
-                                    bool isEncodedWithABV,
-                                    std::vector<PatternMatch> &matches,
-                                    bool &usedAuxVariables) {
+void ExecutionState::mergeStack(ExecutionState *merged,
+                                std::vector<ExecutionState *> &states,
+                                std::vector<ref<Expr>> &suffixes,
+                                LoopHandler *loopHandler,
+                                bool isEncodedWithABV,
+                                std::vector<PatternMatch> &matches,
+                                bool &usedAuxVariables) {
   usedAuxVariables = false;
 
   for (unsigned i = 0; i < merged->stack.size(); i++) {

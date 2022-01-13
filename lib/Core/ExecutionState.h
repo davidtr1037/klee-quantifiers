@@ -293,13 +293,13 @@ public:
                        std::set<const MemoryObject*> &mutated);
 
   /* TODO: too many parameters */
-  static void mergeLocalVars(ExecutionState *merged,
-                             std::vector<ExecutionState *> &states,
-                             std::vector<ref<Expr>> &suffixes,
-                             LoopHandler *loopHandler,
-                             bool isEncodedWithABV,
-                             std::vector<PatternMatch> &matches,
-                             bool &usedAuxVariables);
+  static void mergeStack(ExecutionState *merged,
+                         std::vector<ExecutionState *> &states,
+                         std::vector<ref<Expr>> &suffixes,
+                         LoopHandler *loopHandler,
+                         bool isEncodedWithABV,
+                         std::vector<PatternMatch> &matches,
+                         bool &usedAuxVariables);
 
   /* TODO: too many parameters */
   static void mergeHeap(ExecutionState *merged,
