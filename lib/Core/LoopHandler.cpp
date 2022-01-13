@@ -226,6 +226,7 @@ void LoopHandler::addClosedState(ExecutionState *es,
 static set<string> forceCFG = {
     "memmove",
     "memcpy",
+    "memset",
     "strcpy",
     "strncpy",
 };
