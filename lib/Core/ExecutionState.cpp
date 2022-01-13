@@ -880,16 +880,14 @@ void ExecutionState::mergeLocalVars(ExecutionState *merged,
         v = mergeValues(suffixes, values);
       }
 
-      if (OptimizeUsingQuantifiers && isEncodedWithABV) {
-        if (isa<SelectExpr>(v)) {
-          ref<Expr> e = mergeValuesUsingPattern(valuesMap,
-                                                loopHandler,
-                                                matches[0],
-                                                merged->getMergeID());
-          if (!e.isNull()) {
-            v = e;
-            usedAuxVariables = true;
-          }
+      if (isEncodedWithABV && isa<SelectExpr>(v)) {
+        ref<Expr> e = mergeValuesUsingPattern(valuesMap,
+                                              loopHandler,
+                                              matches[0],
+                                              merged->getMergeID());
+        if (!e.isNull()) {
+          v = e;
+          usedAuxVariables = true;
         }
       }
       stats::mergedValuesSize += v->size;
@@ -977,16 +975,14 @@ void ExecutionState::mergeHeap(ExecutionState *merged,
           v = mergeValues(neededSuffixes, values);
         }
 
-        if (OptimizeUsingQuantifiers && isEncodedWithABV) {
-          if (isa<SelectExpr>(v)) {
-            ref<Expr> e = mergeValuesUsingPattern(valuesMap,
-                                                  loopHandler,
-                                                  matches[0],
-                                                  merged->getMergeID());
-            if (!e.isNull()) {
-              v = e;
-              usedAuxVariables = true;
-            }
+        if (isEncodedWithABV && isa<SelectExpr>(v)) {
+          ref<Expr> e = mergeValuesUsingPattern(valuesMap,
+                                                loopHandler,
+                                                matches[0],
+                                                merged->getMergeID());
+          if (!e.isNull()) {
+            v = e;
+            usedAuxVariables = true;
           }
         }
 
