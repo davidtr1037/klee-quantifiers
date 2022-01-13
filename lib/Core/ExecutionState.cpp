@@ -852,6 +852,7 @@ void ExecutionState::mergeStack(ExecutionState *merged,
     auto result = LivenessAnalysis::analyzeCached(sf.kf->function);
 
     for (unsigned reg = 0; reg < sf.kf->numRegisters; reg++) {
+      ref<Expr> &v = sf.locals[reg].value;
       bool ignore = false;
       for (ExecutionState *es : states) {
         ref<Expr> v = es->stack[i].locals[reg].value;
@@ -862,7 +863,6 @@ void ExecutionState::mergeStack(ExecutionState *merged,
       }
       if (ignore) {
         /* for consistency */
-        ref<Expr> &v = sf.locals[reg].value;
         v = nullptr;
         continue;
       }
@@ -876,7 +876,6 @@ void ExecutionState::mergeStack(ExecutionState *merged,
         valuesMap[es->getID()] = e;
       }
 
-      ref<Expr> &v = sf.locals[reg].value;
       if (OptimizeITEUsingExecTree && loopHandler->canUseExecTree) {
         v = mergeValuesUsingExecTree(valuesMap, loopHandler);
       } else {
