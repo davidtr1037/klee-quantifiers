@@ -1116,8 +1116,6 @@ ref<Expr> ExecutionState::mergeValuesUsingPattern(State2Value &valuesMap,
                            mergeID,
                            *loopHandler->solver,
                            solution)) {
-    /* TODO: remove this log message */
-    klee_message("failed to generate the merged value");
     return nullptr;
   }
 
