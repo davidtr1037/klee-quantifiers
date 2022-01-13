@@ -368,8 +368,8 @@ public:
 
   static bool shouldUsePatternBasedMerging(ExecutionState *merged,
                                            std::vector<ExecutionState *> &states,
-                                           LoopHandler *loopHandler,
-                                           PatternMatch &pm);
+                                           PatternMatch &pm,
+                                           LoopHandler *loopHandler);
 
   std::uint32_t getMergeID() const;
 

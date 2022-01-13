@@ -114,7 +114,10 @@ public:
 
   void addClosedState(ExecutionState *es, llvm::Instruction *mp);
 
-  bool shouldForceCFGBasedMerging() const;
+  bool shouldForceCFGBasedMerging();
+
+  bool shouldUsePatternBasedMerging(std::vector<PatternMatch> &matches,
+                                    std::vector<StateSet> &matchedStates);
 
   void splitStates(std::vector<MergeGroupInfo> &result);
 

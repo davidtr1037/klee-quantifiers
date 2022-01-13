@@ -1433,20 +1433,24 @@ bool ExecutionState::compareHeap(ExecutionState &s1,
   return true;
 }
 
+/* TODO: remove the first parameter? */
 bool ExecutionState::shouldUsePatternBasedMerging(ExecutionState *merged,
                                                   std::vector<ExecutionState *> &states,
-                                                  LoopHandler *loopHandler,
-                                                  PatternMatch &pm) {
+                                                  PatternMatch &pm,
+                                                  LoopHandler *loopHandler) {
   /* TODO: define a function for extracting the mutated objects */
   std::set<const MemoryObject*> mutated;
   if (!canMerge(states, mutated)) {
     return false;
   }
 
+  /* TODO: fix this hack! */
+  std::vector<ref<Expr>> suffixes(states.size());
   bool usedAuxVariables;
+
   mergeStack(merged,
              states,
-             {},
+             suffixes,
              loopHandler,
              true,
              pm,
@@ -1458,7 +1462,7 @@ bool ExecutionState::shouldUsePatternBasedMerging(ExecutionState *merged,
 
   mergeHeap(merged,
             states,
-            {},
+            suffixes,
             mutated,
             loopHandler,
             true,

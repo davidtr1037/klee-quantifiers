@@ -231,13 +231,27 @@ static set<string> forceCFG = {
     "strncpy",
 };
 
-bool LoopHandler::shouldForceCFGBasedMerging() const {
-  if (RestrictPatternBaseMerging) {
-    Function *f = loop->getHeader()->getParent();
-    return forceCFG.find(f->getName()) != forceCFG.end();
-  } else {
+bool LoopHandler::shouldForceCFGBasedMerging() {
+  if (!RestrictPatternBaseMerging) {
     return false;
   }
+
+  Function *f = loop->getHeader()->getParent();
+  return forceCFG.find(f->getName()) != forceCFG.end();
+}
+
+bool LoopHandler::shouldUsePatternBasedMerging(vector<PatternMatch> &matches,
+                                               vector<StateSet> &matchedStates) {
+  for (unsigned i = 0; i < matches.size(); i++) {
+    PatternMatch &pm = matches[i];
+    StateSet &states = matchedStates[i];
+    ExecutionState *merged = states[0];
+    if (ExecutionState::shouldUsePatternBasedMerging(merged, states, pm, this)) {
+      return true;
+    }
+  }
+
+  return false;
 }
 
 /* TODO: add a threshold for pattern based merging */
@@ -273,6 +287,14 @@ void LoopHandler::splitStates(vector<MergeGroupInfo> &result) {
           assert(j != m.end());
           matchedStates[i].push_back(j->second);
         }
+      }
+
+      /* TODO: enable not only when there is one exit? */
+      if (mergeGroupsByExit.size() == 1 && !shouldUsePatternBasedMerging(matches, matchedStates)) {
+        klee_warning("pattern-based merging might not be beneficial");
+        MergeGroupInfo groupInfo({MergeSubGroupInfo(states)});
+        result.push_back(groupInfo);
+        return;
       }
 
       if (matches.size() > MaxPatterns) {
