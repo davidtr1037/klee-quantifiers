@@ -384,6 +384,7 @@ ExecutionState *LoopHandler::mergeGroup(MergeGroupInfo &groupInfo,
     }
   }
 
+  /* TODO: increment before the merge? */
   merged->incMergeID();
   merged->hasPendingSnapshot = false;
   resumeClosedState(merged);
