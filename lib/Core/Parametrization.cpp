@@ -397,8 +397,6 @@ bool klee::solveEquationSystem(SMTEquationSystem &system,
 
   if (system.size() == 1) {
     /* TODO: return ParametrizedExpr without parameter/array? */
-    /* TODO: remove log? */
-    klee_message("system has only one equation");
     return false;
   }
 
@@ -421,13 +419,11 @@ bool klee::solveEquationSystem(SMTEquationSystem &system,
   }
 
   if (!found) {
-    klee_message("failed to find distinct terms");
     return false;
   }
 
   ParametrizedExpr templateExpr;
   if (!solveLinearEquation(solver, {eq1, eq2}, {r1, r2}, id, templateExpr)) {
-    klee_message("failed to solve linear equation");
     return false;
   }
 
@@ -441,7 +437,6 @@ bool klee::solveEquationSystem(SMTEquationSystem &system,
     result = parametricExpr;
     return true;
   } else {
-    klee_message("invalid solution");
     return false;
   }
 }
