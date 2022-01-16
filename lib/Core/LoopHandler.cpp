@@ -85,6 +85,12 @@ cl::opt<bool> RestrictPatternBaseMerging(
     cl::desc(""),
     cl::cat(klee::LoopCat));
 
+cl::opt<bool> ForcePatternBasedMerging(
+    "force-pattern-based-merging",
+    cl::init(false),
+    cl::desc(""),
+    cl::cat(klee::LoopCat));
+
 cl::opt<unsigned> MaxPatterns(
     "max-patterns",
     cl::init(10),
@@ -242,6 +248,10 @@ bool LoopHandler::shouldForceCFGBasedMerging() {
 
 bool LoopHandler::shouldUsePatternBasedMerging(vector<PatternMatch> &matches,
                                                vector<StateSet> &matchedStates) {
+  if (ForcePatternBasedMerging) {
+    return true;
+  }
+
   for (unsigned i = 0; i < matches.size(); i++) {
     PatternMatch &pm = matches[i];
     StateSet &states = matchedStates[i];
