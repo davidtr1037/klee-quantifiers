@@ -289,14 +289,14 @@ void LoopHandler::splitStates(vector<MergeGroupInfo> &result) {
 
       /* TODO: enable not only when there is one exit? */
       if (mergeGroupsByExit.size() == 1 && !shouldUsePatternBasedMerging(matches, matchedStates)) {
-        klee_warning("pattern-based merging might not be beneficial");
+        klee_message("pattern-based merging might be inefficient");
         MergeGroupInfo groupInfo({MergeSubGroupInfo(states)});
         result.push_back(groupInfo);
         return;
       }
 
       if (matches.size() > MaxPatterns) {
-        klee_warning("max patterns exceeded: %lu", matches.size());
+        klee_message("max patterns exceeded: %lu", matches.size());
         MergeGroupInfo groupInfo({MergeSubGroupInfo(states)});
         result.push_back(groupInfo);
       } else {
