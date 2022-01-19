@@ -601,6 +601,7 @@ void SmallModelSolver::buildConstraints(const Query &query,
               a.findNegatingTerms(constraint, terms);
             }
           }
+          a.findImpliedNegatingTerms(terms);
         }
 
         ref<Expr> aux = f->auxExpr;

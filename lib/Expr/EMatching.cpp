@@ -205,12 +205,16 @@ void klee::generateLemmaFromForall(ref<ForallExpr> f,
   if (!f->auxArray) {
     return;
   }
+
   std::vector<EqAssertion> assertions;
   findAssertions(f, assertions);
 
   std::vector<ref<Expr>> terms;
   for (EqAssertion &a : assertions) {
-    a.findNegatingTerms(constraints, checkImplied, checkConstraints, terms);
+    a.findNegatingTerms(constraints,
+                        checkImplied,
+                        checkConstraints,
+                        terms);
   }
 
   ref<Expr> aux = getSymbolicValue(f->auxArray, f->auxArray->size);
