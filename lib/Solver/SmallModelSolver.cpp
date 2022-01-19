@@ -159,10 +159,10 @@ void SmallModelSolver::setModelValue(Assignment &assignment,
   auto i = assignment.bindings.find(object);
   assert(i != assignment.bindings.end());
   std::vector<unsigned char> &values = i->second;
-  if (index >= values.size()) {
-    klee_warning("invalid offset, skipping assignment");
-  } else {
+  if (index < values.size()) {
     values[index] = value;
+  } else {
+    klee_warning("invalid offset, skipping assignment");
   }
 }
 
@@ -283,7 +283,11 @@ void SmallModelSolver::findAuxReads(ref<Expr> e,
           index = ZExtExpr::create(index, size->getWidth());
         }
 
-        result.push_back(UltExpr::create(index, size));
+        /* avoid duplicate constraints */
+        ref<Expr> constraint = UltExpr::create(index, size);
+        if (std::find(result.begin(), result.end(), constraint) == result.end()) {
+          result.push_back(constraint);
+        }
       }
     }
   }
