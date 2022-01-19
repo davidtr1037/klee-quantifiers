@@ -352,9 +352,9 @@ bool SmallModelSolver::getArrayAccess(ref<Expr> e,
   return false;
 }
 
-void SmallModelSolver::extendModel(const Query &query,
-                                   Assignment &assignment,
-                                   const std::vector<ArrayAccess> &conflicts) {
+void SmallModelSolver::duplicateModel(const Query &query,
+                                      Assignment &assignment,
+                                      const std::vector<ArrayAccess> &conflicts) {
   for (ref<Expr> e : query.constraints) {
     if (isa<ForallExpr>(e)) {
       ref<ForallExpr> f = dyn_cast<ForallExpr>(e);
@@ -391,10 +391,10 @@ void SmallModelSolver::extendModel(const Query &query,
   }
 }
 
-void SmallModelSolver::extendModel(const Query &query,
-                                   Assignment &assignment) {
+void SmallModelSolver::duplicateModel(const Query &query,
+                                      Assignment &assignment) {
   std::vector<ArrayAccess> conflicts;
-  extendModel(query, assignment, conflicts);
+  duplicateModel(query, assignment, conflicts);
 }
 
 void SmallModelSolver::findConflicts(const Query &query,
@@ -527,7 +527,7 @@ bool SmallModelSolver::adjustModelWithConflicts(const Query &query,
   }
 
   /* TODO: eval model before patching? */
-  extendModel(query, adjusted, conflicts);
+  duplicateModel(query, adjusted, conflicts);
   if (evalModel(query, adjusted)) {
     return true;
   }
@@ -545,7 +545,7 @@ bool SmallModelSolver::adjustModel(const Query &query,
   }
 
   if (DuplicateSmallModel) {
-    extendModel(query, assignment);
+    duplicateModel(query, assignment);
     if (evalModel(query, assignment)) {
       fillValues(assignment, objects, values);
       return true;

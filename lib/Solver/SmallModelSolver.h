@@ -102,12 +102,12 @@ public:
                       uint64_t value,
                       ArrayAccess &result);
 
-  void extendModel(const Query &query,
-                   Assignment &assignment,
-                   const std::vector<ArrayAccess> &conflicts);
+  void duplicateModel(const Query &query,
+                      Assignment &assignment,
+                      const std::vector<ArrayAccess> &conflicts);
 
-  void extendModel(const Query &query,
-                   Assignment &assignment);
+  void duplicateModel(const Query &query,
+                      Assignment &assignment);
 
   void findConflicts(const Query &query,
                      const Assignment &assignment,
