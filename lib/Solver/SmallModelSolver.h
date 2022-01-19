@@ -56,6 +56,10 @@ public:
 
   void dumpModel(const Assignment &assignment);
 
+  bool hasModelValue(const Assignment &assignment,
+                     const Array *object,
+                     unsigned index);
+
   char getModelValue(const Assignment &assignment,
                      const Array *object,
                      unsigned index);

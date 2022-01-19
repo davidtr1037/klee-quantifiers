@@ -133,6 +133,15 @@ void SmallModelSolver::dumpModel(const Assignment &assignment) {
   }
 }
 
+bool SmallModelSolver::hasModelValue(const Assignment &assignment,
+                                     const Array *object,
+                                     unsigned index) {
+  auto i = assignment.bindings.find(object);
+  assert(i != assignment.bindings.end());
+  const std::vector<unsigned char> &values = i->second;
+  return index < values.size();
+}
+
 char SmallModelSolver::getModelValue(const Assignment &assignment,
                                      const Array *object,
                                      unsigned index) {
@@ -151,11 +160,10 @@ void SmallModelSolver::setModelValue(Assignment &assignment,
   assert(i != assignment.bindings.end());
   std::vector<unsigned char> &values = i->second;
   if (index >= values.size()) {
-    /* TODO: actually might happen? */
-    klee_warning("invalid offset for symbolic array");
-    assert(0);
+    klee_warning("invalid offset, skipping assignment");
+  } else {
+    values[index] = value;
   }
-  values[index] = value;
 }
 
 bool SmallModelSolver::evalModel(const Query &query,
@@ -356,6 +364,11 @@ void SmallModelSolver::extendModel(const Query &query,
       ArrayAccess access;
       if (!getArrayAccess(body, 1, access)) {
         /* there are no reads that depend on the bound variable */
+        continue;
+      }
+
+      if (!hasModelValue(assignment, access.array, access.offset)) {
+        klee_warning("invalid offset, skipping duplication");
         continue;
       }
 
