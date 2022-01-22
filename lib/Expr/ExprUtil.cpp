@@ -322,7 +322,7 @@ ref<Expr> klee::substBoundVariables(ref<Expr> src, uint64_t value) {
       ref<ConstantExpr> index = dyn_cast<ConstantExpr>(e->index);
       assert(!index.isNull());
       uint64_t off = index->getZExtValue();
-      map[e] = ConstantExpr::create(value >> (8 * off), Expr::Int8);
+      map[e] = ConstantExpr::create((value >> (8 * off)) & 0xff, Expr::Int8);
     }
   }
 
