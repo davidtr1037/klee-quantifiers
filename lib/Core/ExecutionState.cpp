@@ -506,10 +506,9 @@ void ExecutionState::addConstraint(ref<Expr> e, bool atMerge) {
   if (GenerateLemmasOnFork && !atMerge && !changed) {
     for (ref<Expr> constraint : constraints) {
       if (isa<ForallExpr>(constraint)) {
+        ref<ForallExpr> f = dyn_cast<ForallExpr>(constraint);
         ConstraintSet tmp;
         tmp.push_back(constraints.last());
-        ref<ForallExpr> f = dyn_cast<ForallExpr>(constraint);
-        assert(!f.isNull());
         generateLemmaFromForall(f, tmp, false, true, lemmas);
       }
     }
