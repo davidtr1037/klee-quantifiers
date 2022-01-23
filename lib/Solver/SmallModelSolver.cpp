@@ -65,7 +65,7 @@ SmallModelSolver::~SmallModelSolver() {
 }
 
 bool SmallModelSolver::shouldApply(const Query &query) {
-  return true;
+  return !query.isQF();
 }
 
 bool SmallModelSolver::hasModelWithFixedAuxVars(const Query &query,
@@ -662,7 +662,10 @@ bool SmallModelSolver::computeInitialValues(const Query& query,
                                             std::vector<std::vector<unsigned char>> &values,
                                             bool &hasSolution) {
   if (!shouldApply(query)) {
-    return false;
+    return solver->impl->computeInitialValues(query,
+                                              objects,
+                                              values,
+                                              hasSolution);
   }
 
   bool success = computeInitialValuesUsingSmallModel(query,
