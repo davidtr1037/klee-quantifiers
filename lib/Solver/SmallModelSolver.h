@@ -51,6 +51,8 @@ public:
 
   virtual ~SmallModelSolver();
 
+  bool shouldApply(const Query &query);
+
   bool hasModelWithFixedAuxVars(const Query &query,
                                 const Assignment &assignment);
 
@@ -124,8 +126,6 @@ public:
                    const Query &smQuery,
                    const std::vector<const Array *> &objects,
                    std::vector<std::vector<unsigned char>> &values);
-
-  bool computeTruthUsingSmallModel(const Query &query, bool &isValid);
 
   bool computeTruth(const Query &query, bool &isValid);
 

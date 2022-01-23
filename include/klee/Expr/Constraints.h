@@ -48,7 +48,7 @@ public:
     constraints.clear();
   }
 
-  ref<Expr> last() {
+  ref<Expr> last() const {
     if (constraints.empty()) {
       return nullptr;
     } else {

@@ -64,6 +64,10 @@ SmallModelSolver::~SmallModelSolver() {
   delete solver;
 }
 
+bool SmallModelSolver::shouldApply(const Query &query) {
+  return true;
+}
+
 bool SmallModelSolver::hasModelWithFixedAuxVars(const Query &query,
                                                 const Assignment &assignment) {
   ConstraintSet constraints;
@@ -657,6 +661,10 @@ bool SmallModelSolver::computeInitialValues(const Query& query,
                                             const std::vector<const Array*> &objects,
                                             std::vector<std::vector<unsigned char>> &values,
                                             bool &hasSolution) {
+  if (!shouldApply(query)) {
+    return false;
+  }
+
   bool success = computeInitialValuesUsingSmallModel(query,
                                                      objects,
                                                      values,
