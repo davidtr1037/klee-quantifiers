@@ -221,6 +221,16 @@ std::pair< ref<Expr>, ref<Expr> > Solver::getRange(const Query& query) {
                         ConstantExpr::create(max, width));
 }
 
+bool Query::isQF() const {
+  for (ref<Expr> constraint : constraints) {
+    if (!constraint->isQF) {
+      return false;
+    }
+  }
+
+  return expr->isQF;
+}
+
 void Query::dump() const {
   llvm::errs() << "Constraints [\n";
   for (const auto &constraint : constraints)

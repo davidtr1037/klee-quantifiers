@@ -54,6 +54,8 @@ namespace klee {
       return withExpr(Expr::createIsZero(expr));
     }
 
+    bool isQF() const;
+
     /// Dump query
     void dump() const ;
   };
