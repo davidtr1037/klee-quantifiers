@@ -217,8 +217,7 @@ void klee::generateLemmaFromForall(ref<ForallExpr> f,
                         terms);
   }
 
-  ref<Expr> aux = getSymbolicValue(f->auxArray, f->auxArray->size);
-
+  ref<Expr> aux = f->auxExpr;
   for (ref<Expr> term : terms) {
     term = ZExtExpr::create(term, QuantifiedExpr::AUX_VARIABLE_WIDTH);
     ref<Expr> lemma = OrExpr::create(
