@@ -275,7 +275,7 @@ void SmallModelSolver::findAuxReads(ref<Expr> e,
                                     std::vector<ref<Expr>> &result) {
   if (e->hasAuxVariable) {
     std::vector<ref<ReadExpr>> reads;
-    findReads(e, true, reads);
+    findUnconditionalReads(e, reads);
     for (ref<ReadExpr> r : reads) {
       if (r->index->hasAuxVariable && !r->index->hasBoundVariable) {
         /* TODO: is correct? */
@@ -311,7 +311,6 @@ void SmallModelSolver::transform(const Query &query,
   }
 
   if (AddBoundConstraints) {
-    /* TODO: can't be done if the read appears in or/select */
     std::vector<ref<Expr>> boundConstraints;
     for (ref<Expr> e : query.constraints) {
       findAuxReads(e, boundConstraints);

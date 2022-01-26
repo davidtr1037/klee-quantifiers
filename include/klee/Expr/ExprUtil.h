@@ -29,6 +29,9 @@ namespace klee {
                  bool visitUpdates,
                  std::vector< ref<ReadExpr> > &result);
   
+  void findUnconditionalReads(ref<Expr> e,
+                              std::vector<ref<ReadExpr>> &results);
+
   /// Return a list of all unique symbolic objects referenced by the given
   /// expression.
   void findSymbolicObjects(ref<Expr> e,

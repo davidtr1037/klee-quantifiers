@@ -76,6 +76,54 @@ void klee::findReads(ref<Expr> e,
   }
 }
 
+void klee::findUnconditionalReads(ref<Expr> e,
+                                  std::vector<ref<ReadExpr>> &results) {
+  std::vector<ref<Expr>> stack;
+  ExprHashSet visited;
+  std::set<const UpdateNode *> updates;
+
+  if (!isa<ConstantExpr>(e)) {
+    visited.insert(e);
+    stack.push_back(e);
+  }
+
+  while (!stack.empty()) {
+    ref<Expr> top = stack.back();
+    stack.pop_back();
+
+    if (isa<OrExpr>(top) || isa<SelectExpr>(top)) {
+      continue;
+    }
+
+    if (ReadExpr *re = dyn_cast<ReadExpr>(top)) {
+      results.push_back(re);
+
+      if (!isa<ConstantExpr>(re->index) && visited.insert(re->index).second) {
+        stack.push_back(re->index);
+      }
+
+      if (updates.insert(re->updates.head.get()).second) {
+        for (const auto *un = re->updates.head.get(); un; un = un->next.get()) {
+          if (!isa<ConstantExpr>(un->index) && visited.insert(un->index).second) {
+            stack.push_back(un->index);
+          }
+          if (!isa<ConstantExpr>(un->value) && visited.insert(un->value).second) {
+            stack.push_back(un->value);
+          }
+        }
+      }
+    } else if (!isa<ConstantExpr>(top)) {
+      Expr *e = top.get();
+      for (unsigned i = 0; i < e->getNumKids(); i++) {
+        ref<Expr> k = e->getKid(i);
+        if (!isa<ConstantExpr>(k) && visited.insert(k).second) {
+          stack.push_back(k);
+        }
+      }
+    }
+  }
+}
+
 ///
 
 namespace klee {
