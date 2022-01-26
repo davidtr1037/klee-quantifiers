@@ -22,8 +22,22 @@ cl::opt<bool> ValidateSmallModel(
   cl::cat(SolvingCat)
 );
 
+cl::opt<bool> AddBoundConstraints(
+  "add-bound-constraints",
+  cl::init(false),
+  cl::desc(""),
+  cl::cat(SolvingCat)
+);
+
 cl::opt<bool> GenerateLemmasForSmallModel(
   "generate-lemmas-for-small-model",
+  cl::init(false),
+  cl::desc(""),
+  cl::cat(SolvingCat)
+);
+
+cl::opt<bool> DuplicateSmallModel(
+  "duplicate-small-model",
   cl::init(false),
   cl::desc(""),
   cl::cat(SolvingCat)
@@ -38,13 +52,6 @@ cl::opt<bool> AdjustForConflicts(
 
 cl::opt<bool> InstantiateAuxVariable(
   "instantiate-aux-variable",
-  cl::init(false),
-  cl::desc(""),
-  cl::cat(SolvingCat)
-);
-
-cl::opt<bool> DuplicateSmallModel(
-  "duplicate-small-model",
   cl::init(false),
   cl::desc(""),
   cl::cat(SolvingCat)
@@ -303,14 +310,17 @@ void SmallModelSolver::transform(const Query &query,
     constraints.push_back(transform(e));
   }
 
-  std::vector<ref<Expr>> boundConstraints;
-  for (ref<Expr> e : query.constraints) {
-    findAuxReads(e, boundConstraints);
-  }
-  findAuxReads(query.expr, boundConstraints);
+  if (AddBoundConstraints) {
+    /* TODO: can't be done if the read appears in or/select */
+    std::vector<ref<Expr>> boundConstraints;
+    for (ref<Expr> e : query.constraints) {
+      findAuxReads(e, boundConstraints);
+    }
+    findAuxReads(query.expr, boundConstraints);
 
-  for (ref<Expr> e : boundConstraints) {
-    constraints.push_back(e);
+    for (ref<Expr> e : boundConstraints) {
+      constraints.push_back(e);
+    }
   }
 }
 
