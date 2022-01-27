@@ -57,6 +57,13 @@ cl::opt<bool> InstantiateAuxVariable(
   cl::cat(SolvingCat)
 );
 
+cl::opt<bool> UseQFABVFallback(
+  "use-qfabv-fallback",
+  cl::init(false),
+  cl::desc(""),
+  cl::cat(SolvingCat)
+);
+
 SmallModelSolver::SmallModelSolver(Solver *solver) : solver(solver) {
 
 }
@@ -69,6 +76,18 @@ SmallModelSolver::~SmallModelSolver() {
   klee_message("Small model unsupported: %lu",
                (uint64_t)(stats::smallModelUnsupported));
   delete solver;
+}
+
+void SmallModelSolver::validate(const Query &query,
+                                const std::vector<const Array *> &objects,
+                                bool result) {
+  std::vector<std::vector<unsigned char>> values;
+  bool expected;
+  assert(solver->impl->computeInitialValues(query,
+                                            objects,
+                                            values,
+                                            expected));
+  assert(result == expected);
 }
 
 bool SmallModelSolver::shouldApply(const Query &query) {
@@ -210,6 +229,65 @@ uint64_t SmallModelSolver::getAuxValue(ref<ForallExpr> f,
     return dyn_cast<ConstantExpr>(v)->getZExtValue();
   } else {
     return getAuxValue(f);
+  }
+}
+
+static bool getMin(ref<Expr> e, ref<Expr> expected, uint64_t &min) {
+  ref<UleExpr> uleExpr = dyn_cast<UleExpr>(e);
+  if (uleExpr.isNull()) {
+    return false;
+  }
+
+  if (*uleExpr->right != *expected) {
+    return false;
+  }
+
+  ref<ConstantExpr> c = dyn_cast<ConstantExpr>(uleExpr->left);
+  if (c.isNull()) {
+    return false;
+  }
+
+  min = c->getZExtValue();
+  return true;
+}
+
+static bool getMax(ref<Expr> e, ref<Expr> expected, uint64_t &max) {
+  ref<UleExpr> uleExpr = dyn_cast<UleExpr>(e);
+  if (uleExpr.isNull()) {
+    return false;
+  }
+
+  if (*uleExpr->left != *expected) {
+    return false;
+  }
+
+  ref<ConstantExpr> c = dyn_cast<ConstantExpr>(uleExpr->right);
+  if (c.isNull()) {
+    return false;
+  }
+
+  max = c->getZExtValue();
+  return true;
+}
+
+void SmallModelSolver::encodeAsQF(const Query &query,
+                                  ConstraintSet &constraints) {
+  for (unsigned i = 0; i < query.constraints.size(); i++) {
+    ref<Expr> constraint = query.constraints.get(i);
+    if (isa<ForallExpr>(constraint)) {
+      ref<ForallExpr> f = dyn_cast<ForallExpr>(constraint);
+      if (isa<ConstantExpr>(f->auxExpr)) {
+        constraints.push_back(expandForall(f));
+      } else {
+        assert(i >= 2);
+        uint64_t min, max;
+        assert(getMin(query.constraints.get(i - 2), f->auxExpr, min));
+        assert(getMax(query.constraints.get(i - 1), f->auxExpr, max));
+        constraints.push_back(expandForall(f, min, max));
+      }
+    } else {
+      constraints.push_back(constraint);
+    }
   }
 }
 
@@ -683,13 +761,7 @@ bool SmallModelSolver::computeInitialValues(const Query& query,
                                                      hasSolution);
   if (success) {
     if (ValidateSmallModel) {
-      std::vector<std::vector<unsigned char>> values;
-      bool expected;
-      assert(solver->impl->computeInitialValues(query,
-                                                objects,
-                                                values,
-                                                expected));
-      assert(hasSolution == expected);
+      validate(query, objects, hasSolution);
     }
     ++stats::smallModelHits;
     return true;
@@ -699,13 +771,29 @@ bool SmallModelSolver::computeInitialValues(const Query& query,
 
   /* TODO: ugly... */
   values.clear();
-  success = solver->impl->computeInitialValues(query,
-                                               objects,
-                                               values,
-                                               hasSolution);
+
+  if (UseQFABVFallback) {
+    ConstraintSet qfConstraints;
+    encodeAsQF(query, qfConstraints);
+    Query qfQuery(qfConstraints, query.expr);
+    success = solver->impl->computeInitialValues(qfQuery,
+                                                 objects,
+                                                 values,
+                                                 hasSolution);
+    if (ValidateSmallModel) {
+      validate(query, objects, hasSolution);
+    }
+  } else {
+    success = solver->impl->computeInitialValues(query,
+                                                 objects,
+                                                 values,
+                                                 hasSolution);
+  }
+
   if (!hasSolution) {
     ++stats::smallModelUnsupported;
   }
+
   return success;
 }
 

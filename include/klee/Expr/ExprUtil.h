@@ -58,7 +58,13 @@ namespace klee {
 
   ref<Expr> expandForall(ref<ForallExpr> f);
 
-  ref<Expr> expandForall(ref<ForallExpr> f, uint64_t min, uint64_t max);
+  ref<Expr> expandForall(ref<ForallExpr> f,
+                         uint64_t min,
+                         uint64_t max);
+
+  ref<Expr> expandForallWithEval(ref<ForallExpr> f,
+                                 uint64_t min,
+                                 uint64_t max);
 
   class ConstantArrayFinder : public ExprVisitor {
   protected:

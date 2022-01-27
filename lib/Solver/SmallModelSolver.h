@@ -51,6 +51,10 @@ public:
 
   virtual ~SmallModelSolver();
 
+  void validate(const Query &query,
+                const std::vector<const Array *> &objects,
+                bool result);
+
   bool shouldApply(const Query &query);
 
   bool hasModelWithFixedAuxVars(const Query &query,
@@ -78,6 +82,9 @@ public:
 
   uint64_t getAuxValue(ref<ForallExpr> f,
                        const Assignment &assignment);
+
+  void encodeAsQF(const Query &query,
+                  ConstraintSet &constraints);
 
   ref<Expr> eliminateForall(ref<ForallExpr>);
 

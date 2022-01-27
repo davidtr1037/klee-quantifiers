@@ -411,9 +411,10 @@ static uint64_t evalAuxExpr(ref<ForallExpr> f, uint64_t n) {
   }
 }
 
-static ref<Expr> expandForallExplicitly(ref<ForallExpr> f,
-                                        uint64_t min,
-                                        uint64_t max) {
+/* substitute bound(f) by min/max and expand accordingly */
+ref<Expr> klee::expandForall(ref<ForallExpr> f,
+                             uint64_t min,
+                             uint64_t max) {
   assert(!isa<ConstantExpr>(f->auxExpr));
 
   std::map<uint64_t, ref<Expr>> instantiations;
@@ -439,8 +440,11 @@ static ref<Expr> expandForallExplicitly(ref<ForallExpr> f,
   return result;
 }
 
-ref<Expr> klee::expandForall(ref<ForallExpr> f, uint64_t min, uint64_t max) {
-  return expandForallExplicitly(f, evalAuxExpr(f, min), evalAuxExpr(f, max));
+/* first eval bound(f), and then expand */
+ref<Expr> klee::expandForallWithEval(ref<ForallExpr> f,
+                                     uint64_t min,
+                                     uint64_t max) {
+  return expandForall(f, evalAuxExpr(f, min), evalAuxExpr(f, max));
 }
 
 typedef std::vector< ref<Expr> >::iterator A;
