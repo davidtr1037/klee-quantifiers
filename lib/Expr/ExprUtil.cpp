@@ -421,7 +421,7 @@ static ref<Expr> expandForallExplicitly(ref<ForallExpr> f,
     instantiations[i] = instantiateForall(f, i);
   }
 
-  ref<Expr> result = ConstantExpr::create(1, Expr::Bool);
+  ref<Expr> result = ConstantExpr::create(0, Expr::Bool);
   for (uint64_t m = min; m <= max; m++) {
     ref<Expr> premise = EqExpr::create(
       f->auxExpr,
