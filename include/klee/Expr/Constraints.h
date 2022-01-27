@@ -48,6 +48,11 @@ public:
     constraints.clear();
   }
 
+  /* TODO: this is not great... */
+  ref<Expr> get(unsigned i) const {
+    return constraints[i];
+  }
+
   ref<Expr> last() const {
     if (constraints.empty()) {
       return nullptr;
