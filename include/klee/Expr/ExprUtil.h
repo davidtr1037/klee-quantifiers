@@ -50,11 +50,15 @@ namespace klee {
 
   ref<Expr> substBoundVariables(ref<Expr> e, ref<Expr> value);
 
-  ref<Expr> instantiateForall(ref<ForallExpr> e, ref<Expr> value);
+  ref<Expr> instantiateForall(ref<ForallExpr> f, ref<Expr> value);
 
   ref<Expr> substBoundVariables(ref<Expr> e, uint64_t value);
 
-  ref<Expr> instantiateForall(ref<ForallExpr> e, uint64_t value);
+  ref<Expr> instantiateForall(ref<ForallExpr> f, uint64_t value);
+
+  ref<Expr> expandForall(ref<ForallExpr> f);
+
+  ref<Expr> expandForall(ref<ForallExpr> f, uint64_t min, uint64_t max);
 
   class ConstantArrayFinder : public ExprVisitor {
   protected:

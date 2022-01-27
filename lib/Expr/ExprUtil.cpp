@@ -11,6 +11,7 @@
 #include "klee/Expr/Expr.h"
 #include "klee/Expr/ExprHashMap.h"
 #include "klee/Expr/ExprVisitor.h"
+#include "klee/Expr/Assignment.h"
 
 #include <set>
 #include <list>
@@ -380,6 +381,66 @@ ref<Expr> klee::substBoundVariables(ref<Expr> src, uint64_t value) {
 
 ref<Expr> klee::instantiateForall(ref<ForallExpr> f, uint64_t value) {
   return substBoundVariables(f->post, value);
+}
+
+ref<Expr> klee::expandForall(ref<ForallExpr> f) {
+  assert(isa<ConstantExpr>(f->auxExpr));
+  uint64_t m = dyn_cast<ConstantExpr>(f->auxExpr)->getZExtValue();
+  ref<Expr> c = ConstantExpr::create(1, Expr::Bool);
+  for (unsigned i = 1; i <= m; i++) {
+    ref<Expr> instantiation = instantiateForall(f, i);
+    c = AndExpr::create(c, instantiation);
+  }
+  return c;
+}
+
+static uint64_t evalAuxExpr(ref<ForallExpr> f, uint64_t n) {
+  std::vector<unsigned char> value;
+  for (unsigned i = 0; i < 8; i++) {
+    value.push_back((n >> (i * 8)) & 0xff);
+  }
+  std::vector<std::vector<unsigned char>> values = {value};
+
+  /* TODO: allow free variables? */
+  Assignment assignment({f->auxArray}, values, true);
+  ref<Expr> e = assignment.evaluate(f->auxExpr);
+  if (isa<ConstantExpr>(e)) {
+    return dyn_cast<ConstantExpr>(e)->getZExtValue();
+  } else {
+    assert(0);
+  }
+}
+
+static ref<Expr> expandForallExplicitly(ref<ForallExpr> f,
+                                        uint64_t min,
+                                        uint64_t max) {
+  assert(!isa<ConstantExpr>(f->auxExpr));
+
+  std::map<uint64_t, ref<Expr>> instantiations;
+  for (uint64_t i = 1; i <= max; i++) {
+    instantiations[i] = instantiateForall(f, i);
+  }
+
+  ref<Expr> result = ConstantExpr::create(1, Expr::Bool);
+  for (uint64_t m = min; m <= max; m++) {
+    ref<Expr> premise = EqExpr::create(
+      f->auxExpr,
+      ConstantExpr::create(m, f->auxExpr->getWidth())
+    );
+
+    ref<Expr> c = ConstantExpr::create(1, Expr::Bool);
+    for (uint64_t i = 1; i <= m; i++) {
+      c = AndExpr::create(c, instantiations[i]);
+    }
+
+    result = OrExpr::create(result, AndExpr::create(premise, c));
+  }
+
+  return result;
+}
+
+ref<Expr> klee::expandForall(ref<ForallExpr> f, uint64_t min, uint64_t max) {
+  return expandForallExplicitly(f, evalAuxExpr(f, min), evalAuxExpr(f, max));
 }
 
 typedef std::vector< ref<Expr> >::iterator A;
