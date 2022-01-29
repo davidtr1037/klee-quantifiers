@@ -678,18 +678,18 @@ void SmallModelSolver::buildConstraints(const Query &query,
     for (ref<Expr> e : query.constraints) {
       if (isa<ForallExpr>(e)) {
         ref<ForallExpr> f = dyn_cast<ForallExpr>(e);
-        std::vector<EqAssertion> assertions;
+        std::vector<ref<BaseAssertion>> assertions;
         findAssertions(f, assertions);
 
         std::vector<ref<Expr>> terms;
-        for (EqAssertion &a : assertions) {
+        for (ref<BaseAssertion> a : assertions) {
           /* guaranteed to be quantifier-free */
-          a.findNegatingTerms(Expr::createIsZero(query.expr), terms);
+          a->findNegatingTerms(Expr::createIsZero(query.expr), terms);
           /* TODO: refactor */
           for (ref<Expr> constraint : query.constraints) {
             if (!isa<ForallExpr>(constraint)) {
               /* TODO: avoid trivial terms */
-              a.findNegatingTerms(constraint, terms);
+              a->findNegatingTerms(constraint, terms);
             }
           }
         }

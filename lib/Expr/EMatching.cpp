@@ -75,6 +75,20 @@ static ref<Expr> computeBoundTerm(ref<Expr> e, ref<Expr> target) {
   return nullptr;
 }
 
+void BaseAssertion::findNegatingTerms(const ConstraintSet &constraints,
+                                      bool checkImplied,
+                                      bool checkConstraints,
+                                      std::vector<ref<Expr>> &terms) {
+  if (checkImplied) {
+    findImpliedNegatingTerms(terms);
+  }
+  if (checkConstraints) {
+    for (ref<Expr> constraint : constraints) {
+      findNegatingTerms(constraint, terms);
+    }
+  }
+}
+
 void EqAssertion::findImpliedNegatingTerms(std::vector<ref<Expr>> &terms) {
   if (!isNegated) {
     /* TODO: support this case (although seems to be less common) */
@@ -125,6 +139,8 @@ void EqAssertion::findNegatingTerms(ref<Expr> e,
     return;
   }
 
+  bool requireEquality = true;
+
   /* check if: (Eq false ...) */
   if (eq->left->getWidth() == Expr::Bool && eq->left->isFalse()) {
     if (isNegated) {
@@ -139,12 +155,12 @@ void EqAssertion::findNegatingTerms(ref<Expr> e,
   } else {
     /* the case: (Eq ... ...) */
     if (!isNegated) {
-      return;
+      requireEquality = false;
     }
   }
 
   /* TODO: check the case where the RHS is equal? */
-  if (*assertion->left != *eq->left) {
+  if ((*assertion->left == *eq->left) != requireEquality) {
     return;
   }
 
@@ -155,45 +171,136 @@ void EqAssertion::findNegatingTerms(ref<Expr> e,
   }
 }
 
-void EqAssertion::findNegatingTerms(const ConstraintSet &constraints,
-                                    bool checkImplied,
-                                    bool checkConstraints,
-                                    std::vector<ref<Expr>> &terms) {
-  if (checkImplied) {
-    findImpliedNegatingTerms(terms);
+AndAssertion::AndAssertion(const std::vector<ref<BaseAssertion>> &assertions) :
+  assertions(assertions) {
+
+}
+
+void AndAssertion::findImpliedNegatingTerms(std::vector<ref<Expr>> &terms) {
+  for (ref<BaseAssertion> assertion : assertions) {
+    assertion->findImpliedNegatingTerms(terms);
   }
-  if (checkConstraints) {
-    for (ref<Expr> constraint : constraints) {
-      findNegatingTerms(constraint, terms);
+}
+
+void AndAssertion::findNegatingTerms(ref<Expr> e,
+                                     std::vector<ref<Expr>> &terms) {
+  /* compute the union of the terms */
+  for (ref<BaseAssertion> assertion : assertions) {
+    assertion->findNegatingTerms(e, terms);
+  }
+}
+
+OrAssertion::OrAssertion(const std::vector<ref<BaseAssertion>> &assertions) :
+  assertions(assertions) {
+
+}
+
+void OrAssertion::findImpliedNegatingTerms(std::vector<ref<Expr>> &terms) {
+  /* TODO: ... */
+}
+
+/* TODO: check thah e has a non-negated form: (EqExpr ... ...) */
+void OrAssertion::findNegatingTerms(ref<Expr> e,
+                                    std::vector<ref<Expr>> &terms) {
+  if (!isa<EqExpr>(e)) {
+    return;
+  }
+
+  ref<EqExpr> eqExpr = dyn_cast<EqExpr>(e);
+  if (eqExpr->left->getWidth() == Expr::Bool && eqExpr->left->isFalse()) {
+    return;
+  }
+
+  std::vector<std::vector<ref<Expr>>> groups;
+  for (ref<BaseAssertion> assertion : assertions) {
+    std::vector<ref<Expr>> terms;
+    assertion->findNegatingTerms(e, terms);
+    groups.push_back(terms);
+  }
+
+  assert(groups.size() >= 1);
+  std::vector<ref<Expr>> &initial = groups[0];
+
+  for (ref<Expr> t : initial) {
+    bool foundInAll = true;
+    for (unsigned i = 1; i < groups.size(); i++) {
+      std::vector<ref<Expr>> &other = groups[i];
+      bool found = false;
+      for (ref<Expr> e : other) {
+        if (*t == *e) {
+          found = true;
+          break;
+        }
+      }
+      if (!found) {
+        foundInAll = false;
+        break;
+      }
+    }
+    if (foundInAll) {
+      terms.push_back(t);
+    }
+  }
+}
+
+//void klee::findAssertions(ref<ForallExpr> f,
+//                          std::vector<ref<BaseAssertion>> &assertions) {
+//  std::list<ref<Expr>> worklist;
+//  worklist.push_front(f->post);
+//  while (!worklist.empty()) {
+//    ref<Expr> e = worklist.front();
+//    worklist.pop_front();
+//
+//    if (isa<AndExpr>(e)) {
+//      ref<AndExpr> andExpr = dyn_cast<AndExpr>(e);
+//      worklist.push_front(andExpr->right);
+//      worklist.push_front(andExpr->left);
+//    } else if (isa<EqExpr>(e)) {
+//      ref<EqExpr> eqExpr = dyn_cast<EqExpr>(e);
+//      if (eqExpr->left->getWidth() == Expr::Bool && eqExpr->left->isFalse()) {
+//        if (isa<EqExpr>(eqExpr->right)) {
+//          assertions.push_back(
+//            new EqAssertion(dyn_cast<EqExpr>(eqExpr->right), true)
+//          );
+//        }
+//      } else {
+//        assertions.push_back(new EqAssertion(eqExpr, false));
+//      }
+//    }
+//  }
+//}
+
+static void findAssertionsForExpr(ref<Expr> e,
+                                  std::vector<ref<BaseAssertion>> &assertions) {
+  if (isa<AndExpr>(e)) {
+    ref<AndExpr> andExpr = dyn_cast<AndExpr>(e);
+    std::vector<ref<BaseAssertion>> internal;
+    findAssertionsForExpr(andExpr->right, internal);
+    findAssertionsForExpr(andExpr->left, internal);
+    assertions.push_back(new AndAssertion(internal));
+  } else if (isa<OrExpr>(e)) {
+    ref<OrExpr> orExpr = dyn_cast<OrExpr>(e);
+    std::vector<ref<BaseAssertion>> internal;
+    findAssertionsForExpr(orExpr->right, internal);
+    findAssertionsForExpr(orExpr->left, internal);
+    assertions.push_back(new OrAssertion(internal));
+  } else if (isa<EqExpr>(e)) {
+    ref<EqExpr> eqExpr = dyn_cast<EqExpr>(e);
+    if (eqExpr->left->getWidth() == Expr::Bool && eqExpr->left->isFalse()) {
+      if (isa<EqExpr>(eqExpr->right)) {
+        assertions.push_back(
+          new EqAssertion(dyn_cast<EqExpr>(eqExpr->right), true)
+        );
+      }
+    } else {
+      assertions.push_back(new EqAssertion(eqExpr, false));
     }
   }
 }
 
 void klee::findAssertions(ref<ForallExpr> f,
-                          std::vector<EqAssertion> &assertions) {
-  std::list<ref<Expr>> worklist;
-  worklist.push_front(f->post);
-  while (!worklist.empty()) {
-    ref<Expr> e = worklist.front();
-    worklist.pop_front();
-
-    if (isa<AndExpr>(e)) {
-      ref<AndExpr> andExpr = dyn_cast<AndExpr>(e);
-      worklist.push_front(andExpr->right);
-      worklist.push_front(andExpr->left);
-    } else if (isa<EqExpr>(e)) {
-      ref<EqExpr> eqExpr = dyn_cast<EqExpr>(e);
-      if (eqExpr->left->getWidth() == Expr::Bool && eqExpr->left->isFalse()) {
-        if (isa<EqExpr>(eqExpr->right)) {
-          assertions.push_back(
-            EqAssertion(dyn_cast<EqExpr>(eqExpr->right), true)
-          );
-        }
-      } else {
-        assertions.push_back(EqAssertion(eqExpr, false));
-      }
-    }
-  }
+                          std::vector<ref<BaseAssertion>> &assertions) {
+  findAssertionsForExpr(f->post, assertions);
 }
 
 void klee::generateLemmaFromForall(ref<ForallExpr> f,
@@ -206,12 +313,12 @@ void klee::generateLemmaFromForall(ref<ForallExpr> f,
     return;
   }
 
-  std::vector<EqAssertion> assertions;
+  std::vector<ref<BaseAssertion>> assertions;
   findAssertions(f, assertions);
 
   std::vector<ref<Expr>> terms;
-  for (EqAssertion &a : assertions) {
-    a.findNegatingTerms(constraints,
+  for (ref<BaseAssertion> a : assertions) {
+    a->findNegatingTerms(constraints,
                         checkImplied,
                         checkConstraints,
                         terms);

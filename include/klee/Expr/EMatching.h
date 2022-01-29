@@ -1,13 +1,45 @@
 #ifndef KLEE_EMATCHING_H
 #define KLEE_EMATCHING_H
 
+#include "klee/ADT/Ref.h"
 #include "klee/Expr/Expr.h"
 #include "klee/Solver/Solver.h"
 
 namespace klee {
 
-/* TODO: make internal */
-struct EqAssertion {
+class BaseAssertion {
+
+public:
+
+  class ReferenceCounter _refCount;
+
+  BaseAssertion() {
+
+  }
+
+  virtual ~BaseAssertion() {
+
+  }
+
+  virtual void findImpliedNegatingTerms(std::vector<ref<Expr>> &terms) {
+
+  }
+
+  virtual void findNegatingTerms(ref<Expr> e,
+                                 std::vector<ref<Expr>> &terms) {
+
+  }
+
+  void findNegatingTerms(const ConstraintSet &constraints,
+                         bool checkImplied,
+                         bool checkConstraints,
+                         std::vector<ref<Expr>> &terms);
+};
+
+class EqAssertion : public BaseAssertion {
+
+public:
+
   /* TODO: add bound variable? */
   ref<EqExpr> assertion;
   bool isNegated;
@@ -25,15 +57,38 @@ struct EqAssertion {
 
   void findNegatingTerms(ref<Expr> e,
                          std::vector<ref<Expr>> &terms);
+};
 
-  void findNegatingTerms(const ConstraintSet &constraints,
-                         bool checkImplied,
-                         bool checkConstraints,
+class AndAssertion : public BaseAssertion {
+
+public:
+
+  std::vector<ref<BaseAssertion>> assertions;
+
+  AndAssertion(const std::vector<ref<BaseAssertion>> &assertions);
+
+  void findImpliedNegatingTerms(std::vector<ref<Expr>> &terms);
+
+  void findNegatingTerms(ref<Expr> e,
+                         std::vector<ref<Expr>> &terms);
+};
+
+class OrAssertion : public BaseAssertion {
+
+public:
+
+  std::vector<ref<BaseAssertion>> assertions;
+
+  OrAssertion(const std::vector<ref<BaseAssertion>> &assertions);
+
+  void findImpliedNegatingTerms(std::vector<ref<Expr>> &terms);
+
+  void findNegatingTerms(ref<Expr> e,
                          std::vector<ref<Expr>> &terms);
 };
 
 void findAssertions(ref<ForallExpr> f,
-                    std::vector<EqAssertion> &assertions);
+                    std::vector<ref<BaseAssertion>> &assertions);
 
 void generateLemmaFromForall(ref<ForallExpr> f,
                              ConstraintSet &constraints,
