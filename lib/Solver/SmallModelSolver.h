@@ -121,7 +121,7 @@ public:
   void findConflicts(const Query &query,
                      const Assignment &assignment,
                      std::vector<ArrayAccess> &conflicts,
-                     Access2Expr access2expr,
+                     Access2Expr &access2expr,
                      std::set<const Array *> &keepSymbolic);
 
   bool adjustModelWithConflicts(const Query &query,

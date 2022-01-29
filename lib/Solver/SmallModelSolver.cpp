@@ -491,7 +491,7 @@ void SmallModelSolver::duplicateModel(const Query &query,
 void SmallModelSolver::findConflicts(const Query &query,
                                      const Assignment &assignment,
                                      std::vector<ArrayAccess> &conflicts,
-                                     Access2Expr access2expr,
+                                     Access2Expr &access2expr,
                                      std::set<const Array *> &keepSymbolic) {
   std::vector<ref<Expr>> all;
   all.push_back(Expr::createIsZero(query.expr));
@@ -552,7 +552,7 @@ bool SmallModelSolver::adjustModelWithConflicts(const Query &query,
     if (keepSymbolic.find(dep.array) != keepSymbolic.end()) {
       auto i = access2expr.find(dep);
       if (i != access2expr.end()) {
-        ExprBucket &exprs = i->second;
+        const ExprBucket &exprs = i->second;
         for (ref<Expr> e : exprs) {
           toAdd.push_back(e);
         }
