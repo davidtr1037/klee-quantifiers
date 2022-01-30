@@ -89,31 +89,62 @@ void BaseAssertion::findNegatingTerms(const ConstraintSet &constraints,
   }
 }
 
-void EqAssertion::findImpliedNegatingTerms(std::vector<ref<Expr>> &terms) {
-  if (!isNegated) {
-    /* TODO: support this case (although seems to be less common) */
-    return;
-  }
+void BaseAssertion::intersect(const std::vector<std::vector<ref<Expr>>> &groups,
+                              std::vector<ref<Expr>> &result) {
+  assert(groups.size() >= 1);
+  const std::vector<ref<Expr>> &initial = groups[0];
 
+  for (ref<Expr> t : initial) {
+    bool foundInAll = true;
+    for (unsigned i = 1; i < groups.size(); i++) {
+      const std::vector<ref<Expr>> &other = groups[i];
+      bool found = false;
+      for (ref<Expr> e : other) {
+        if (*t == *e) {
+          found = true;
+          break;
+        }
+      }
+      if (!found) {
+        foundInAll = false;
+        break;
+      }
+    }
+    if (foundInAll) {
+      result.push_back(t);
+    }
+  }
+}
+
+void EqAssertion::findImpliedNegatingTerms(std::vector<ref<Expr>> &terms) {
   ref<ReadExpr> r = dyn_cast<ReadExpr>(assertion->right);
   if (r.isNull()) {
     return;
   }
 
-  /* the case: not(eq e select(...)) */
-  unsigned seenStores = 0;
-  /* look for a store: [index = e] */
-  for (ref<UpdateNode> un = r->updates.head; !un.isNull(); un = un->next) {
+  if (r->updates.head.isNull()) {
+    return;
+  }
+
+  ref<UpdateNode> un = r->updates.head;
+  if (isNegated) {
+    /* the case: not(eq e select(...)), look for a store: [index = e] */
     if (*un->value == *assertion->left) {
-      if (seenStores == 0) {
+      ref<Expr> term = computeBoundTerm(r->index, un->index);
+      if (!term.isNull()) {
+        terms.push_back(term);
+      }
+    }
+  } else {
+    /* the case: (eq e select(...)), look for a store: [index = e'] */
+    if (isa<ConstantExpr>(un->value) && isa<ConstantExpr>(assertion->left)) {
+      if (*un->value != *assertion->left) {
         ref<Expr> term = computeBoundTerm(r->index, un->index);
         if (!term.isNull()) {
           terms.push_back(term);
         }
       }
-      break;
     }
-    seenStores++;
   }
 }
 
@@ -196,7 +227,14 @@ OrAssertion::OrAssertion(const std::vector<ref<BaseAssertion>> &assertions) :
 }
 
 void OrAssertion::findImpliedNegatingTerms(std::vector<ref<Expr>> &terms) {
-  /* TODO: ... */
+  std::vector<std::vector<ref<Expr>>> groups;
+  for (ref<BaseAssertion> assertion : assertions) {
+    std::vector<ref<Expr>> terms;
+    assertion->findImpliedNegatingTerms(terms);
+    groups.push_back(terms);
+  }
+
+  intersect(groups, terms);
 }
 
 /* TODO: check thah e has a non-negated form: (EqExpr ... ...) */
@@ -218,29 +256,7 @@ void OrAssertion::findNegatingTerms(ref<Expr> e,
     groups.push_back(terms);
   }
 
-  assert(groups.size() >= 1);
-  std::vector<ref<Expr>> &initial = groups[0];
-
-  for (ref<Expr> t : initial) {
-    bool foundInAll = true;
-    for (unsigned i = 1; i < groups.size(); i++) {
-      std::vector<ref<Expr>> &other = groups[i];
-      bool found = false;
-      for (ref<Expr> e : other) {
-        if (*t == *e) {
-          found = true;
-          break;
-        }
-      }
-      if (!found) {
-        foundInAll = false;
-        break;
-      }
-    }
-    if (foundInAll) {
-      terms.push_back(t);
-    }
-  }
+  intersect(groups, terms);
 }
 
 static void findAssertionsForExpr(ref<Expr> e,

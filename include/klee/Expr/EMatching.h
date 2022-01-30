@@ -34,6 +34,9 @@ public:
                          bool checkImplied,
                          bool checkConstraints,
                          std::vector<ref<Expr>> &terms);
+
+  void intersect(const std::vector<std::vector<ref<Expr>>> &groups,
+                 std::vector<ref<Expr>> &result);
 };
 
 class EqAssertion : public BaseAssertion {
