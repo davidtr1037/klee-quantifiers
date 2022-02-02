@@ -4221,8 +4221,18 @@ void Executor::runFunctionAsMain(Function *f,
   if (statsTracker)
     statsTracker->done();
 
-  double t = (double)(stats::mergeTime) / (double)(statsTracker->elapsed().toMicroseconds());
-  klee_message("Merge time: %f%%", 100 * t);
+  klee_message("Merge time: %f%%",
+               100 * statsTracker->getTimeRatio(stats::mergeTime));
+  if (UseSmallModelSolver) {
+    klee_message("Small model time: %f%%",
+                 100 * statsTracker->getTimeRatio(stats::smallModelTime));
+    klee_message("Small model time (initial query): %f%%",
+                 100 * statsTracker->getTimeRatio(stats::smallModelInitialQueryTime));
+    klee_message("Small model time (resolve query): %f%%",
+                 100 * statsTracker->getTimeRatio(stats::smallModelResolveQueryTime));
+    klee_message("Small model time (fallback query): %f%%",
+                 100 * statsTracker->getTimeRatio(stats::smallModelFallbackQueryTime));
+  }
 }
 
 unsigned Executor::getPathStreamID(const ExecutionState &state) {

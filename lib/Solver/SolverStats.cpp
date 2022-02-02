@@ -26,6 +26,10 @@ Statistic stats::auxilaryQueries("AuxilaryQueries", "AuxQ");
 Statistic stats::smallModelHits("SmallModelHits", "SMH");
 Statistic stats::smallModelMisses("SmallModelMisses", "SMM");
 Statistic stats::smallModelUnsupported("SmallModelUnsupported", "SMU");
+Statistic stats::smallModelTime("SmallModelTime", "SMT");
+Statistic stats::smallModelInitialQueryTime("SmallModelInitialQueryTime", "SMIQT");
+Statistic stats::smallModelResolveQueryTime("SmallModelResolveQueryTime", "SMRQT");
+Statistic stats::smallModelFallbackQueryTime("SmallModelFallbackQueryTime", "SMFQT");
 
 #ifdef KLEE_ARRAY_DEBUG
 Statistic stats::arrayHashTime("ArrayHashTime", "AHtime");

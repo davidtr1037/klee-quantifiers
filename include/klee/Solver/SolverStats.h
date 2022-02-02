@@ -30,6 +30,10 @@ namespace stats {
   extern Statistic smallModelHits;
   extern Statistic smallModelMisses;
   extern Statistic smallModelUnsupported;
+  extern Statistic smallModelTime;
+  extern Statistic smallModelInitialQueryTime;
+  extern Statistic smallModelResolveQueryTime;
+  extern Statistic smallModelFallbackQueryTime;
   
 #ifdef KLEE_ARRAY_DEBUG
   extern Statistic arrayHashTime;

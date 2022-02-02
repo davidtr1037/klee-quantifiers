@@ -11,6 +11,7 @@
 #include "klee/Solver/SolverStats.h"
 #include "klee/Support/OptionCategories.h"
 #include "klee/Support/ErrorHandling.h"
+#include "klee/Statistics/TimerStatIncrementer.h"
 
 using namespace llvm;
 using namespace klee;
@@ -592,10 +593,14 @@ bool SmallModelSolver::adjustModelWithConflicts(const Query &query,
   std::vector<const Array *> objectsToKeep(keepSymbolic.begin(), keepSymbolic.end());
   std::vector<std::vector<unsigned char>> valuesToKeep;
   bool hasSolution;
-  bool success = solver->impl->computeInitialValues(partitionedQuery,
-                                                    objectsToKeep,
-                                                    valuesToKeep,
-                                                    hasSolution);
+  bool success;
+  {
+    TimerStatIncrementer timer(stats::smallModelResolveQueryTime);
+    success = solver->impl->computeInitialValues(partitionedQuery,
+                                                 objectsToKeep,
+                                                 valuesToKeep,
+                                                 hasSolution);
+  }
   if (!success) {
     return false;
   }
@@ -724,10 +729,14 @@ bool SmallModelSolver::computeInitialValuesUsingSmallModel(const Query &query,
   Query smQuery(constraints, transform(query.expr));
 
   bool hasSmallModelSolution;
-  bool success = solver->impl->computeInitialValues(smQuery,
-                                                    objects,
-                                                    values,
-                                                    hasSmallModelSolution);
+  bool success;
+  {
+    TimerStatIncrementer timer(stats::smallModelInitialQueryTime);
+    success = solver->impl->computeInitialValues(smQuery,
+                                                 objects,
+                                                 values,
+                                                 hasSmallModelSolution);
+  }
   if (!success) {
     return false;
   }
@@ -748,6 +757,7 @@ bool SmallModelSolver::computeInitialValues(const Query& query,
                                             const std::vector<const Array*> &objects,
                                             std::vector<std::vector<unsigned char>> &values,
                                             bool &hasSolution) {
+  TimerStatIncrementer timer(stats::smallModelTime);
   if (!shouldApply(query)) {
     return solver->impl->computeInitialValues(query,
                                               objects,
@@ -773,6 +783,7 @@ bool SmallModelSolver::computeInitialValues(const Query& query,
   values.clear();
 
   if (UseQFABVFallback) {
+    TimerStatIncrementer timer(stats::smallModelFallbackQueryTime);
     ConstraintSet qfConstraints;
     encodeAsQF(query, qfConstraints);
     Query qfQuery(qfConstraints, query.expr);
