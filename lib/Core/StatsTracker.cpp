@@ -1006,3 +1006,8 @@ void StatsTracker::computeReachableUncovered() {
     }
   }
 }
+
+double StatsTracker::getTimeRatio(double d) {
+    double total = (double)(elapsed().toMicroseconds());
+    return d / total;
+}
