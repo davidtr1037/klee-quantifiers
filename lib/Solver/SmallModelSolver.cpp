@@ -795,6 +795,7 @@ bool SmallModelSolver::computeInitialValues(const Query& query,
       validate(query, objects, hasSolution);
     }
   } else {
+    TimerStatIncrementer timer(stats::smallModelFallbackQueryTime);
     success = solver->impl->computeInitialValues(query,
                                                  objects,
                                                  values,
