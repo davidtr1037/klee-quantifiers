@@ -256,7 +256,9 @@ public:
   /// (Re)computes the hash of the current expression.
   /// Returns the hash value. 
   virtual unsigned computeHash();
-  
+
+  bool isShapeRelevant() const;
+
   unsigned computeShapeHash();
 
   /// Compares `b` to `this` Expr for structural equivalence.

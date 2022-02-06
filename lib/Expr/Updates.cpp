@@ -113,8 +113,10 @@ unsigned UpdateList::shapeHash() const {
   for (unsigned i = 0, e = root->name.size(); i != e; ++i) {
     res = (res * Expr::MAGIC_HASH_CONSTANT) + root->name[i];
   }
-  if (head.get())
+  if (head.get()) {
     res ^= head->shapeHash();
+  }
+  res ^= (getSize() * Expr::MAGIC_HASH_CONSTANT);
   return res;
 }
 
