@@ -295,7 +295,7 @@ unsigned Expr::computeShapeHash() {
   }
 
   Expr::Kind k = getKind();
-  if (nonIgnorable.size() == 1 && ((k == Expr::Add) || k == Expr::Sub)) {
+  if (nonIgnorable.size() == 1 && ((k == Expr::Add) || (k == Expr::Sub))) {
     return nonIgnorable[0]->shapeHash();
   }
 
