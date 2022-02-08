@@ -15,6 +15,9 @@ using namespace llvm;
 
 namespace klee {
 
+#define REASON_MERGE "Merge"
+#define REASON_INCREMENTAL_MERGE "Incremental Merge"
+
 cl::OptionCategory LoopCat("Loop merging options",
                            "These options control path merging.");
 
@@ -196,14 +199,12 @@ void LoopHandler::discardClosedState(ExecutionState *es,
   executor->interpreterHandler->decUnmergedExploredPaths();
 }
 
-void LoopHandler::discardState(ExecutionState *es,
-                               const char *reason,
-                               bool isFullyExplored) {
+void LoopHandler::discardIntermediateState(ExecutionState *es) {
   if (find(openStates.begin(), openStates.end(), es) == openStates.end()) {
     /* the state reached the loop exit (suspended) */
-    discardClosedState(es, reason, isFullyExplored);
+    discardClosedState(es, REASON_INCREMENTAL_MERGE, false);
   } else {
-    discardOpenState(es, reason);
+    discardOpenState(es, REASON_INCREMENTAL_MERGE);
   }
 }
 
@@ -428,7 +429,7 @@ ExecutionState *LoopHandler::mergeGroup(MergeGroupInfo &groupInfo,
 
   for (unsigned i = 1; i < states.size(); i++) {
     ExecutionState *es = states[i];
-    discardClosedState(es, "Merge", true);
+    discardClosedState(es, REASON_MERGE, true);
   }
 
   return merged;
@@ -521,7 +522,7 @@ bool LoopHandler::discardStateByID(unsigned id) {
   for (ExecutionState *es : openStates) {
     if (es->getID() == id) {
       /* TODO: remove from openStates? */
-      discardState(es, "Incremental Merge", false);
+      discardIntermediateState(es);
       return true;
     }
   }
@@ -533,7 +534,7 @@ bool LoopHandler::discardStateByID(unsigned id) {
     while (j != states.end()) {
       ExecutionState *es = *j;
       if (es->getID() == id) {
-        discardState(es, "Incremental Merge", false);
+        discardIntermediateState(es);
         states.erase(j);
         return true;
       }

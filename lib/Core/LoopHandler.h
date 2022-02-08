@@ -108,9 +108,7 @@ public:
                           const char *reason,
                           bool isFullyExplored);
 
-  void discardState(ExecutionState *es,
-                    const char *reason,
-                    bool isFullyExplored);
+  void discardIntermediateState(ExecutionState *es);
 
   void addClosedState(ExecutionState *es, llvm::Instruction *mp);
 
