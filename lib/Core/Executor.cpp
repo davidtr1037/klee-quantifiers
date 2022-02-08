@@ -3282,8 +3282,11 @@ void Executor::terminateState(ExecutionState &state) {
                       "replay did not consume all objects in test input.");
   }
 
-  if (!state.loopHandler.isNull() && state.stack.back().isExecutingLoop && !haltExecution) {
-    state.loopHandler->markEarlyTerminated(state);
+  if (!state.loopHandler.isNull()) {
+    if (state.stack.back().isExecutingLoop && !haltExecution) {
+      /* a state that did't reach a loop exit */
+      state.loopHandler->markEarlyTerminated(state);
+    }
   }
 
   interpreterHandler->incPathsExplored();
