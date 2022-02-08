@@ -178,8 +178,13 @@ void LoopHandler::resumeClosedState(ExecutionState *es) {
 }
 
 void LoopHandler::discardOpenState(ExecutionState *es, const char *reason) {
+  unsigned backup = earlyTerminated;
+
   executor->terminateStateEarly(*es, reason);
   executor->interpreterHandler->decUnmergedExploredPaths();
+
+  /* TODO: this is not great... */
+  earlyTerminated = backup;
 }
 
 void LoopHandler::discardClosedState(ExecutionState *es,
