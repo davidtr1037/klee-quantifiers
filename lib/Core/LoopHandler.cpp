@@ -152,6 +152,7 @@ void LoopHandler::addOpenState(ExecutionState *es){
 void LoopHandler::removeOpenState(ExecutionState *es) {
   auto it = find(openStates.begin(), openStates.end(), es);
   assert(it != openStates.end());
+  /* TODO: use erase? */
   swap(*it, openStates.back());
   openStates.pop_back();
 }
