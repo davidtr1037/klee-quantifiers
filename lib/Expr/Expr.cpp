@@ -280,23 +280,27 @@ unsigned Expr::computeHash() {
   return hashValue;
 }
 
+bool Expr::isShapeRelevant() const {
+  return !isa<ConstantExpr>(this) && !isPureAux;
+}
+
 unsigned Expr::computeShapeHash() {
-  std::vector<ref<Expr>> nonIgnorable;
+  std::vector<ref<Expr>> relevant;
   unsigned n = getNumKids();
   for (unsigned i = 0; i < n; i++) {
     ref<Expr> e = getKid(i);
-    if (!isa<ConstantExpr>(e) && !e->isPureAux) {
-      nonIgnorable.push_back(getKid(i));
+    if (e->isShapeRelevant()) {
+      relevant.push_back(getKid(i));
     }
   }
 
-  if (nonIgnorable.size() == 0) {
+  if (relevant.empty()) {
     return Expr::MAGIC_SHAPE_HASH_CONSTANT;
   }
 
   Expr::Kind k = getKind();
-  if (nonIgnorable.size() == 1 && ((k == Expr::Add) || (k == Expr::Sub))) {
-    return nonIgnorable[0]->shapeHash();
+  if (relevant.size() == 1 && ((k == Expr::Add) || (k == Expr::Sub))) {
+    return relevant[0]->shapeHash();
   }
 
   unsigned r = getKind() * Expr::MAGIC_HASH_CONSTANT;
@@ -325,9 +329,16 @@ unsigned ConstantExpr::computeHash() {
 unsigned CastExpr::computeHash() {
   unsigned res = getWidth() * Expr::MAGIC_HASH_CONSTANT;
   hashValue = res ^ src->hash() * Expr::MAGIC_HASH_CONSTANT;
-  unsigned shapeRes = getWidth() * Expr::MAGIC_HASH_CONSTANT;
-  shapeHashValue = shapeRes ^ src->shapeHash() * Expr::MAGIC_HASH_CONSTANT;
+
+  if (src->isShapeRelevant()) {
+    unsigned shapeRes = getWidth() * Expr::MAGIC_HASH_CONSTANT;
+    shapeHashValue = shapeRes ^ src->shapeHash() * Expr::MAGIC_HASH_CONSTANT;
+  } else {
+    shapeHashValue = Expr::MAGIC_SHAPE_HASH_CONSTANT;
+  }
+
   isoHashValue = res ^ src->isoHash() * Expr::MAGIC_HASH_CONSTANT;
+
   return hashValue;
 }
 
@@ -368,6 +379,7 @@ unsigned ReadExpr::computeHash() {
   return hashValue;
 }
 
+/* TODO: use isShapeRelevant()? */
 unsigned NotExpr::computeHash() {
   hashValue = expr->hash() * Expr::MAGIC_HASH_CONSTANT * Expr::Not;
   shapeHashValue = expr->shapeHash() * Expr::MAGIC_HASH_CONSTANT * Expr::Not;
