@@ -51,6 +51,8 @@ namespace klee {
     bool isLoopEntry;
     /* TODO: add docs */
     bool isLoopExit;
+    /* TODO: add docs */
+    bool shouldAbort;
 
   public:
     KInstruction();

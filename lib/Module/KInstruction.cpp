@@ -15,7 +15,8 @@ using namespace klee;
 
 /***/
 
-KInstruction::KInstruction() : isLoopEntry(false), isLoopExit(false) {
+KInstruction::KInstruction() :
+  isLoopEntry(false), isLoopExit(false), shouldAbort(false) {
 
 }
 

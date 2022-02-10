@@ -1826,6 +1826,12 @@ Function* Executor::getTargetFunction(Value *calledVal, ExecutionState &state) {
 }
 
 void Executor::executeInstruction(ExecutionState &state, KInstruction *ki) {
+  if (ki->shouldAbort) {
+    klee_warning_once(0, "forcing termination");
+    terminateStateEarly(state, "forced termination");
+    return;
+  }
+
   Instruction *i = ki->inst;
   switch (i->getOpcode()) {
     // Control flow

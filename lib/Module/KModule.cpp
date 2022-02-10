@@ -130,12 +130,80 @@ namespace {
 
   cl::opt<bool>
   UseCFGPass("use-cfg-pass", cl::desc(""), cl::init(true), cl::cat(ModuleCat));
+
+  cl::opt<std::string> AbortLocations("abort-locations",
+                                      cl::desc("..."));
 }
 
 /***/
 
 namespace llvm {
 extern void Optimize(Module *, llvm::ArrayRef<const char *> preservedFunctions);
+}
+
+struct LocationOption {
+  std::string filename;
+  std::set<unsigned int> lines;
+
+  LocationOption(const std::string &filename,
+                 const std::set<unsigned int> &lines) :
+      filename(filename), lines(lines)
+  {
+
+  }
+};
+
+static bool parseNameLineOption(std::string option,
+                                std::string &filename,
+                                std::set<unsigned int> &lines) {
+  std::istringstream stream(option);
+  std::string token;
+  char *endptr;
+
+  if (std::getline(stream, token, ':')) {
+    filename = token;
+    while (std::getline(stream, token, '/')) {
+      /* TODO: handle errors */
+      const char *s = token.c_str();
+      unsigned int line = strtol(s, &endptr, 10);
+      if ((errno == ERANGE) || (endptr == s) || (*endptr != '\0')) {
+        return false;
+      }
+
+      lines.insert(line);
+    }
+  }
+
+  return true;
+}
+
+static void parseLocationListParameter(std::string parameter,
+                                       std::vector<LocationOption> &result) {
+  std::istringstream stream(parameter);
+  std::string token;
+  std::string filename;
+
+  while (std::getline(stream, token, ',')) {
+    std::set<unsigned int> lines;
+    if (!parseNameLineOption(token, filename, lines)) {
+      klee_error("invalid parameter: %s", token.c_str());
+    }
+
+    result.push_back(LocationOption(filename, lines));
+  }
+}
+
+static bool shouldAbortOn(KInstruction *ki,
+                          const std::vector<LocationOption> &abortLocations) {
+  for (const LocationOption &option : abortLocations) {
+    std::string fullpath = ki->info->file;
+    std::string basename = fullpath.substr(fullpath.find_last_of("/") + 1);
+    if (basename == option.filename &&
+        option.lines.find(ki->info->line) != option.lines.end()) {
+      return true;
+    }
+  }
+  return false;
 }
 
 // what a hack
@@ -345,6 +413,9 @@ void KModule::manifest(InterpreterHandler *ih, bool forceSourceOutput) {
 
   std::vector<Function *> declarations;
 
+  std::vector<LocationOption> abortLocations;
+  parseLocationListParameter(AbortLocations, abortLocations);
+
   for (auto &Function : *module) {
     if (Function.isDeclaration()) {
       declarations.push_back(&Function);
@@ -356,6 +427,7 @@ void KModule::manifest(InterpreterHandler *ih, bool forceSourceOutput) {
     for (unsigned i=0; i<kf->numInstructions; ++i) {
       KInstruction *ki = kf->instructions[i];
       ki->info = &infos->getInfo(*ki->inst);
+      ki->shouldAbort = shouldAbortOn(ki, abortLocations);
     }
 
     functionMap.insert(std::make_pair(&Function, kf.get()));
