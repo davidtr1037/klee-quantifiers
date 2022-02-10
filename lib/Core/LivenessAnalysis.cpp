@@ -40,7 +40,7 @@ bool LivenessAnalysis::runIteration(Function *f,
 
   for (BasicBlock &bb : *f) {
     for (Instruction &inst : bb) {
-      if (isa<ReturnInst>(&inst)) {
+      if (isa<ReturnInst>(&inst) || isa<UnreachableInst>(&inst)) {
         worklist.push_back(&inst);
       }
     }
