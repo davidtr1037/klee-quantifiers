@@ -502,8 +502,6 @@ bool KModule::isSupportedLoop(Loop *loop) {
   std::set<std::string> wl;
   wl.insert("strncasecmp_l");
   wl.insert("strncasecmp");
-  //wl.insert("asn1_get_length_der");
-  //wl.insert("asn1_get_tag_der");
   if (wl.find(loop->getHeader()->getParent()->getName()) != wl.end()) {
     return true;
   }
