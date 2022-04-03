@@ -169,9 +169,6 @@ public:
   /// @brief Constraints collected so far
   ConstraintSet constraints;
 
-  /* TODO: add docs */
-  ConstraintSet rewrittenConstraints;
-
   /// Statistics and information
 
   /// @brief Metadata utilized and collected by solvers for this state

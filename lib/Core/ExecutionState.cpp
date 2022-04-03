@@ -195,7 +195,6 @@ ExecutionState::ExecutionState(const ExecutionState& state, bool isSnapshot):
     depth(state.depth),
     addressSpace(state.addressSpace),
     constraints(state.constraints),
-    rewrittenConstraints(state.rewrittenConstraints),
     pathOS(state.pathOS),
     symPathOS(state.symPathOS),
     coveredLines(state.coveredLines),
@@ -434,7 +433,6 @@ bool ExecutionState::merge(const ExecutionState &b) {
   }
 
   constraints = ConstraintSet();
-  rewrittenConstraints = ConstraintSet();
   for (ref<Expr> e : b.constraints) {
     if (commonConstraints.find(e) != commonConstraints.end()) {
       addConstraint(e, true);
@@ -653,7 +651,6 @@ ExecutionState *ExecutionState::mergeStatesOptimized(std::vector<ExecutionState 
 
   /* path constraints */
   merged->constraints = ConstraintSet();
-  merged->rewrittenConstraints = ConstraintSet();
   for (ref<Expr> e : loopHandler->initialConstraints) {
     merged->addConstraint(e, true);
   }
