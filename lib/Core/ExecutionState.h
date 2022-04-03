@@ -47,7 +47,6 @@ extern llvm::cl::opt<bool> OptimizeArrayITEUsingExecTree;
 extern llvm::cl::opt<bool> OptimizeArrayValuesByTracking;
 extern llvm::cl::opt<bool> OptimizeUsingQuantifiers;
 extern llvm::cl::opt<bool> CreateSnapshots;
-extern llvm::cl::opt<bool> RewriteExpr;
 
 llvm::raw_ostream &operator<<(llvm::raw_ostream &os, const MemoryMap &mm);
 
@@ -237,9 +236,6 @@ public:
   /* TODO: add docs */
   std::uint32_t localMergeID;
 
-  /* translation map for renaming  */
-  ArrayMap renamingMap;
-
 public:
   #ifdef KLEE_UNITTEST
   // provide this function only in the context of unittests
@@ -373,12 +369,6 @@ public:
   std::uint32_t getMergeID() const;
 
   void incMergeID();
-
-  void addAuxArray();
-
-  void mapAuxArrays();
-
-  void rewriteConstraints();
 
 private:
   static std::uint32_t mergeID;

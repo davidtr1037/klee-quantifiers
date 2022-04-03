@@ -45,14 +45,7 @@ bool TimingSolver::evaluate(const ExecutionState *state,
   if (simplifyExprs)
     expr = ConstraintManager::simplifyExpr(constraints, expr);
 
-  bool success;
-  if (RewriteExpr && state) {
-    ref<Expr> renamedExpr = rename(expr, state->renamingMap);
-    Query renamed = Query(state->rewrittenConstraints, renamedExpr);
-    success = solver->evaluate(renamed, result);
-  } else {
-    success = solver->evaluate(Query(constraints, expr), result);
-  }
+  bool success = solver->evaluate(Query(constraints, expr), result);
 
   metaData.queryCost += timer.delta();
 
@@ -80,14 +73,7 @@ bool TimingSolver::mustBeTrue(const ExecutionState *state,
   if (simplifyExprs)
     expr = ConstraintManager::simplifyExpr(constraints, expr);
 
-  bool success;
-  if (RewriteExpr && state) {
-    ref<Expr> renamedExpr = rename(expr, state->renamingMap);
-    Query renamed = Query(state->rewrittenConstraints, renamedExpr);
-    success = solver->mustBeTrue(renamed, result);
-  } else {
-    success = solver->mustBeTrue(Query(constraints, expr), result);
-  }
+  bool success = solver->mustBeTrue(Query(constraints, expr), result);
 
   metaData.queryCost += timer.delta();
 
@@ -150,14 +136,7 @@ bool TimingSolver::getValue(const ExecutionState *state,
   if (simplifyExprs)
     expr = ConstraintManager::simplifyExpr(constraints, expr);
 
-  bool success;
-  if (RewriteExpr && state) {
-    ref<Expr> renamedExpr = rename(expr, state->renamingMap);
-    Query renamed = Query(state->rewrittenConstraints, renamedExpr);
-    success = solver->getValue(renamed, result);
-  } else {
-    success = solver->getValue(Query(constraints, expr), result);
-  }
+  bool success = solver->getValue(Query(constraints, expr), result);
 
   metaData.queryCost += timer.delta();
 
@@ -180,24 +159,8 @@ bool TimingSolver::getInitialValues(
     ++stats::auxilaryQueries;
   }
 
-  bool success;
-  if (RewriteExpr && state) {
-    Query renamed = Query(state->rewrittenConstraints,
-                          ConstantExpr::alloc(0, Expr::Bool));
-    std::vector<const Array *> renamedObjects;
-    for (const Array *array : objects) {
-      auto i = state->renamingMap.find(array);
-      if (i == state->renamingMap.end()) {
-        renamedObjects.push_back(array);
-      } else {
-        renamedObjects.push_back(i->second);
-      }
-    }
-    success = solver->getInitialValues(renamed, renamedObjects, result);
-  } else {
-    success = solver->getInitialValues(
+  bool success = solver->getInitialValues(
       Query(constraints, ConstantExpr::alloc(0, Expr::Bool)), objects, result);
-  }
 
   metaData.queryCost += timer.delta();
 
