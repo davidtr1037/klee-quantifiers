@@ -106,18 +106,6 @@ cl::opt<bool> SimplifyITE(
     cl::desc(""),
     cl::cat(MergeCat));
 
-cl::opt<bool> GenerateLemmasOnFork(
-    "generate-lemmas-on-fork",
-    cl::init(false),
-    cl::desc(""),
-    cl::cat(MergeCat));
-
-cl::opt<bool> GenerateLemmasOnMerge(
-    "generate-lemmas-on-merge",
-    cl::init(false),
-    cl::desc(""),
-    cl::cat(MergeCat));
-
 /***/
 
 std::uint32_t ExecutionState::nextID = 1;
@@ -484,23 +472,6 @@ void ExecutionState::addConstraint(ref<Expr> e, bool atMerge) {
   ConstraintManager c(constraints);
   bool changed = c.addConstraint(e);
 
-  std::vector<ref<Expr>> lemmas;
-  if (GenerateLemmasOnFork && !atMerge && !changed) {
-    for (ref<Expr> constraint : constraints) {
-      if (isa<ForallExpr>(constraint)) {
-        ref<ForallExpr> f = dyn_cast<ForallExpr>(constraint);
-        ConstraintSet tmp;
-        tmp.push_back(constraints.last());
-        generateLemmaFromForall(f, tmp, false, true, lemmas);
-      }
-    }
-  }
-  for (ref<Expr> lemma : lemmas) {
-    klee_message("adding lemma (addConstraint)");
-    c.addConstraint(lemma);
-    stats::mergedConstraintsSize += lemma->size;
-  }
-
   if (!atMerge) {
     if (!loopHandler.isNull()) {
       /* we don't expect forks after the state is paused */
@@ -676,23 +647,6 @@ ExecutionState *ExecutionState::mergeStatesOptimized(std::vector<ExecutionState 
         orExpr = mergeConstraintsWithExecTree(loopHandler, states);
       } else {
         orExpr = mergeConstraints(states);
-      }
-    }
-
-    if ((GenerateLemmasOnFork || GenerateLemmasOnMerge) && isEncodedWithABV) {
-      ref<ForallExpr> f = findForallExpr(orExpr);
-      assert(!f.isNull());
-
-      std::vector<ref<Expr>> lemmas;
-      generateLemmaFromForall(f,
-                              merged->constraints,
-                              true,
-                              GenerateLemmasOnMerge,
-                              lemmas);
-      for (ref<Expr> lemma : lemmas) {
-        klee_message("adding lemma (merge)");
-        merged->addConstraint(lemma, true);
-        stats::mergedConstraintsSize += lemma->size;
       }
     }
 
