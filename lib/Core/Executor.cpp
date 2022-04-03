@@ -4343,9 +4343,20 @@ bool Executor::getSymbolicSolution(const ExecutionState &state,
                              ConstantExpr::alloc(0, Expr::Bool));
     return false;
   }
-  
-  for (unsigned i = 0; i != state.symbolics.size(); ++i)
-    res.push_back(std::make_pair(state.symbolics[i].first->name, values[i]));
+
+  Assignment assignment(objects, values);
+  for (unsigned i = 0; i != state.symbolics.size(); ++i) {
+    std::vector<unsigned char> value = values[i];
+    ref<const MemoryObject> mo = state.symbolics[i].first;
+    if (!mo->hasFixedSize()) {
+      ref<ConstantExpr> size = dyn_cast<ConstantExpr>(assignment.evaluate(mo->getSizeExpr()));
+      assert(!size.isNull());
+      value.resize(size->getZExtValue());
+    }
+
+    res.push_back(std::make_pair(mo->name, value));
+  }
+
   return true;
 }
 
