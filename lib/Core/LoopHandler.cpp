@@ -245,12 +245,16 @@ static set<string> forceCFG = {
 };
 
 bool LoopHandler::shouldForceCFGBasedMerging() {
-  if (!RestrictPatternBaseMerging) {
-    return false;
+  if (!canUseExecTree) {
+    return true;
   }
 
-  Function *f = loop->getHeader()->getParent();
-  return forceCFG.find(f->getName()) != forceCFG.end();
+  if (RestrictPatternBaseMerging) {
+    Function *f = loop->getHeader()->getParent();
+    return forceCFG.find(f->getName()) != forceCFG.end();
+  }
+
+  return false;
 }
 
 bool LoopHandler::shouldUsePatternBasedMerging(vector<PatternMatch> &matches,
