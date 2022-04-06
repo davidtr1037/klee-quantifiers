@@ -470,7 +470,7 @@ void ExecutionState::dumpStack(llvm::raw_ostream &out) const {
 
 void ExecutionState::addConstraint(ref<Expr> e, bool atMerge) {
   ConstraintManager c(constraints);
-  bool changed = c.addConstraint(e);
+  c.addConstraint(e);
 
   if (!atMerge) {
     if (!loopHandler.isNull()) {
