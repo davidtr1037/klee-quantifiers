@@ -934,7 +934,9 @@ void Executor::branch(ExecutionState &state,
       if (UseLoopMerge && !es->loopHandler.isNull()) {
         if (OptimizeITEUsingExecTree || OptimizeArrayITEUsingExecTree) {
           if (es->loopHandler->canUseExecTree) {
-            klee_warning("unsupported execution tree extension");
+            klee_warning("unsupported execution tree extension: %s:%u",
+                         state.prevPC->info->file.data(),
+                         state.prevPC->info->line);
             es->loopHandler->canUseExecTree = false;
           }
         }
