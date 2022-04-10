@@ -1118,6 +1118,13 @@ Executor::fork(ExecutionState &current, ref<Expr> condition, bool isInternal) {
     }
   }
 
+  if (UseLoopMerge) {
+    if (current.stack.back().isExecutingLoop && current.isTaintedExpr(condition)) {
+      if (current.loopHandler.isNull()) {
+        setLoopHandler(current);
+      }
+    }
+  }
 
   // XXX - even if the constraint is provable one way or the other we
   // can probably benefit by adding this constraint and allowing it to
@@ -1146,14 +1153,6 @@ Executor::fork(ExecutionState &current, ref<Expr> condition, bool isInternal) {
     dumpForkStats(current, condition);
     /* TODO: add docs */
     current.hasPendingSnapshot = false;
-
-    if (UseLoopMerge) {
-      if (current.stack.back().isExecutingLoop && current.isTaintedExpr(condition)) {
-        if (current.loopHandler.isNull()) {
-          setLoopHandler(current);
-        }
-      }
-    }
 
     TimerStatIncrementer timer(stats::forkTime);
     ExecutionState *falseState, *trueState = &current;
