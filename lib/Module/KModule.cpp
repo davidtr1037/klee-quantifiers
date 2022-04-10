@@ -471,6 +471,10 @@ void KModule::collectLoopInfo() {
     loopInfos.push_back(li);
     for (Loop *loop : *li) {
       visitLoop(f, loop);
+      /* TODO: add an option for enabling/disabling sub loops */
+      for (Loop *subLoop : loop->getSubLoops()) {
+        visitLoop(f, subLoop);
+      }
     }
   }
 }
