@@ -682,6 +682,12 @@ ExecutionState *ExecutionState::mergeStatesOptimized(std::vector<ExecutionState 
     merged->optimizeArrayValues(mutated, loopHandler->solver);
   }
 
+  if (isEncodedWithABV) {
+    ++stats::encodedWithABV;
+  } else {
+    ++stats::encodedWithQFABV;
+  }
+
   return merged;
 }
 

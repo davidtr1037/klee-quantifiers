@@ -934,7 +934,9 @@ void Executor::branch(ExecutionState &state,
       if (UseLoopMerge && !es->loopHandler.isNull()) {
         if (OptimizeITEUsingExecTree || OptimizeArrayITEUsingExecTree) {
           if (es->loopHandler->canUseExecTree) {
-            klee_warning("unsupported execution tree extension");
+            klee_warning("unsupported execution tree extension: %s:%u",
+                         state.prevPC->info->file.data(),
+                         state.prevPC->info->line);
             es->loopHandler->canUseExecTree = false;
           }
         }
@@ -4744,6 +4746,8 @@ void Executor::dumpMergeStats() {
   klee_message("Merge Statistics");
   klee_message("Merged values size: %lu", (uint64_t)(stats::mergedValuesSize));
   klee_message("Merged constraints size: %lu", (uint64_t)(stats::mergedConstraintsSize));
+  klee_message("Encoded with QFABV: %lu", (uint64_t)(stats::encodedWithQFABV));
+  klee_message("Encoded with ABV: %lu", (uint64_t)(stats::encodedWithABV));
   uint64_t total = 0;
   for (auto i : mergeStats) {
     total += i.second;
