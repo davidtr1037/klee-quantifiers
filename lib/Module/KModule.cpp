@@ -133,6 +133,9 @@ namespace {
 
   cl::opt<std::string> AbortLocations("abort-locations",
                                       cl::desc("..."));
+
+  cl::opt<std::string> AllowedFunctionsInLoops("allowed-functions-in-loops",
+                                               cl::desc("..."));
 }
 
 /***/
@@ -204,6 +207,18 @@ static bool shouldAbortOn(KInstruction *ki,
     }
   }
   return false;
+}
+
+static std::set<std::string> allowedFunctions;
+
+static void parseAllowedFunctionsInLoops(std::string parameter,
+                                         std::set<std::string> &result) {
+  std::istringstream stream(parameter);
+  std::string token;
+
+  while (std::getline(stream, token, ',')) {
+    result.insert(token);
+  }
 }
 
 // what a hack
@@ -416,6 +431,8 @@ void KModule::manifest(InterpreterHandler *ih, bool forceSourceOutput) {
   std::vector<LocationOption> abortLocations;
   parseLocationListParameter(AbortLocations, abortLocations);
 
+  parseAllowedFunctionsInLoops(AllowedFunctionsInLoops, allowedFunctions);
+
   for (auto &Function : *module) {
     if (Function.isDeclaration()) {
       declarations.push_back(&Function);
@@ -542,7 +559,9 @@ bool KModule::hasFunctionCalls(Loop *loop) {
         Function *f = call->getCalledFunction();
         if (f) {
           if (!f->isDeclaration() || !f->isIntrinsic()) {
-            return true;
+            if (allowedFunctions.find(f->getName()) == allowedFunctions.end()) {
+              return true;
+            }
           }
         } else {
           /* virtual call */
