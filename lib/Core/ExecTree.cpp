@@ -40,6 +40,43 @@ ExecTreeNode::~ExecTreeNode() {
   }
 }
 
+uint32_t shapeHashCallback(ExecTreeNode *node) {
+  return node->getHash();
+}
+
+static uint32_t customHash(ref<Expr> e) {
+  ref<EqExpr> eqExpr = dyn_cast<EqExpr>(e);
+  if (!eqExpr.isNull()) {
+    if (eqExpr->left->getWidth() == Expr::Bool && eqExpr->left->isFalse()) {
+      /* (eq false e) */
+      unsigned r = eqExpr->getKind() * Expr::MAGIC_HASH_CONSTANT;
+      r <<= 1;
+      r ^= eqExpr->left->shapeHash() * Expr::MAGIC_HASH_CONSTANT;
+      r <<= 1;
+      r ^= customHash(eqExpr->right) * Expr::MAGIC_HASH_CONSTANT;
+      return r;
+    } else {
+      if (isa<ConstantExpr>(eqExpr->left) && isa<ReadExpr>(eqExpr->right)) {
+        /* (eq c read(...)) */
+        unsigned r = eqExpr->getKind() * Expr::MAGIC_HASH_CONSTANT;
+        r <<= 1;
+        /* don't ignore the hash of this constant,
+         * i.e., use hash instead of shapeHash */
+        r ^= eqExpr->left->hash() * Expr::MAGIC_HASH_CONSTANT;
+        r <<= 1;
+        r ^= eqExpr->right->shapeHash() * Expr::MAGIC_HASH_CONSTANT;
+        return r;
+      }
+    }
+  }
+
+  return e->shapeHash();
+}
+
+uint32_t customHashCallback(ExecTreeNode *node) {
+  return customHash(node->e);
+}
+
 /* TODO: pass a reference to ExecutionState? */
 ExecTree::ExecTree(uint32_t stateID) {
   /* TODO: add snapshot/ptreeNode? */
@@ -48,41 +85,20 @@ ExecTree::ExecTree(uint32_t stateID) {
                           nullptr,
                           nullptr);
   addNode(root);
+  setHashCallback(&shapeHashCallback);
 }
 
 ExecTree::~ExecTree() {
   clear();
 }
 
-ExecTree::ExecTree(const ExecTree &other) {
-  root = new ExecTreeNode(*other.root);
-  addNode(root);
+void ExecTree::setHashCallback(HashCallback callback) {
+  hashCallback = callback;
+}
 
-  std::list<std::pair<ExecTreeNode *, ExecTreeNode *>> worklist;
-  worklist.push_back(std::make_pair(other.root, root));
-  while (!worklist.empty()) {
-    auto p = worklist.front();
-    worklist.pop_front();
-
-    ExecTreeNode *other_n = p.first;
-    ExecTreeNode *n = p.second;
-    if (other_n->left) {
-      ExecTreeNode *left = new ExecTreeNode(*other_n->left);
-      addNode(left);
-      n->left = left;
-      left->parent = n;
-    } else {
-      n->left = nullptr;
-    }
-    if (other_n->right) {
-      ExecTreeNode *right = new ExecTreeNode(*other_n->right);
-      addNode(right);
-      n->right = right;
-      right->parent = n;
-    } else {
-      n->right = nullptr;
-    }
-  }
+std::uint32_t ExecTree::getNodeHash(ExecTreeNode *node) const {
+  assert(hashCallback != nullptr);
+  return hashCallback(node);
 }
 
 void ExecTree::setLeft(ExecTreeNode *parent,
@@ -362,7 +378,7 @@ void ExecTree::dumpGML(llvm::raw_ostream &os, std::set<uint32_t> &ids) {
             if (DumpNodeCondition) {
               os << "label=\"" << *n->e;
             } else {
-              os << "label=\"" << n->getHash();
+              os << "label=\"" << getNodeHash(n);
             }
             os << "\",shape=square";
         }

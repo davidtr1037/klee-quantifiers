@@ -106,6 +106,11 @@ cl::opt<unsigned> MaxPatterns(
     cl::desc(""),
     cl::cat(klee::LoopCat));
 
+static vector<HashCallback> hashCallbacks = {
+    shapeHashCallback,
+    customHashCallback,
+};
+
 LoopHandler::LoopHandler(Executor *executor,
                          ExecutionState *es,
                          Loop *loop,
@@ -263,6 +268,15 @@ bool LoopHandler::shouldForceCFGBasedMerging() {
   return false;
 }
 
+void LoopHandler::extractPatterns(const set<uint32_t> &ids,
+                                  vector<PatternMatch> &matches) {
+  if (UseForwardExtract) {
+    extractPatternsForward(tree, ids, matches);
+  } else {
+    extractPatternsBackward(tree, ids, matches);
+  }
+}
+
 bool LoopHandler::shouldUsePatternBasedMerging(vector<PatternMatch> &matches,
                                                vector<StateSet> &matchedStates) {
   if (ForcePatternBasedMerging) {
@@ -280,29 +294,67 @@ bool LoopHandler::shouldUsePatternBasedMerging(vector<PatternMatch> &matches,
   return false;
 }
 
+void LoopHandler::splitStatesByCFG(vector<MergeGroupInfo> &result) {
+  for (const auto &i: mergeGroupsByExit) {
+    const StateSet &states = i.second;
+    MergeGroupInfo groupInfo({MergeSubGroupInfo(states)});
+    result.push_back(groupInfo);
+  }
+}
+
 void LoopHandler::splitStates(vector<MergeGroupInfo> &result) {
   if (SplitByPattern && !shouldForceCFGBasedMerging()) {
+    map<uint32_t, ExecutionState *> m;
     for (const auto &i: mergeGroupsByExit) {
       const StateSet &states = i.second;
-
-      set<uint32_t> ids;
-      /* TODO: add this mapping to LoopHandler */
-      map<uint32_t, ExecutionState *> m;
       for (ExecutionState *es : states) {
-          ids.insert(es->getID());
           m[es->getID()] = es;
       }
+    }
 
-      /* TODO: check forward as well */
-      vector<PatternMatch> matches;
-      if (UseForwardExtract) {
-        extractPatterns(tree, ids, matches);
-      } else {
-        extractPatternsBackward(tree, ids, matches);
+    std::map<Instruction *, vector<PatternMatch>> matchesByExit;
+    unsigned totalMatches;
+
+    assert(!hashCallbacks.empty());
+    for (HashCallback hashCallback : hashCallbacks) {
+      /* set node hashing function */
+      tree.setHashCallback(hashCallback);
+
+      totalMatches = 0;
+      for (const auto &i: mergeGroupsByExit) {
+        const StateSet &states = i.second;
+
+        set<uint32_t> ids;
+        for (ExecutionState *es : states) {
+          ids.insert(es->getID());
+        }
+
+        vector<PatternMatch> matches;
+        extractPatterns(ids, matches);
+
+        /* must be non-empty */
+        assert(!matches.empty());
+        matchesByExit[i.first] = matches;
+        totalMatches += matches.size();
       }
 
-      /* must be non-empty */
-      assert(!matches.empty());
+      if (totalMatches <= MaxPatterns) {
+        break;
+      }
+    }
+
+    if (totalMatches > MaxPatterns) {
+      klee_message("max patterns exceeded: %u", totalMatches);
+      splitStatesByCFG(result);
+      return;
+    }
+
+    for (const auto &i: mergeGroupsByExit) {
+      Instruction *loopExit = i.first;
+      const StateSet &states = i.second;
+
+      assert(matchesByExit.find(loopExit) != matchesByExit.end());
+      vector<PatternMatch> &matches = matchesByExit[loopExit];
 
       vector<StateSet> matchedStates(matches.size());
       for (unsigned i = 0; i < matches.size(); i++) {
@@ -322,36 +374,26 @@ void LoopHandler::splitStates(vector<MergeGroupInfo> &result) {
         return;
       }
 
-      if (matches.size() > MaxPatterns) {
-        klee_message("max patterns exceeded: %lu", matches.size());
-        MergeGroupInfo groupInfo({MergeSubGroupInfo(states)});
+      if (SplitByCFG) {
+        std::vector<MergeSubGroupInfo> subGroups;
+        for (unsigned i = 0; i < matches.size(); i++) {
+          PatternMatch &pm = matches[i];
+          StateSet &states = matchedStates[i];
+          subGroups.push_back(MergeSubGroupInfo(states, {pm}));
+        }
+        MergeGroupInfo groupInfo(subGroups);
         result.push_back(groupInfo);
       } else {
-        if (SplitByCFG) {
-          std::vector<MergeSubGroupInfo> subGroups;
-          for (unsigned i = 0; i < matches.size(); i++) {
-            PatternMatch &pm = matches[i];
-            StateSet &states = matchedStates[i];
-            subGroups.push_back(MergeSubGroupInfo(states, {pm}));
-          }
-          MergeGroupInfo groupInfo(subGroups);
+        for (unsigned i = 0; i < matches.size(); i++) {
+          PatternMatch &pm = matches[i];
+          StateSet &states = matchedStates[i];
+          MergeGroupInfo groupInfo({MergeSubGroupInfo(states, {pm})});
           result.push_back(groupInfo);
-        } else {
-          for (unsigned i = 0; i < matches.size(); i++) {
-            PatternMatch &pm = matches[i];
-            StateSet &states = matchedStates[i];
-            MergeGroupInfo groupInfo({MergeSubGroupInfo(states, {pm})});
-            result.push_back(groupInfo);
-          }
         }
       }
     }
   } else {
-    for (const auto &i: mergeGroupsByExit) {
-      const StateSet &states = i.second;
-      MergeGroupInfo groupInfo({MergeSubGroupInfo(states)});
-      result.push_back(groupInfo);
-    }
+    splitStatesByCFG(result);
   }
 }
 

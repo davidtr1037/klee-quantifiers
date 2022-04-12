@@ -229,9 +229,9 @@ static void unifyMatches(std::vector<PatternMatch> &matches,
   }
 }
 
-void klee::extractPatterns(ExecTree &t,
-                           std::set<uint32_t> &ids,
-                           std::vector<PatternMatch> &result) {
+void klee::extractPatternsForward(const ExecTree &t,
+                                  const std::set<uint32_t> &ids,
+                                  std::vector<PatternMatch> &result) {
   std::vector<PatternMatch> matches;
   std::vector<std::pair<ExecTreeNode *, PatternInstance>> worklist;
 
@@ -244,7 +244,7 @@ void klee::extractPatterns(ExecTree &t,
 
     ExecTreeNode *n = p.first;
     PatternInstance pi = p.second;
-    Symbol s(n->getHash());
+    Symbol s(t.getNodeHash(n));
     pi.addSymbol(s);
 
     if (!n->isLeaf()) {
@@ -266,8 +266,8 @@ void klee::extractPatterns(ExecTree &t,
   }
 }
 
-void klee::traverse(ExecTree &t,
-                    std::set<uint32_t> &ids,
+void klee::traverse(const ExecTree &t,
+                    const std::set<uint32_t> &ids,
                     std::vector<TreePath> &result) {
   std::vector<std::pair<ExecTreeNode *, Word>> worklist;
   worklist.push_back(std::make_pair(t.root, Word()));
@@ -278,7 +278,7 @@ void klee::traverse(ExecTree &t,
 
     ExecTreeNode *n = p.first;
     Word w = p.second;
-    Symbol s(n->getHash());
+    Symbol s(t.getNodeHash(n));
     w.append(s);
 
     if (n->isLeaf()) {
@@ -296,8 +296,8 @@ void klee::traverse(ExecTree &t,
   }
 }
 
-void klee::extractPatternsBackward(ExecTree &t,
-                                   std::set<uint32_t> &ids,
+void klee::extractPatternsBackward(const ExecTree &t,
+                                   const std::set<uint32_t> &ids,
                                    std::vector<PatternMatch> &result) {
   std::vector<TreePath> paths;
   traverse(t, ids, paths);

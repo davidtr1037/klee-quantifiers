@@ -115,8 +115,13 @@ public:
 
   bool shouldForceCFGBasedMerging();
 
+  void extractPatterns(const std::set<uint32_t> &ids,
+                       std::vector<PatternMatch> &matches);
+
   bool shouldUsePatternBasedMerging(std::vector<PatternMatch> &matches,
                                     std::vector<StateSet> &matchedStates);
+
+  void splitStatesByCFG(std::vector<MergeGroupInfo> &result);
 
   void splitStates(std::vector<MergeGroupInfo> &result);
 

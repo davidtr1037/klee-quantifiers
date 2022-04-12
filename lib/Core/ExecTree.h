@@ -83,6 +83,14 @@ public:
   std::uint32_t salt;
 };
 
+/* TODO: move callbacks to another place? */
+
+typedef uint32_t (*HashCallback)(ExecTreeNode *node);
+
+uint32_t shapeHashCallback(ExecTreeNode *node);
+
+uint32_t customHashCallback(ExecTreeNode *node);
+
 class ExecTree {
 public:
 
@@ -90,7 +98,9 @@ public:
 
   ~ExecTree();
 
-  ExecTree(const ExecTree &other);
+  void setHashCallback(HashCallback callback);
+
+  std::uint32_t getNodeHash(ExecTreeNode *node) const;
 
   void extend(ExecutionState &current,
               ExecutionState &trueState,
@@ -153,6 +163,8 @@ private:
   void setLeft(ExecTreeNode *parent, ExecTreeNode *node);
 
   void setRight(ExecTreeNode *parent, ExecTreeNode *node);
+
+  HashCallback hashCallback;
 
 public:
 
