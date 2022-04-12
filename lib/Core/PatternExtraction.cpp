@@ -264,10 +264,6 @@ void klee::extractPatterns(ExecTree &t,
     /* TODO: something more efficient? */
     std::sort(pm.matches.begin(), pm.matches.end(), compare);
   }
-
-  //for (PatternMatch &pm : result) {
-  //  pm.dump();
-  //}
 }
 
 void klee::traverse(ExecTree &t,
@@ -324,8 +320,4 @@ void klee::extractPatternsBackward(ExecTree &t,
     /* TODO: something more efficient? */
     std::sort(pm.matches.begin(), pm.matches.end(), compare);
   }
-
-  //for (PatternMatch &pm : result) {
-  //  pm.dump();
-  //}
 }
