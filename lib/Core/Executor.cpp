@@ -1123,7 +1123,9 @@ Executor::fork(ExecutionState &current, ref<Expr> condition, bool isInternal) {
   if (UseLoopMerge) {
     if (current.stack.back().isExecutingLoop && current.isTaintedExpr(condition)) {
       if (current.loopHandler.isNull()) {
-        setLoopHandler(current);
+        if (res == Solver::Unknown || StartLoopMergeOnBranch) {
+          setLoopHandler(current);
+        }
       }
     }
   }

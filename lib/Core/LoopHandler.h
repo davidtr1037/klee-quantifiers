@@ -25,6 +25,7 @@ class Instruction;
 namespace klee {
 
 extern llvm::cl::opt<bool> UseLoopMerge;
+extern llvm::cl::opt<bool> StartLoopMergeOnBranch;
 extern llvm::cl::opt<bool> UseOptimizedMerge;
 
 class Executor;

@@ -27,6 +27,12 @@ cl::opt<bool> UseLoopMerge(
     cl::desc(""),
     cl::cat(klee::LoopCat));
 
+cl::opt<bool> StartLoopMergeOnBranch(
+    "start-loop-merge-on-branch",
+    cl::init(false),
+    cl::desc(""),
+    cl::cat(klee::LoopCat));
+
 cl::opt<bool> UseOptimizedMerge(
     "use-optimized-merge",
     cl::init(true),
