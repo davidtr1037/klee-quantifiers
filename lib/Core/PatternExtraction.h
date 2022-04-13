@@ -67,7 +67,7 @@ struct TreePath {
   }
 };
 
-void extractPatternsForward(const ExecTree &t,
+bool extractPatternsForward(const ExecTree &t,
                             const std::set<uint32_t> &ids,
                             std::vector<PatternMatch> &matches);
 
@@ -75,7 +75,7 @@ void traverse(const ExecTree &t,
               const std::set<uint32_t> &ids,
               std::vector<TreePath> &result);
 
-void extractPatternsBackward(const ExecTree &t,
+bool extractPatternsBackward(const ExecTree &t,
                              const std::set<uint32_t> &ids,
                              std::vector<PatternMatch> &matches);
 

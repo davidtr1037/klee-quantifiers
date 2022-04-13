@@ -268,12 +268,12 @@ bool LoopHandler::shouldForceCFGBasedMerging() {
   return false;
 }
 
-void LoopHandler::extractPatterns(const set<uint32_t> &ids,
+bool LoopHandler::extractPatterns(const set<uint32_t> &ids,
                                   vector<PatternMatch> &matches) {
   if (UseForwardExtract) {
-    extractPatternsForward(tree, ids, matches);
+    return extractPatternsForward(tree, ids, matches);
   } else {
-    extractPatternsBackward(tree, ids, matches);
+    return extractPatternsBackward(tree, ids, matches);
   }
 }
 
@@ -313,14 +313,16 @@ void LoopHandler::splitStates(vector<MergeGroupInfo> &result) {
     }
 
     std::map<Instruction *, vector<PatternMatch>> matchesByExit;
-    unsigned totalMatches;
 
+    bool shouldFallback = true;
     assert(!hashCallbacks.empty());
     for (HashCallback hashCallback : hashCallbacks) {
       /* set node hashing function */
       tree.setHashCallback(hashCallback);
 
-      totalMatches = 0;
+      bool extractSucceeded = false;
+      unsigned totalMatches = 0;
+
       for (const auto &i: mergeGroupsByExit) {
         const StateSet &states = i.second;
 
@@ -330,7 +332,10 @@ void LoopHandler::splitStates(vector<MergeGroupInfo> &result) {
         }
 
         vector<PatternMatch> matches;
-        extractPatterns(ids, matches);
+        extractSucceeded = extractPatterns(ids, matches);
+        if (!extractSucceeded) {
+          break;
+        }
 
         /* must be non-empty */
         assert(!matches.empty());
@@ -338,13 +343,18 @@ void LoopHandler::splitStates(vector<MergeGroupInfo> &result) {
         totalMatches += matches.size();
       }
 
-      if (totalMatches <= MaxPatterns) {
-        break;
+      if (extractSucceeded) {
+         if (totalMatches <= MaxPatterns) {
+           shouldFallback = false;
+           break;
+         }
+      } else {
+        klee_message("pattern extraction failed");
       }
     }
 
-    if (totalMatches > MaxPatterns) {
-      klee_message("max patterns exceeded: %u", totalMatches);
+    if (shouldFallback) {
+      klee_message("fallback to CFG-based state merging");
       splitStatesByCFG(result);
       return;
     }

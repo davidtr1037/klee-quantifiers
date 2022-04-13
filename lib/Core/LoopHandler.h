@@ -115,7 +115,7 @@ public:
 
   bool shouldForceCFGBasedMerging();
 
-  void extractPatterns(const std::set<uint32_t> &ids,
+  bool extractPatterns(const std::set<uint32_t> &ids,
                        std::vector<PatternMatch> &matches);
 
   bool shouldUsePatternBasedMerging(std::vector<PatternMatch> &matches,

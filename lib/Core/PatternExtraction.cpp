@@ -5,6 +5,8 @@
 using namespace llvm;
 using namespace klee;
 
+#define MAX_INITIAL_MATCHES (20)
+
 static bool compare(StateMatch &sm1, StateMatch &sm2) {
   return sm1.count < sm2.count;
 }
@@ -229,7 +231,8 @@ static void unifyMatches(std::vector<PatternMatch> &matches,
   }
 }
 
-void klee::extractPatternsForward(const ExecTree &t,
+/* TODO: use MAX_INITIAL_MATCHES */
+bool klee::extractPatternsForward(const ExecTree &t,
                                   const std::set<uint32_t> &ids,
                                   std::vector<PatternMatch> &result) {
   std::vector<PatternMatch> matches;
@@ -253,6 +256,9 @@ void klee::extractPatternsForward(const ExecTree &t,
     } else {
       if (ids.find(n->stateID) != ids.end()) {
         handleLeaf(n, pi, matches);
+        if (matches.size() > MAX_INITIAL_MATCHES) {
+          return false;
+        }
       }
     }
   }
@@ -264,6 +270,8 @@ void klee::extractPatternsForward(const ExecTree &t,
     /* TODO: something more efficient? */
     std::sort(pm.matches.begin(), pm.matches.end(), compare);
   }
+
+  return true;
 }
 
 void klee::traverse(const ExecTree &t,
@@ -296,7 +304,7 @@ void klee::traverse(const ExecTree &t,
   }
 }
 
-void klee::extractPatternsBackward(const ExecTree &t,
+bool klee::extractPatternsBackward(const ExecTree &t,
                                    const std::set<uint32_t> &ids,
                                    std::vector<PatternMatch> &result) {
   std::vector<TreePath> paths;
@@ -313,6 +321,10 @@ void klee::extractPatternsBackward(const ExecTree &t,
     }
     PatternInstance rpi = pi.reversed();
     addPattern(matches, rpi, path.stateID);
+    if (matches.size() > MAX_INITIAL_MATCHES) {
+      /* the complexity is quadratic, so... */
+      return false;
+    }
   }
 
   unifyMatches(matches, result);
@@ -320,4 +332,6 @@ void klee::extractPatternsBackward(const ExecTree &t,
     /* TODO: something more efficient? */
     std::sort(pm.matches.begin(), pm.matches.end(), compare);
   }
+
+  return true;
 }
