@@ -234,7 +234,9 @@ void OrAssertion::findImpliedNegatingTerms(std::vector<ref<Expr>> &terms) {
     groups.push_back(terms);
   }
 
-  intersect(groups, terms);
+  if (!groups.empty()) {
+    intersect(groups, terms);
+  }
 }
 
 /* TODO: check thah e has a non-negated form: (EqExpr ... ...) */
@@ -256,7 +258,9 @@ void OrAssertion::findNegatingTerms(ref<Expr> e,
     groups.push_back(terms);
   }
 
-  intersect(groups, terms);
+  if (!groups.empty()) {
+    intersect(groups, terms);
+  }
 }
 
 static void findAssertionsForExpr(ref<Expr> e,
