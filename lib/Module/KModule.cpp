@@ -36,6 +36,7 @@
 #include "llvm/IR/Module.h"
 #include "llvm/IR/ValueSymbolTable.h"
 #include "llvm/IR/Verifier.h"
+#include "llvm/IR/DebugInfoMetadata.h"
 #include "llvm/Linker/Linker.h"
 #include "llvm/Support/CommandLine.h"
 #include "llvm/Support/Path.h"
@@ -551,6 +552,15 @@ bool KModule::isSupportedLoop(Loop *loop) {
   assert(0);
 }
 
+static std::string getOriginalFunctionName(Function *f) {
+  DISubprogram *di = f->getSubprogram();
+  if (di) {
+    return di->getName();
+  } else {
+    return f->getName();
+  }
+}
+
 bool KModule::hasFunctionCalls(Loop *loop) {
   for (BasicBlock *bb : loop->getBlocks()) {
     for (Instruction &inst : *bb) {
@@ -559,7 +569,8 @@ bool KModule::hasFunctionCalls(Loop *loop) {
         Function *f = call->getCalledFunction();
         if (f) {
           if (!f->isDeclaration() || !f->isIntrinsic()) {
-            if (allowedFunctions.find(f->getName()) == allowedFunctions.end()) {
+            std::string name = getOriginalFunctionName(f);
+            if (allowedFunctions.find(name) == allowedFunctions.end()) {
               return true;
             }
           }
