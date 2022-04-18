@@ -231,7 +231,6 @@ static void unifyMatches(std::vector<PatternMatch> &matches,
   }
 }
 
-/* TODO: use MAX_INITIAL_MATCHES */
 bool klee::extractPatternsForward(const ExecTree &t,
                                   const std::set<uint32_t> &ids,
                                   std::vector<PatternMatch> &result) {
