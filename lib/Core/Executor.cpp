@@ -427,6 +427,7 @@ cl::opt<bool> PartitionLargeObjects("partition-large-objects", cl::init(false), 
 /* TODO: remove */
 cl::opt<unsigned> MaxPartitionSize("max-partition-size", cl::init(100), cl::desc(""));
 cl::opt<unsigned> TerminateStatesOnMemoryLimit("terminate-states-on-memory-limit", cl::init(true), cl::desc(""));
+cl::opt<bool> ExtendExecTreeOnSwitch("extend-exec-tree-on-switch", cl::init(false), cl::desc(""));
 
 enum SymSizeModes {
   Max,
@@ -903,6 +904,9 @@ void Executor::branch(ExecutionState &state,
   unsigned N = conditions.size();
   assert(N);
 
+  /* TODO: add docs */
+  state.hasPendingSnapshot = false;
+
   for (ref<Expr> c : conditions) {
     dumpForkStats(state, c);
     if (UseLoopMerge) {
@@ -931,17 +935,6 @@ void Executor::branch(ExecutionState &state,
     result.push_back(&state);
     for (unsigned i=1; i<N; ++i) {
       ExecutionState *es = result[theRNG.getInt32() % i];
-      if (UseLoopMerge && !es->loopHandler.isNull()) {
-        if (OptimizeITEUsingExecTree) {
-          if (es->loopHandler->canUseExecTree) {
-            klee_warning("unsupported execution tree extension: %s:%u",
-                         state.prevPC->info->file.data(),
-                         state.prevPC->info->line);
-            es->loopHandler->canUseExecTree = false;
-          }
-        }
-      }
-
       ExecutionState *ns = es->branch();
       addedStates.push_back(ns);
       result.push_back(ns);
@@ -1000,6 +993,24 @@ void Executor::branch(ExecutionState &state,
   for (unsigned i=0; i<N; ++i)
     if (result[i])
       addConstraint(*result[i], conditions[i]);
+
+  if (UseLoopMerge && !state.loopHandler.isNull()) {
+    if (OptimizeITEUsingExecTree) {
+      if (ExtendExecTreeOnSwitch && N == 2 && state.loopHandler->canUseExecTree) {
+        extendExecTree(state, conditions[0], result[0], result[1]);
+      } else {
+        if (state.loopHandler->canUseExecTree) {
+          klee_warning("unsupported execution tree extension: %s:%u",
+                       state.prevPC->info->file.data(),
+                       state.prevPC->info->line);
+          for (unsigned i = 0; i < N; ++i) {
+            ExecutionState *es = result[i];
+            es->loopHandler->canUseExecTree = false;
+          }
+        }
+      }
+    }
+  }
 }
 
 Executor::StatePair 
@@ -1228,17 +1239,7 @@ Executor::fork(ExecutionState &current, ref<Expr> condition, bool isInternal) {
     if (UseLoopMerge && !current.loopHandler.isNull()) {
       if (OptimizeITEUsingExecTree) {
         if (current.loopHandler->canUseExecTree) {
-          /* TODO: add option for adding in-place snapshot? */
-          ExecTree &tree = current.loopHandler->tree;
-          tree.extend(current,
-                      *trueState,
-                      nullptr,
-                      *falseState,
-                      nullptr,
-                      condition,
-                      current.prevPC->info->id);
-          trueState->hasPendingSnapshot = true;
-          falseState->hasPendingSnapshot = true;
+          extendExecTree(current, condition, trueState, falseState);
         }
       }
     }
@@ -4731,6 +4732,25 @@ void Executor::setLoopHandler(ExecutionState &state) {
                  ki->info->file.data(),
                  ki->info->line);
   }
+}
+
+void Executor::extendExecTree(ExecutionState &state,
+                              ref<Expr> condition,
+                              ExecutionState *trueState,
+                              ExecutionState *falseState) {
+  assert(trueState && falseState);
+
+  state.loopHandler->tree.extend(state,
+                                 *trueState,
+                                 nullptr,
+                                 *falseState,
+                                 nullptr,
+                                 condition,
+                                 state.prevPC->info->id);
+
+  /* TODO: add docs */
+  trueState->hasPendingSnapshot = true;
+  falseState->hasPendingSnapshot = true;
 }
 
 void Executor::collectMergeStats(ExecutionState &state) {

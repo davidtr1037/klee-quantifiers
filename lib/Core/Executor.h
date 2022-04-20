@@ -492,6 +492,11 @@ private:
 
   void setLoopHandler(ExecutionState &state);
 
+  void extendExecTree(ExecutionState &state,
+                      ref<Expr> condition,
+                      ExecutionState *trueState,
+                      ExecutionState *falseState);
+
   void collectMergeStats(ExecutionState &state);
 
   void dumpMergeStats();
