@@ -932,7 +932,7 @@ void Executor::branch(ExecutionState &state,
     for (unsigned i=1; i<N; ++i) {
       ExecutionState *es = result[theRNG.getInt32() % i];
       if (UseLoopMerge && !es->loopHandler.isNull()) {
-        if (OptimizeITEUsingExecTree || OptimizeArrayITEUsingExecTree) {
+        if (OptimizeITEUsingExecTree) {
           if (es->loopHandler->canUseExecTree) {
             klee_warning("unsupported execution tree extension: %s:%u",
                          state.prevPC->info->file.data(),
@@ -1226,7 +1226,7 @@ Executor::fork(ExecutionState &current, ref<Expr> condition, bool isInternal) {
 
     /* TODO: add a function for this check */
     if (UseLoopMerge && !current.loopHandler.isNull()) {
-      if (OptimizeITEUsingExecTree || OptimizeArrayITEUsingExecTree) {
+      if (OptimizeITEUsingExecTree) {
         if (current.loopHandler->canUseExecTree) {
           /* TODO: add option for adding in-place snapshot? */
           ExecTree &tree = current.loopHandler->tree;

@@ -43,7 +43,6 @@ class PTreeNode;
 struct InstructionInfo;
 
 extern llvm::cl::opt<bool> OptimizeITEUsingExecTree;
-extern llvm::cl::opt<bool> OptimizeArrayITEUsingExecTree;
 extern llvm::cl::opt<bool> OptimizeArrayValuesByTracking;
 extern llvm::cl::opt<bool> OptimizeUsingQuantifiers;
 extern llvm::cl::opt<bool> CreateSnapshots;

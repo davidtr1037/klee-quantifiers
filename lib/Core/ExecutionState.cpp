@@ -67,11 +67,6 @@ cl::opt<bool> klee::OptimizeITEUsingExecTree(
     cl::desc(""),
     cl::cat(MergeCat));
 
-cl::opt<bool> klee::OptimizeArrayITEUsingExecTree(
-    "optimize-array-ite-using-exec-tree", cl::init(false),
-    cl::desc(""),
-    cl::cat(MergeCat));
-
 /* TODO: can't be used with -validate-merge */
 cl::opt<bool> klee::OptimizeArrayValuesByTracking(
     "optimize-array-values-by-tracking", cl::init(false),
@@ -890,7 +885,7 @@ void ExecutionState::mergeHeap(ExecutionState *merged,
 
       if (!values.empty()) {
         ref<Expr> v;
-        if (OptimizeArrayITEUsingExecTree && loopHandler->canUseExecTree) {
+        if (OptimizeITEUsingExecTree && loopHandler->canUseExecTree) {
           v = mergeValuesUsingExecTree(valuesMap, loopHandler);
         } else {
           v = mergeValues(neededSuffixes, values);
