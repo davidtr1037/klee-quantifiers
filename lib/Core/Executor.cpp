@@ -992,7 +992,7 @@ void Executor::getSwitchForks(ExecutionState &state,
 
   ref<Expr> defaultCondition = ConstantExpr::alloc(1, Expr::Bool);
 
-  /* preserve the original order (before the patch) */
+  /* preserve the exploration original order (as before the patch) */
   for (auto &i : expr2bb) {
     BasicBlock *caseSuccessor = i.second;
     if (caseSuccessor == si->getDefaultDest()) {
