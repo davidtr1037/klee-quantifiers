@@ -333,13 +333,13 @@ private:
   void executeMakeSymbolic(ExecutionState &state, const MemoryObject *mo,
                            const std::string &name);
 
-  ref<Expr> rewriteSwitchCaseCondition(ref<Expr> value,
+  ref<Expr> rewriteSwitchCaseCondition(ExecutionState &state,
+                                       ref<Expr> value,
                                        const std::vector<ref<ConstantExpr>> &constants);
 
   ref<Expr> getSwitchCaseCondition(ExecutionState &state,
                                    ref<Expr> value,
-                                   const std::vector<ref<ConstantExpr>> &constants,
-                                   bool rewrite);
+                                   const std::vector<ref<ConstantExpr>> &constants);
 
   void getSwitchForks(ExecutionState &state,
                       KInstruction *ki,

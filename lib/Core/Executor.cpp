@@ -428,6 +428,7 @@ cl::opt<bool> PartitionLargeObjects("partition-large-objects", cl::init(false), 
 cl::opt<unsigned> MaxPartitionSize("max-partition-size", cl::init(100), cl::desc(""));
 cl::opt<unsigned> TerminateStatesOnMemoryLimit("terminate-states-on-memory-limit", cl::init(true), cl::desc(""));
 cl::opt<bool> ExtendExecTreeOnSwitch("extend-exec-tree-on-switch", cl::init(false), cl::desc(""));
+cl::opt<bool> RewriteSwitchConditions("rewrite-switch-conditions", cl::init(true), cl::desc(""));
 
 enum SymSizeModes {
   Max,
@@ -897,8 +898,8 @@ bool Executor::branchingPermitted(const ExecutionState &state) const {
   return true;
 }
 
-/* TODO: move to lib/Expr */
-ref<Expr> Executor::rewriteSwitchCaseCondition(ref<Expr> value,
+ref<Expr> Executor::rewriteSwitchCaseCondition(ExecutionState &state,
+                                               ref<Expr> value,
                                                const std::vector<ref<ConstantExpr>> &constants) {
   std::vector<std::vector<ref<ConstantExpr>>> intervals;
   for (ref<ConstantExpr> c : constants) {
@@ -932,29 +933,23 @@ ref<Expr> Executor::rewriteSwitchCaseCondition(ref<Expr> value,
     condition = OrExpr::create(intervalCondition, condition);
   }
 
-  return condition;
+  bool mayBeTrue;
+  bool success = solver->mayBeTrue(&state,
+                                   state.constraints,
+                                   condition,
+                                   mayBeTrue,
+                                   state.queryMetaData);
+  assert(success);
+  if (mayBeTrue) {
+    return condition;
+  } else {
+    return ConstantExpr::create(0, Expr::Bool);
+  }
 }
 
 ref<Expr> Executor::getSwitchCaseCondition(ExecutionState &state,
                                            ref<Expr> value,
-                                           const std::vector<ref<ConstantExpr>> &constants,
-                                           bool rewrite) {
-  if (rewrite) {
-    ref<Expr> condition = rewriteSwitchCaseCondition(value, constants);
-    bool mayBeTrue;
-    bool success = solver->mayBeTrue(&state,
-                                     state.constraints,
-                                     condition,
-                                     mayBeTrue,
-                                     state.queryMetaData);
-    assert(success);
-    if (mayBeTrue) {
-      return condition;
-    } else {
-      return ConstantExpr::create(0, Expr::Bool);
-    }
-  }
-
+                                           const std::vector<ref<ConstantExpr>> &constants) {
   ref<Expr> condition = ConstantExpr::create(0, Expr::Bool);
   for (ref<ConstantExpr> c : constants) {
     ref<Expr> match = EqExpr::create(value, c);
@@ -1004,7 +999,12 @@ void Executor::getSwitchForks(ExecutionState &state,
     }
 
     const std::vector<ref<ConstantExpr>> &constants = bb2constants[caseSuccessor];
-    ref<Expr> caseCondition = getSwitchCaseCondition(state, value, constants, true);
+    ref<Expr> caseCondition;
+    if (RewriteSwitchConditions) {
+      caseCondition = rewriteSwitchCaseCondition(state, value, constants);
+    } else {
+      caseCondition = getSwitchCaseCondition(state, value, constants);
+    }
     if (!caseCondition->isFalse()) {
       /* this basic block is reachable */
       caseConditions[caseSuccessor] = caseCondition;
