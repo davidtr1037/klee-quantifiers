@@ -106,6 +106,7 @@ cl::opt<unsigned> MaxPatterns(
     cl::desc(""),
     cl::cat(klee::LoopCat));
 
+/* TODO: add option for non-default hashing functions */
 static vector<HashCallback> hashCallbacks = {
     shapeHashCallback,
     customHashCallback,
