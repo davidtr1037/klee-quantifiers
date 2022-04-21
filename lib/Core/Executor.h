@@ -333,6 +333,19 @@ private:
   void executeMakeSymbolic(ExecutionState &state, const MemoryObject *mo,
                            const std::string &name);
 
+  ref<Expr> rewriteSwitchCaseCondition(ref<Expr> value,
+                                       const std::vector<ref<ConstantExpr>> &constants);
+
+  ref<Expr> getSwitchCaseCondition(ExecutionState &state,
+                                   ref<Expr> value,
+                                   const std::vector<ref<ConstantExpr>> &constants,
+                                   bool rewrite);
+
+  void getSwitchForks(ExecutionState &state,
+                      KInstruction *ki,
+                      std::vector<llvm::BasicBlock *> &blocks,
+                      std::map<llvm::BasicBlock *, ref<Expr>> &caseConditions);
+
   /// Create a new state where each input condition has been added as
   /// a constraint and return the results. The input state is included
   /// as one of the results. Note that the output vector may included

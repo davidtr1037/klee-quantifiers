@@ -897,6 +897,138 @@ bool Executor::branchingPermitted(const ExecutionState &state) const {
   return true;
 }
 
+/* TODO: move to lib/Expr */
+ref<Expr> Executor::rewriteSwitchCaseCondition(ref<Expr> value,
+                                               const std::vector<ref<ConstantExpr>> &constants) {
+  std::vector<std::vector<ref<ConstantExpr>>> intervals;
+  for (ref<ConstantExpr> c : constants) {
+    if (!intervals.empty()) {
+      std::vector<ref<ConstantExpr>> &interval = intervals.back();
+      assert(!interval.empty());
+      ref<ConstantExpr> max = interval.back();
+      if (c->getZExtValue() == max->getZExtValue() + 1) {
+        interval.push_back(c);
+        continue;
+      }
+    }
+    std::vector<ref<ConstantExpr>> interval = {c};
+    intervals.push_back(interval);
+  }
+
+  ref<Expr> condition = ConstantExpr::create(0, Expr::Bool);
+  for (std::vector<ref<ConstantExpr>> &interval : intervals) {
+    ref<Expr> intervalCondition;
+    if (interval.size() == 1) {
+      ref<ConstantExpr> c = interval.front();
+      intervalCondition = EqExpr::create(value, c);
+    } else {
+      ref<ConstantExpr> min = interval.front();
+      ref<ConstantExpr> max = interval.back();
+      intervalCondition = AndExpr::create(
+        UgeExpr::create(value, min),
+        UleExpr::create(value, max)
+      );
+    }
+    condition = OrExpr::create(intervalCondition, condition);
+  }
+
+  return condition;
+}
+
+ref<Expr> Executor::getSwitchCaseCondition(ExecutionState &state,
+                                           ref<Expr> value,
+                                           const std::vector<ref<ConstantExpr>> &constants,
+                                           bool rewrite) {
+  if (rewrite) {
+    ref<Expr> condition = rewriteSwitchCaseCondition(value, constants);
+    bool mayBeTrue;
+    bool success = solver->mayBeTrue(&state,
+                                     state.constraints,
+                                     condition,
+                                     mayBeTrue,
+                                     state.queryMetaData);
+    assert(success);
+    if (mayBeTrue) {
+      return condition;
+    } else {
+      return ConstantExpr::create(0, Expr::Bool);
+    }
+  }
+
+  ref<Expr> condition = ConstantExpr::create(0, Expr::Bool);
+  for (ref<ConstantExpr> c : constants) {
+    ref<Expr> match = EqExpr::create(value, c);
+    bool mayBeTrue;
+    bool success = solver->mayBeTrue(&state,
+                                     state.constraints,
+                                     match,
+                                     mayBeTrue,
+                                     state.queryMetaData);
+    assert(success);
+    if (mayBeTrue) {
+      ref<Expr> match = EqExpr::create(value, c);
+      condition = OrExpr::create(match, condition);
+    }
+  }
+
+  return condition;
+}
+
+void Executor::getSwitchForks(ExecutionState &state,
+                              KInstruction *ki,
+                              std::vector<BasicBlock *> &blocks,
+                              std::map<BasicBlock *, ref<Expr>> &caseConditions) {
+  SwitchInst *si = cast<SwitchInst>(ki->inst);
+  ref<Expr> value = eval(ki, 0, state).value;
+
+  std::map<ref<ConstantExpr>, BasicBlock *> expr2bb;
+  std::map<BasicBlock *, std::vector<ref<ConstantExpr>>> bb2constants;
+  for (SwitchInst::CaseHandle caseHandle : si->cases()) {
+    ref<ConstantExpr> c = evalConstant(caseHandle.getCaseValue());
+    BasicBlock *caseSuccessor = caseHandle.getCaseSuccessor();
+    expr2bb.insert(std::make_pair(c, caseSuccessor));
+    bb2constants[caseSuccessor].push_back(c);
+  }
+
+  ref<Expr> defaultCondition = ConstantExpr::alloc(1, Expr::Bool);
+
+  /* preserve the original order (before the patch) */
+  for (auto &i : expr2bb) {
+    BasicBlock *caseSuccessor = i.second;
+    if (caseSuccessor == si->getDefaultDest()) {
+      continue;
+    }
+
+    if (std::find(blocks.begin(), blocks.end(), caseSuccessor) != blocks.end()) {
+      continue;
+    }
+
+    const std::vector<ref<ConstantExpr>> &constants = bb2constants[caseSuccessor];
+    ref<Expr> caseCondition = getSwitchCaseCondition(state, value, constants, true);
+    if (!caseCondition->isFalse()) {
+      /* this basic block is reachable */
+      caseConditions[caseSuccessor] = caseCondition;
+      defaultCondition = AndExpr::create(defaultCondition, Expr::createIsZero(caseCondition));
+      blocks.push_back(caseSuccessor);
+    }
+  }
+
+  defaultCondition = optimizer.optimizeExpr(defaultCondition, false);
+  bool mayBeTrue;
+  bool success = solver->mayBeTrue(&state,
+                                   state.constraints,
+                                   defaultCondition,
+                                   mayBeTrue,
+                                   state.queryMetaData);
+  assert(success && "FIXME: Unhandled solver failure");
+  if (mayBeTrue) {
+    auto res = caseConditions.insert(std::make_pair(si->getDefaultDest(), defaultCondition));
+    if (res.second) {
+      blocks.push_back(si->getDefaultDest());
+    }
+  }
+}
+
 void Executor::branch(ExecutionState &state, 
                       const std::vector< ref<Expr> > &conditions,
                       std::vector<ExecutionState*> &result) {
@@ -999,7 +1131,7 @@ void Executor::branch(ExecutionState &state,
       if (ExtendExecTreeOnSwitch && N == 2 && state.loopHandler->canUseExecTree) {
         extendExecTree(state, conditions[0], result[0], result[1]);
       } else {
-        if (state.loopHandler->canUseExecTree) {
+        if (state.loopHandler->canUseExecTree && N > 2) {
           klee_warning("unsupported execution tree extension: %s:%u",
                        state.prevPC->info->file.data(),
                        state.prevPC->info->line);
@@ -2031,80 +2163,7 @@ void Executor::executeInstruction(ExecutionState &state, KInstruction *ki) {
       //   the case values, still default is handled last
       std::vector<BasicBlock *> bbOrder;
       std::map<BasicBlock *, ref<Expr> > branchTargets;
-
-      std::map<ref<Expr>, BasicBlock *> expressionOrder;
-
-      // Iterate through all non-default cases and order them by expressions
-      for (auto i : si->cases()) {
-        ref<Expr> value = evalConstant(i.getCaseValue());
-
-        BasicBlock *caseSuccessor = i.getCaseSuccessor();
-        expressionOrder.insert(std::make_pair(value, caseSuccessor));
-      }
-
-      // Track default branch values
-      ref<Expr> defaultValue = ConstantExpr::alloc(1, Expr::Bool);
-
-      // iterate through all non-default cases but in order of the expressions
-      for (std::map<ref<Expr>, BasicBlock *>::iterator
-               it = expressionOrder.begin(),
-               itE = expressionOrder.end();
-           it != itE; ++it) {
-        ref<Expr> match = EqExpr::create(cond, it->first);
-
-        // skip if case has same successor basic block as default case
-        // (should work even with phi nodes as a switch is a single terminating instruction)
-        if (it->second == si->getDefaultDest()) continue;
-
-        // Make sure that the default value does not contain this target's value
-        defaultValue = AndExpr::create(defaultValue, Expr::createIsZero(match));
-
-        // Check if control flow could take this case
-        bool result;
-        match = optimizer.optimizeExpr(match, false);
-        bool success = solver->mayBeTrue(&state,
-                                         state.constraints, match, result,
-                                         state.queryMetaData);
-        assert(success && "FIXME: Unhandled solver failure");
-        (void) success;
-        if (result) {
-          BasicBlock *caseSuccessor = it->second;
-
-          // Handle the case that a basic block might be the target of multiple
-          // switch cases.
-          // Currently we generate an expression containing all switch-case
-          // values for the same target basic block. We spare us forking too
-          // many times but we generate more complex condition expressions
-          // TODO Add option to allow to choose between those behaviors
-          std::pair<std::map<BasicBlock *, ref<Expr> >::iterator, bool> res =
-              branchTargets.insert(std::make_pair(
-                  caseSuccessor, ConstantExpr::alloc(0, Expr::Bool)));
-
-          res.first->second = OrExpr::create(match, res.first->second);
-
-          // Only add basic blocks which have not been target of a branch yet
-          if (res.second) {
-            bbOrder.push_back(caseSuccessor);
-          }
-        }
-      }
-
-      // Check if control could take the default case
-      defaultValue = optimizer.optimizeExpr(defaultValue, false);
-      bool res;
-      bool success = solver->mayBeTrue(&state,
-                                       state.constraints, defaultValue, res,
-                                       state.queryMetaData);
-      assert(success && "FIXME: Unhandled solver failure");
-      (void) success;
-      if (res) {
-        std::pair<std::map<BasicBlock *, ref<Expr> >::iterator, bool> ret =
-            branchTargets.insert(
-                std::make_pair(si->getDefaultDest(), defaultValue));
-        if (ret.second) {
-          bbOrder.push_back(si->getDefaultDest());
-        }
-      }
+      getSwitchForks(state, ki, bbOrder, branchTargets);
 
       // Fork the current state with each state having one of the possible
       // successors of this switch
