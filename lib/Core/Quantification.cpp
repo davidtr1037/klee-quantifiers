@@ -9,7 +9,7 @@
 using namespace klee;
 using namespace llvm;
 
-cl::opt<unsigned> MinStateForABV(
+cl::opt<unsigned> MinStatesForABV(
     "min-states-for-abv",
     cl::init(1),
     cl::desc(""));
@@ -152,7 +152,7 @@ ref<Expr> klee::generateQuantifiedConstraint(PatternMatch &pm,
   std::vector<SMTEquationSystem> coreSystems, suffixSystems;
   std::vector<ParametrizedExpr> coreSolutions, suffixSolutions;
 
-  if (pm.matches.size() < MinStateForABV) {
+  if (pm.matches.size() < MinStatesForABV) {
     return nullptr;
   }
 
