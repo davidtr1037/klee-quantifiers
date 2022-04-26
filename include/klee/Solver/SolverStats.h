@@ -30,6 +30,7 @@ namespace stats {
   extern Statistic smallModelHits;
   extern Statistic smallModelMisses;
   extern Statistic smallModelUnsupported;
+  extern Statistic smallModelQFQueries;
   extern Statistic smallModelTime;
   extern Statistic smallModelInitialQueryTime;
   extern Statistic smallModelResolveQueryTime;

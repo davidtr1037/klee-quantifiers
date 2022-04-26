@@ -26,6 +26,7 @@ Statistic stats::auxilaryQueries("AuxilaryQueries", "AuxQ");
 Statistic stats::smallModelHits("SmallModelHits", "SMH");
 Statistic stats::smallModelMisses("SmallModelMisses", "SMM");
 Statistic stats::smallModelUnsupported("SmallModelUnsupported", "SMU");
+Statistic stats::smallModelQFQueries("SmallModelQFQueries", "SMQ");
 Statistic stats::smallModelTime("SmallModelTime", "SMT");
 Statistic stats::smallModelInitialQueryTime("SmallModelInitialQueryTime", "SMIQT");
 Statistic stats::smallModelResolveQueryTime("SmallModelResolveQueryTime", "SMRQT");

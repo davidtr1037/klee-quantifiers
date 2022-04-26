@@ -76,6 +76,8 @@ SmallModelSolver::~SmallModelSolver() {
                (uint64_t)(stats::smallModelMisses));
   klee_message("Small model unsupported: %lu",
                (uint64_t)(stats::smallModelUnsupported));
+  klee_message("Small model quantifier-free: %lu",
+               (uint64_t)(stats::smallModelQFQueries));
   delete solver;
 }
 
@@ -759,6 +761,7 @@ bool SmallModelSolver::computeInitialValues(const Query& query,
                                             bool &hasSolution) {
   TimerStatIncrementer timer(stats::smallModelTime);
   if (!shouldApply(query)) {
+    ++stats::smallModelQFQueries;
     return solver->impl->computeInitialValues(query,
                                               objects,
                                               values,
