@@ -471,7 +471,8 @@ void SmallModelSolver::duplicateModel(const Query &query,
       }
 
       char v = getModelValue(assignment, access.array, access.offset);
-      for (uint64_t i = 2; i <= m; i++) {
+      uint64_t stopAt = InstantiateAuxVariable ? m - 1 : m;
+      for (uint64_t i = 2; i <= stopAt; i++) {
         if (!getArrayAccess(body, i, access)) {
           /* shouldn't happen */
           assert(0);
