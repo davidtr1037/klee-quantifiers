@@ -550,15 +550,19 @@ bool SmallModelSolver::adjustModelWithConflicts(const Query &query,
   std::set<const Array *> keepSymbolic;
   findConflicts(query, assignment, conflicts, access2expr, keepSymbolic);
 
-  /* TODO: for each conflict, add the associated constraints */
   std::vector<ref<Expr>> toAdd;
+  /* TODO: a better way to prevent duplicate constraints? */
+  std::set<ref<Expr>> added;
   for (ArrayAccess &dep : conflicts) {
     if (keepSymbolic.find(dep.array) != keepSymbolic.end()) {
       auto i = access2expr.find(dep);
       if (i != access2expr.end()) {
         const ExprBucket &exprs = i->second;
         for (ref<Expr> e : exprs) {
-          toAdd.push_back(e);
+          if (added.find(e) == added.end()) {
+            toAdd.push_back(e);
+            added.insert(e);
+          }
         }
       }
     }
