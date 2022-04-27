@@ -65,6 +65,13 @@ cl::opt<bool> UseQFABVFallback(
   cl::cat(SolvingCat)
 );
 
+cl::opt<bool> UseLocalRepair(
+  "use-local-repair",
+  cl::init(false),
+  cl::desc(""),
+  cl::cat(SolvingCat)
+);
+
 SmallModelSolver::SmallModelSolver(Solver *solver) : solver(solver) {
 
 }
@@ -492,11 +499,13 @@ void SmallModelSolver::duplicateModel(const Query &query,
   duplicateModel(query, assignment, conflicts);
 }
 
+/* TODO: avoid duplicate array accesses? */
 void SmallModelSolver::findConflicts(const Query &query,
                                      const Assignment &assignment,
+                                     bool collectAll,
                                      std::vector<ArrayAccess> &conflicts,
                                      Access2Expr &access2expr,
-                                     std::set<const Array *> &keepSymbolic) {
+                                     std::set<const Array *> &nonGoundArrays) {
   std::vector<ref<Expr>> all;
   all.push_back(Expr::createIsZero(query.expr));
   for (ref<Expr> constraint : query.constraints) {
@@ -509,7 +518,7 @@ void SmallModelSolver::findConflicts(const Query &query,
 
       /* evaluate once */
       ref<Expr> body = assignment.evaluate(f->post);
-      getArrays(body, keepSymbolic);
+      getArrays(body, nonGoundArrays);
 
       uint64_t m = getAuxValue(f, assignment);
       for (unsigned i = 1; i <= m; i++) {
@@ -528,6 +537,11 @@ void SmallModelSolver::findConflicts(const Query &query,
         }
       }
     } else {
+      if (collectAll) {
+        std::vector<ArrayAccess> accesses;
+        findDeps(constraint, assignment, accesses);
+        update(access2expr, accesses, constraint);
+      }
       ref<Expr> e = assignment.evaluate(constraint);
       if (e->isFalse()) {
         std::vector<ArrayAccess> accesses;
@@ -540,21 +554,15 @@ void SmallModelSolver::findConflicts(const Query &query,
   }
 }
 
-bool SmallModelSolver::adjustModelWithConflicts(const Query &query,
-                                                const Query &smQuery,
-                                                const Assignment &assignment,
-                                                Assignment &adjusted) {
-
-  std::vector<ArrayAccess> conflicts;
-  Access2Expr access2expr;
-  std::set<const Array *> keepSymbolic;
-  findConflicts(query, assignment, conflicts, access2expr, keepSymbolic);
-
-  std::vector<ref<Expr>> toAdd;
+void SmallModelSolver::collectConflictingConstraints(const std::vector<ArrayAccess> &conflicts,
+                                                     const Access2Expr &access2expr,
+                                                     const std::set<const Array *> &nonGoundArrays,
+                                                     std::vector<ref<Expr>> &toAdd) {
   /* TODO: a better way to prevent duplicate constraints? */
   std::set<ref<Expr>> added;
-  for (ArrayAccess &dep : conflicts) {
-    if (keepSymbolic.find(dep.array) != keepSymbolic.end()) {
+
+  for (const ArrayAccess &dep : conflicts) {
+    if (nonGoundArrays.find(dep.array) != nonGoundArrays.end()) {
       auto i = access2expr.find(dep);
       if (i != access2expr.end()) {
         const ExprBucket &exprs = i->second;
@@ -567,13 +575,21 @@ bool SmallModelSolver::adjustModelWithConflicts(const Query &query,
       }
     }
   }
+}
 
+void SmallModelSolver::buildRepairingQuery(const Query &query,
+                                           const std::vector<ref<Expr>> &toAdd,
+                                           const Assignment &assignment,
+                                           const std::set<const Array *> &nonGoundArrays,
+                                           ConstraintSet &constraints,
+                                           ref<Expr> &expr) {
+  /* include only gound arrays */
   std::vector<const Array *> partialObjects;
   std::vector<std::vector<unsigned char>> partialValues;
   for (auto i : assignment.bindings) {
     const Array *object = i.first;
     std::vector<unsigned char> &value = i.second;
-    if (keepSymbolic.find(object) == keepSymbolic.end()) {
+    if (nonGoundArrays.find(object) == nonGoundArrays.end()) {
       partialObjects.push_back(object);
       partialValues.push_back(value);
     }
@@ -581,8 +597,7 @@ bool SmallModelSolver::adjustModelWithConflicts(const Query &query,
 
   /* we want to allow free varaibles here */
   Assignment partialAssignment(partialObjects, partialValues, true);
-  ConstraintSet constraints;
-  for (ref<Expr> e : smQuery.constraints) {
+  for (ref<Expr> e : query.constraints) {
     ref<Expr> substituted = partialAssignment.evaluate(e);
     /* TODO: what if evaluated to false? */
     if (!isa<ConstantExpr>(substituted)) {
@@ -596,8 +611,47 @@ bool SmallModelSolver::adjustModelWithConflicts(const Query &query,
     }
   }
 
-  Query partitionedQuery(constraints, partialAssignment.evaluate(smQuery.expr));
-  std::vector<const Array *> objectsToKeep(keepSymbolic.begin(), keepSymbolic.end());
+  expr = partialAssignment.evaluate(query.expr);
+}
+
+void SmallModelSolver::buildRepairingQuery(const std::vector<ref<Expr>> &toAdd,
+                                           const Assignment &assignment,
+                                           const std::set<const Array *> &nonGoundArrays,
+                                           ConstraintSet &constraints,
+                                           ref<Expr> &expr) {
+  ConstraintSet empty;
+  Query query(empty, ConstantExpr::create(0, Expr::Bool));
+  buildRepairingQuery(query,
+                      toAdd,
+                      assignment,
+                      nonGoundArrays,
+                      constraints,
+                      expr);
+}
+
+bool SmallModelSolver::repairModel(const Query &query,
+                                   const Query &smQuery,
+                                   const Assignment &assignment,
+                                   Assignment &adjusted) {
+  std::vector<ArrayAccess> conflicts;
+  Access2Expr access2expr;
+  std::set<const Array *> nonGroundArrays;
+  findConflicts(query, assignment, false, conflicts, access2expr, nonGroundArrays);
+
+  std::vector<ref<Expr>> toAdd;
+  collectConflictingConstraints(conflicts, access2expr, nonGroundArrays, toAdd);
+
+  ConstraintSet constraints;
+  ref<Expr> expr;
+  buildRepairingQuery(smQuery,
+                      toAdd,
+                      assignment,
+                      nonGroundArrays,
+                      constraints,
+                      expr);
+
+  Query partitionedQuery(constraints, expr);
+  std::vector<const Array *> objectsToKeep(nonGroundArrays.begin(), nonGroundArrays.end());
   std::vector<std::vector<unsigned char>> valuesToKeep;
   bool hasSolution;
   bool success;
@@ -617,8 +671,16 @@ bool SmallModelSolver::adjustModelWithConflicts(const Query &query,
   }
 
   /* construct the full assignment */
-  std::vector<const Array *> fullObjects = partialObjects;
-  std::vector<std::vector<unsigned char>> fullValues = partialValues;
+  std::vector<const Array *> fullObjects;
+  std::vector<std::vector<unsigned char>> fullValues;
+  for (auto i : assignment.bindings) {
+    const Array *object = i.first;
+    if (nonGroundArrays.find(object) == nonGroundArrays.end()) {
+      std::vector<unsigned char> &value = i.second;
+      fullObjects.push_back(object);
+      fullValues.push_back(value);
+    }
+  }
   for (unsigned i = 0; i < objectsToKeep.size(); i++) {
     fullObjects.push_back(objectsToKeep[i]);
     fullValues.push_back(valuesToKeep[i]);
@@ -631,11 +693,85 @@ bool SmallModelSolver::adjustModelWithConflicts(const Query &query,
 
   /* TODO: eval model before patching? */
   duplicateModel(query, adjusted, conflicts);
-  if (evalModel(query, adjusted)) {
-    return true;
+  return evalModel(query, adjusted);
+}
+
+bool SmallModelSolver::repairModelLocal(const Query &query,
+                                        const Query &smQuery,
+                                        const Assignment &assignment,
+                                        Assignment &adjusted) {
+  std::vector<ArrayAccess> conflicts;
+  Access2Expr access2expr;
+  std::set<const Array *> nonGroundArrays;
+  findConflicts(query, assignment, true, conflicts, access2expr, nonGroundArrays);
+
+  std::vector<ref<Expr>> toAdd;
+  collectConflictingConstraints(conflicts, access2expr, nonGroundArrays, toAdd);
+
+  /* build a query with the conflicting constraints only */
+  ConstraintSet constraints;
+  ref<Expr> expr;
+  buildRepairingQuery(toAdd,
+                      assignment,
+                      nonGroundArrays,
+                      constraints,
+                      expr);
+
+  Query partitionedQuery(constraints, expr);
+  std::vector<const Array *> objectsToKeep(nonGroundArrays.begin(), nonGroundArrays.end());
+  std::vector<std::vector<unsigned char>> valuesToKeep;
+  bool hasSolution;
+  bool success;
+  {
+    TimerStatIncrementer timer(stats::smallModelResolveQueryTime);
+    success = solver->impl->computeInitialValues(partitionedQuery,
+                                                 objectsToKeep,
+                                                 valuesToKeep,
+                                                 hasSolution);
+  }
+  if (!success) {
+    return false;
   }
 
-  return false;
+  if (!hasSolution) {
+    return false;
+  }
+
+  /* construct the full assignment */
+  std::vector<const Array *> fullObjects;
+  std::vector<std::vector<unsigned char>> fullValues;
+  for (auto i : assignment.bindings) {
+    const Array *object = i.first;
+    if (nonGroundArrays.find(object) == nonGroundArrays.end()) {
+      std::vector<unsigned char> &value = i.second;
+      fullObjects.push_back(object);
+      fullValues.push_back(value);
+    }
+  }
+  for (unsigned i = 0; i < objectsToKeep.size(); i++) {
+    const Array *array = objectsToKeep[i];
+    fullObjects.push_back(array);
+
+    auto j = assignment.bindings.find(array);
+    assert(j != assignment.bindings.end());
+
+    std::vector<unsigned char> values = j->second;
+    for (const ArrayAccess &access : conflicts) {
+      if (access.array == array) {
+        std::vector<unsigned char> resolved = valuesToKeep[i];
+        assert(access.offset < resolved.size());
+        values[access.offset] = resolved[access.offset];
+      }
+    }
+    fullValues.push_back(values);
+  }
+
+  /* TODO: add API for this */
+  for (unsigned i = 0; i < fullObjects.size(); i++) {
+    adjusted.bindings[fullObjects[i]] = fullValues[i];
+  }
+
+  return evalModel(query, adjusted);
 }
 
 bool SmallModelSolver::adjustModel(const Query &query,
@@ -657,7 +793,13 @@ bool SmallModelSolver::adjustModel(const Query &query,
 
   if (AdjustForConflicts) {
     Assignment adjusted;
-    if (adjustModelWithConflicts(query, smQuery, assignment, adjusted)) {
+    bool repaired;
+    if (UseLocalRepair) {
+      repaired = repairModelLocal(query, smQuery, assignment, adjusted);
+    } else {
+      repaired = repairModel(query, smQuery, assignment, adjusted);
+    }
+    if (repaired) {
       fillValues(adjusted, objects, values);
       return true;
     }

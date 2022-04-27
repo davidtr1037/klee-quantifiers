@@ -120,14 +120,38 @@ public:
 
   void findConflicts(const Query &query,
                      const Assignment &assignment,
+                     bool collectAll,
                      std::vector<ArrayAccess> &conflicts,
                      Access2Expr &access2expr,
-                     std::set<const Array *> &keepSymbolic);
+                     std::set<const Array *> &nonGoundArrays);
 
-  bool adjustModelWithConflicts(const Query &query,
-                                const Query &smQuery,
-                                const Assignment &assignment,
-                                Assignment &adjusted);
+  void collectConflictingConstraints(const std::vector<ArrayAccess> &conflicts,
+                                     const Access2Expr &access2expr,
+                                     const std::set<const Array *> &nonGoundArrays,
+                                     std::vector<ref<Expr>> &toAdd);
+
+  void buildRepairingQuery(const Query &query,
+                           const std::vector<ref<Expr>> &toAdd,
+                           const Assignment &assignment,
+                           const std::set<const Array *> &nonGoundArrays,
+                           ConstraintSet &constraints,
+                           ref<Expr> &expr);
+
+  void buildRepairingQuery(const std::vector<ref<Expr>> &toAdd,
+                           const Assignment &assignment,
+                           const std::set<const Array *> &nonGoundArrays,
+                           ConstraintSet &constraints,
+                           ref<Expr> &expr);
+
+  bool repairModel(const Query &query,
+                   const Query &smQuery,
+                   const Assignment &assignment,
+                   Assignment &adjusted);
+
+  bool repairModelLocal(const Query &query,
+                        const Query &smQuery,
+                        const Assignment &assignment,
+                        Assignment &adjusted);
 
   bool adjustModel(const Query &query,
                    const Query &smQuery,
