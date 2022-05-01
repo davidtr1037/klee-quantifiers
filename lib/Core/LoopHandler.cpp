@@ -525,7 +525,10 @@ void LoopHandler::releaseStates() {
   unsigned groupID = 0;
   for (MergeGroupInfo &groupInfo: groups) {
     ExecutionState *merged = mergeGroup(groupInfo, isComplete);
-    executor->collectMergeStats(*merged);
+    if (merged) {
+      executor->collectMergeStats(*merged);
+    }
+
     if (groups.size() == 1) {
       klee_message("merged %lu states (complete = %u)",
                    groupInfo.getStatesCount(),
