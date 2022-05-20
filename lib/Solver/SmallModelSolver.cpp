@@ -759,8 +759,10 @@ bool SmallModelSolver::repairModelLocal(const Query &query,
     for (const ArrayAccess &access : conflicts) {
       if (access.array == array) {
         std::vector<unsigned char> resolved = valuesToKeep[i];
-        assert(access.offset < resolved.size());
-        values[access.offset] = resolved[access.offset];
+        /* TODO: handle invalid accesses in an earlier stage? */
+        if (access.offset < resolved.size()) {
+          values[access.offset] = resolved[access.offset];
+        }
       }
     }
     fullValues.push_back(values);
