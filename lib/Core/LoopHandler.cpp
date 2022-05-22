@@ -100,6 +100,8 @@ cl::opt<bool> ForcePatternBasedMerging(
     cl::desc(""),
     cl::cat(klee::LoopCat));
 
+cl::list<string> ForceCFGBasedMerging("force-cfg-based-merging", cl::desc(""), cl::CommaSeparated);
+
 cl::opt<unsigned> MaxPatterns(
     "max-patterns",
     cl::init(10),
@@ -248,22 +250,16 @@ void LoopHandler::addClosedState(ExecutionState *es,
   }
 }
 
-static set<string> forceCFG = {
-    "memmove",
-    "memcpy",
-    "memset",
-    "strcpy",
-    "strncpy",
-};
-
 bool LoopHandler::shouldForceCFGBasedMerging() {
   if (!canUseExecTree) {
     return true;
   }
 
-  if (RestrictPatternBaseMerging) {
-    Function *f = loop->getHeader()->getParent();
-    return forceCFG.find(f->getName()) != forceCFG.end();
+  Function *f = loop->getHeader()->getParent();
+  for (const string &name : ForceCFGBasedMerging) {
+    if (f->getName() == name) {
+      return true;
+    }
   }
 
   return false;
