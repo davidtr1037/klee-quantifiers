@@ -544,6 +544,7 @@ void LoopHandler::releaseStates() {
   tree.clear();
 
   if (useIncrementalMergingSearch) {
+    /* TODO: may break if releaseStates is called from markEarlyTerminated */
     assert(executor->incrementalMergingSearcher->internalSearcher->empty());
   }
 }
