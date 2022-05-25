@@ -137,6 +137,8 @@ namespace {
 
   cl::opt<std::string> AllowedFunctionsInLoops("allowed-functions-in-loops",
                                                cl::desc("..."));
+
+  cl::opt<bool> ProcessSubLoops("process-sub-loops", cl::desc(""), cl::init(false), cl::cat(ModuleCat));
 }
 
 /***/
@@ -489,9 +491,10 @@ void KModule::collectLoopInfo() {
     loopInfos.push_back(li);
     for (Loop *loop : *li) {
       visitLoop(f, loop);
-      /* TODO: add an option for enabling/disabling sub loops */
-      for (Loop *subLoop : loop->getSubLoops()) {
-        visitLoop(f, subLoop);
+      if (ProcessSubLoops) {
+        for (Loop *subLoop : loop->getSubLoops()) {
+          visitLoop(f, subLoop);
+        }
       }
     }
   }
