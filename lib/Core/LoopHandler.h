@@ -15,6 +15,7 @@
 #include "llvm/Analysis/LoopInfo.h"
 
 #include <map>
+#include <unordered_map>
 #include <stdint.h>
 #include <vector>
 
@@ -30,6 +31,25 @@ extern llvm::cl::opt<bool> UseOptimizedMerge;
 
 class Executor;
 class ExecutionState;
+
+struct LoopExit {
+  llvm::Instruction *inst;
+  uint32_t incomingBBIndex;
+
+  LoopExit(llvm::Instruction *inst, uint32_t incomingBBIndex) :
+    inst(inst), incomingBBIndex(incomingBBIndex) {
+
+  }
+
+  bool operator==(const LoopExit &other) const;
+};
+
+struct LoopExitHash {
+  std::size_t operator() (const LoopExit &loopExit) const {
+    std::size_t h = std::hash<llvm::Instruction *>()(loopExit.inst);
+    return h;
+  }
+};
 
 class LoopHandler {
 
@@ -77,7 +97,7 @@ private:
 
   std::vector<ExecutionState *> openStates;
 
-  std::map<llvm::Instruction *, StateSet> mergeGroupsByExit;
+  std::unordered_map<LoopExit, StateSet, LoopExitHash> mergeGroupsByExit;
 
   /* TODO: signed or unsigned? */
   int activeStates;

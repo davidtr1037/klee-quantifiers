@@ -8,6 +8,8 @@
 #include "Memory.h"
 #include "PatternExtraction.h"
 
+#include <llvm/IR/CFG.h>
+
 #include <list>
 
 using namespace std;
@@ -113,6 +115,28 @@ static vector<HashCallback> hashCallbacks = {
     shapeHashCallback,
     customHashCallback,
 };
+
+static inline bool hasPHI(BasicBlock *bb) {
+  for (const PHINode &phi : bb->phis()) {
+    (void)(phi);
+    return true;
+  }
+
+  return false;
+}
+
+bool LoopExit::operator==(const LoopExit &other) const {
+  if (inst != other.inst) {
+    return false;
+  }
+
+  BasicBlock *bb = inst->getParent();
+  if (hasPHI(bb) && pred_size(bb) > 1) {
+    return incomingBBIndex == other.incomingBBIndex;
+  } else {
+    return true;
+  }
+}
 
 LoopHandler::LoopHandler(Executor *executor,
                          ExecutionState *es,
@@ -234,9 +258,10 @@ void LoopHandler::addClosedState(ExecutionState *es,
   removeOpenState(es);
   pauseOpenState(es);
 
-  auto i = mergeGroupsByExit.find(mp);
+  LoopExit loopExit(mp, es->incomingBBIndex);
+  auto i = mergeGroupsByExit.find(loopExit);
   if (i == mergeGroupsByExit.end()) {
-    mergeGroupsByExit[mp].push_back(es);
+    mergeGroupsByExit[loopExit].push_back(es);
   } else {
     StateSet &states = i->second;
     states.push_back(es);
@@ -305,11 +330,11 @@ void LoopHandler::splitStates(vector<MergeGroupInfo> &result) {
     for (const auto &i: mergeGroupsByExit) {
       const StateSet &states = i.second;
       for (ExecutionState *es : states) {
-          m[es->getID()] = es;
+        m[es->getID()] = es;
       }
     }
 
-    std::map<Instruction *, vector<PatternMatch>> matchesByExit;
+    std::unordered_map<LoopExit, vector<PatternMatch>, LoopExitHash> matchesByExit;
 
     bool shouldFallback = true;
     assert(!hashCallbacks.empty());
@@ -321,6 +346,7 @@ void LoopHandler::splitStates(vector<MergeGroupInfo> &result) {
       unsigned totalMatches = 0;
 
       for (const auto &i: mergeGroupsByExit) {
+        const LoopExit &loopExit = i.first;
         const StateSet &states = i.second;
 
         set<uint32_t> ids;
@@ -336,7 +362,7 @@ void LoopHandler::splitStates(vector<MergeGroupInfo> &result) {
 
         /* must be non-empty */
         assert(!matches.empty());
-        matchesByExit[i.first] = matches;
+        matchesByExit[loopExit] = matches;
         totalMatches += matches.size();
       }
 
@@ -357,7 +383,7 @@ void LoopHandler::splitStates(vector<MergeGroupInfo> &result) {
     }
 
     for (const auto &i: mergeGroupsByExit) {
-      Instruction *loopExit = i.first;
+      const LoopExit &loopExit = i.first;
       const StateSet &states = i.second;
 
       assert(matchesByExit.find(loopExit) != matchesByExit.end());
