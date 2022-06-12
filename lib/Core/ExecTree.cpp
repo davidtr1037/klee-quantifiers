@@ -383,7 +383,7 @@ void ExecTree::dumpGML(llvm::raw_ostream &os, std::set<uint32_t> &ids) {
             os << "\",shape=square";
         }
         if (n->isLeaf() && ids.find(n->stateID) != ids.end()) {
-            os << ",fillcolor=red";
+            os << ",fillcolor=sandybrown";
         }
         os << "];\n";
 
