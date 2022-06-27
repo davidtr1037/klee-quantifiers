@@ -1023,17 +1023,11 @@ ref<Expr> ExecutionState::mergeValuesUsingPattern(State2Value &valuesMap,
                                                   LoopHandler *loopHandler,
                                                   PatternMatch &pm,
                                                   std::uint32_t mergeID) {
-  ParametrizedExpr solution;
-  if (!generateMergedValue(pm,
-                           loopHandler->tree,
-                           valuesMap,
-                           mergeID,
-                           *loopHandler->solver,
-                           solution)) {
-    return nullptr;
-  }
-
-  return solution.e;
+  return generateMergedValue(pm,
+                             loopHandler->tree,
+                             valuesMap,
+                             mergeID,
+                             *loopHandler->solver);
 }
 
 bool ExecutionState::areEquiv(TimingSolver *solver,

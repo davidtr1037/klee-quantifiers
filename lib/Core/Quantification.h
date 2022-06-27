@@ -12,12 +12,11 @@ ref<Expr> generateQuantifiedConstraint(PatternMatch &pm,
                                        uint32_t mergeID,
                                        TimingSolver &solver);
 
-bool generateMergedValue(PatternMatch &pm,
-                         ExecTree &tree,
-                         State2Value &valuesMap,
-                         uint32_t mergeID,
-                         TimingSolver &solver,
-                         ParametrizedExpr &solution);
+ref<Expr> generateMergedValue(PatternMatch &pm,
+                              ExecTree &tree,
+                              State2Value &valuesMap,
+                              uint32_t mergeID,
+                              TimingSolver &solver);
 
 }
 
