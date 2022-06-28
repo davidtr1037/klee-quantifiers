@@ -19,13 +19,13 @@ cl::opt<bool> UseSeparateEquationSolver("use-separate-equation-solver",
 
 static ArrayCache cache;
 
+/* TODO: delete object */
 static TimingSolver *equationSolver = nullptr;
 
 static TimingSolver *getNewSolver() {
   if (!equationSolver) {
     Solver *solver = klee::createCoreSolver(Z3_SOLVER);
     solver = createAssignmentValidatingSolver(solver);
-    solver = createFastCexSolver(solver);
     solver = createCexCachingSolver(solver);
     solver = createCachingSolver(solver);
     solver = createIndependentSolver(solver);

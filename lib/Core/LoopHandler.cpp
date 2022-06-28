@@ -110,6 +110,21 @@ cl::opt<unsigned> MaxPatterns(
     cl::desc(""),
     cl::cat(klee::LoopCat));
 
+/* TODO: free memory */
+static TimingSolver *validationSolver = nullptr;
+
+static TimingSolver *getValidationSolver() {
+  if (!validationSolver) {
+    Solver *solver = klee::createCoreSolver(Z3_SOLVER);
+    solver = createAssignmentValidatingSolver(solver);
+    solver = createCexCachingSolver(solver);
+    solver = createCachingSolver(solver);
+    solver = createIndependentSolver(solver);
+    validationSolver = new TimingSolver(solver, true);
+  }
+  return validationSolver;
+}
+
 /* TODO: add option for non-default hashing functions */
 static vector<HashCallback> hashCallbacks = {
     shapeHashCallback,
@@ -856,7 +871,7 @@ bool LoopHandler::transform() {
 bool LoopHandler::validateMerge(vector<ExecutionState *> &snapshots,
                                 ExecutionState *merged) {
   ExecutionState *expected = ExecutionState::mergeStates(snapshots);
-  return ExecutionState::areEquiv(executor->solver,
+  return ExecutionState::areEquiv(getValidationSolver(),
                                   merged,
                                   expected,
                                   !OptimizeUsingQuantifiers);
