@@ -225,6 +225,7 @@ bool CexCachingSolver::getAssignment(const Query& query, Assignment *&result) {
     return true;
 
   std::vector<const Array*> objects;
+  /* TODO: ignore arrays of bound variables */
   findSymbolicObjects(key.begin(), key.end(), objects);
 
   std::vector< std::vector<unsigned char> > values;
