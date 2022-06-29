@@ -1056,7 +1056,11 @@ bool ExecutionState::areEquiv(TimingSolver *solver,
     /* make sure that A is consistent (satisfiable) */
     bool isSatisfiable = false;
     SolverQueryMetaData meta;
-    assert(solver->mayBeTrue(nullptr, empty, pcA, isSatisfiable, meta));
+    if (!solver->mayBeTrue(nullptr, empty, pcA, isSatisfiable, meta)) {
+      /* perform partial validation */
+      klee_warning("partial validation");
+      return true;
+    }
     if (!isSatisfiable) {
       return false;
     }
@@ -1066,7 +1070,11 @@ bool ExecutionState::areEquiv(TimingSolver *solver,
 
   bool isTrue = false;
   SolverQueryMetaData meta;
-  assert(solver->mustBeTrue(nullptr, empty, pcEquiv, isTrue, meta));
+  if (!solver->mustBeTrue(nullptr, empty, pcEquiv, isTrue, meta)) {
+    /* perform partial validation */
+    klee_warning("partial validation");
+    return true;
+  }
   if (!isTrue) {
     return false;
   }
@@ -1083,11 +1091,15 @@ bool ExecutionState::areEquiv(TimingSolver *solver,
 
       bool isEqual;
       SolverQueryMetaData meta;
-      assert(solver->mustBeTrue(nullptr,
-                                sa->constraints,
-                                EqExpr::create(v1, v2),
-                                isEqual,
-                                meta));
+      if (!solver->mustBeTrue(nullptr,
+                              sa->constraints,
+                              EqExpr::create(v1, v2),
+                              isEqual,
+                              meta)) {
+        /* skip validation for this register */
+        klee_warning("partial validation for register: %u", reg);
+        continue;
+      }
       if (!isEqual) {
         return false;
       }
@@ -1102,11 +1114,15 @@ bool ExecutionState::areEquiv(TimingSolver *solver,
       bool inRange = false;
       SolverQueryMetaData meta;
       ref<Expr> rangeCond = UltExpr::create(ConstantExpr::create(i, Expr::Int64), mo->getSizeExpr());
-      assert(solver->mayBeTrue(nullptr,
-                               sa->constraints,
-                               rangeCond,
-                               inRange,
-                               meta));
+      if (!solver->mayBeTrue(nullptr,
+                             sa->constraints,
+                             rangeCond,
+                             inRange,
+                             meta)) {
+        /* skip validation for this memory cell */
+        klee_warning("partial validation for object: %lx", mo->address);
+        continue;
+      }
       if (!inRange) {
         continue;
       }
@@ -1117,11 +1133,15 @@ bool ExecutionState::areEquiv(TimingSolver *solver,
       bool isEqual;
       ConstraintSet tmp(sa->constraints);
       tmp.push_back(rangeCond);
-      assert(solver->mustBeTrue(nullptr,
-                                tmp,
-                                EqExpr::create(v1, v2),
-                                isEqual,
-                                meta));
+      if (!solver->mustBeTrue(nullptr,
+                              tmp,
+                              EqExpr::create(v1, v2),
+                              isEqual,
+                              meta)) {
+        /* skip validation for this memory cell */
+        klee_warning("partial validation for object: %lx", mo->address);
+        continue;
+      }
       if (!isEqual) {
         return false;
       }

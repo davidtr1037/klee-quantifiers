@@ -93,10 +93,13 @@ void SmallModelSolver::validate(const Query &query,
                                 bool result) {
   std::vector<std::vector<unsigned char>> values;
   bool expected;
-  assert(solver->impl->computeInitialValues(query,
-                                            objects,
-                                            values,
-                                            expected));
+  if (!solver->impl->computeInitialValues(query,
+                                          objects,
+                                          values,
+                                          expected)) {
+    klee_warning("validation query failed");
+    return;
+  }
   assert(result == expected);
 }
 
