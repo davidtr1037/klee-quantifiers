@@ -212,8 +212,7 @@ void LoopHandler::removeOpenState(ExecutionState *es) {
 
 void LoopHandler::pauseOpenState(ExecutionState *es) {
   if (useIncrementalMergingSearch) {
-    Searcher *internalSearcher = executor->incrementalMergingSearcher->internalSearcher;
-    internalSearcher->removeState(es);
+    executor->incrementalMergingSearcher->internalSearcher->removeState(es);
   } else {
     assert(executor->mergingSearcher->inCloseMerge.find(es) == executor->mergingSearcher->inCloseMerge.end());
     executor->mergingSearcher->inCloseMerge.insert(es);
@@ -585,8 +584,10 @@ void LoopHandler::releaseStates() {
   tree.clear();
 
   if (useIncrementalMergingSearch) {
-    /* TODO: may break if releaseStates is called from markEarlyTerminated */
-    assert(executor->incrementalMergingSearcher->internalSearcher->empty());
+    /* TODO: the internal searcher may be non-empty, fix... */
+    if (!executor->incrementalMergingSearcher->internalSearcher->empty()) {
+      klee_warning("internal searcher is non-empty");
+    }
   }
 }
 
