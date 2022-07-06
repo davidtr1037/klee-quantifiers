@@ -197,7 +197,7 @@ void LoopHandler::addInitialState(ExecutionState *es) {
   }
 }
 
-void LoopHandler::addOpenState(ExecutionState *es){
+void LoopHandler::addOpenState(ExecutionState *es) {
   openStates.push_back(es);
   activeStates++;
 }
