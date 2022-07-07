@@ -73,6 +73,10 @@ llvm::cl::opt<unsigned> Z3SMTRelevancy("z3-smt-relevancy",
                                        llvm::cl::desc(""),
                                        llvm::cl::cat(klee::SolvingCat));
 
+llvm::cl::opt<unsigned> Z3CtrlC("z3-ctrl-c",
+                                llvm::cl::init(true),
+                                llvm::cl::desc(""),
+                                llvm::cl::cat(klee::SolvingCat));
 }
 
 #include "llvm/Support/ErrorHandling.h"
@@ -129,6 +133,10 @@ public:
                        solverParameters,
                        Z3_mk_string_symbol(builder->ctx, "relevancy"),
                        Z3SMTRelevancy);
+    Z3_params_set_bool(builder->ctx,
+                       solverParameters,
+                       Z3_mk_string_symbol(builder->ctx, "ctrl_c"),
+                       Z3CtrlC);
   }
 
   bool computeTruth(const Query &, bool &isValid);
