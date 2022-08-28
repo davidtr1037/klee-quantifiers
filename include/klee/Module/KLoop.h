@@ -25,6 +25,7 @@ namespace klee {
 
     }
 
+    KLoop &operator=(const KLoop &other) = default;
   };
 
 }
