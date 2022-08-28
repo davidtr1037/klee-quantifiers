@@ -29,6 +29,9 @@ namespace stats {
   extern Statistic auxilaryQueries;
   extern Statistic smallModelHits;
   extern Statistic smallModelMisses;
+  extern Statistic smallModelStripHits;
+  extern Statistic smallModelDuplicateHits;
+  extern Statistic smallModelRepairHits;
   extern Statistic smallModelUnsupported;
   extern Statistic smallModelQFQueries;
   extern Statistic smallModelTime;

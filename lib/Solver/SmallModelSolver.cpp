@@ -79,6 +79,12 @@ SmallModelSolver::SmallModelSolver(Solver *solver) : solver(solver) {
 SmallModelSolver::~SmallModelSolver() {
   klee_message("Small model hits: %lu",
                (uint64_t)(stats::smallModelHits));
+  klee_message("Small model hits (strip): %lu",
+               (uint64_t)(stats::smallModelStripHits));
+  klee_message("Small model hits (duplicate): %lu",
+               (uint64_t)(stats::smallModelDuplicateHits));
+  klee_message("Small model hits (repair): %lu",
+               (uint64_t)(stats::smallModelRepairHits));
   klee_message("Small model misses: %lu",
                (uint64_t)(stats::smallModelMisses));
   klee_message("Small model unsupported: %lu",
@@ -785,6 +791,7 @@ bool SmallModelSolver::adjustModel(const Query &query,
                                    std::vector<std::vector<unsigned char>> &values) {
   Assignment assignment(objects, values, true);
   if (evalModel(query, assignment)) {
+    ++stats::smallModelStripHits;
     return true;
   }
 
@@ -792,6 +799,7 @@ bool SmallModelSolver::adjustModel(const Query &query,
     duplicateModel(query, assignment);
     if (evalModel(query, assignment)) {
       fillValues(assignment, objects, values);
+      ++stats::smallModelDuplicateHits;
       return true;
     }
   }
@@ -806,6 +814,7 @@ bool SmallModelSolver::adjustModel(const Query &query,
     }
     if (repaired) {
       fillValues(adjusted, objects, values);
+      ++stats::smallModelRepairHits;
       return true;
     }
   }
@@ -901,6 +910,7 @@ bool SmallModelSolver::computeInitialValuesUsingSmallModel(const Query &query,
     }
     hasSolution = true;
   } else {
+    ++stats::smallModelStripHits;
     hasSolution = false;
   }
 
