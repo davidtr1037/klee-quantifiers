@@ -144,17 +144,16 @@ public:
                            ref<Expr> &expr);
 
   bool repairModel(const Query &query,
-                   const Query &smQuery,
+                   const Query &stripped,
                    const Assignment &assignment,
                    Assignment &adjusted);
 
   bool repairModelLocal(const Query &query,
-                        const Query &smQuery,
                         const Assignment &assignment,
                         Assignment &adjusted);
 
   bool adjustModel(const Query &query,
-                   const Query &smQuery,
+                   const Query &stripped,
                    const std::vector<const Array *> &objects,
                    std::vector<std::vector<unsigned char>> &values);
 
