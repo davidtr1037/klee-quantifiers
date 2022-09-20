@@ -37,15 +37,15 @@ cl::opt<bool> GenerateLemmasForSmallModel(
   cl::cat(SolvingCat)
 );
 
-cl::opt<bool> DuplicateSmallModel(
-  "duplicate-small-model",
+cl::opt<bool> DuplicateModel(
+  "duplicate-model",
   cl::init(false),
   cl::desc(""),
   cl::cat(SolvingCat)
 );
 
-cl::opt<bool> AdjustForConflicts(
-  "adjust-for-conflicts",
+cl::opt<bool> RepairModel(
+  "repair-model",
   cl::init(false),
   cl::desc(""),
   cl::cat(SolvingCat)
@@ -795,7 +795,7 @@ bool SmallModelSolver::adjustModel(const Query &query,
     return true;
   }
 
-  if (DuplicateSmallModel) {
+  if (DuplicateModel) {
     duplicateModel(query, assignment);
     if (evalModel(query, assignment)) {
       fillValues(assignment, objects, values);
@@ -804,7 +804,7 @@ bool SmallModelSolver::adjustModel(const Query &query,
     }
   }
 
-  if (AdjustForConflicts) {
+  if (RepairModel) {
     Assignment adjusted;
     bool repaired;
     if (UseLocalRepair) {
