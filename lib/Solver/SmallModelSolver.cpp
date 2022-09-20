@@ -30,8 +30,8 @@ cl::opt<bool> AddBoundConstraints(
   cl::cat(SolvingCat)
 );
 
-cl::opt<bool> GenerateLemmasForSmallModel(
-  "generate-lemmas-for-small-model",
+cl::opt<bool> GenerateEMatchingConstraints(
+  "generate-ematching-constraints",
   cl::init(false),
   cl::desc(""),
   cl::cat(SolvingCat)
@@ -860,7 +860,7 @@ bool SmallModelSolver::computeValue(const Query& query,
 
 void SmallModelSolver::buildConstraints(const Query &query,
                                         ConstraintSet &constraints) {
-  if (GenerateLemmasForSmallModel) {
+  if (GenerateEMatchingConstraints) {
     for (ref<Expr> e : query.constraints) {
       if (isa<ForallExpr>(e)) {
         ref<ForallExpr> f = dyn_cast<ForallExpr>(e);
