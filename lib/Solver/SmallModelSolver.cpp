@@ -16,8 +16,8 @@
 using namespace llvm;
 using namespace klee;
 
-cl::opt<bool> ValidateSmallModel(
-  "validate-small-model",
+cl::opt<bool> ValidateModel(
+  "validate-model",
   cl::init(false),
   cl::desc(""),
   cl::cat(SolvingCat)
@@ -952,7 +952,7 @@ bool SmallModelSolver::computeInitialValues(const Query& query,
                                                      values,
                                                      hasSolution);
   if (success) {
-    if (ValidateSmallModel) {
+    if (ValidateModel) {
       validate(query, objects, hasSolution);
     }
     ++stats::smallModelHits;
@@ -973,7 +973,7 @@ bool SmallModelSolver::computeInitialValues(const Query& query,
                                                  objects,
                                                  values,
                                                  hasSolution);
-    if (ValidateSmallModel) {
+    if (ValidateModel) {
       validate(query, objects, hasSolution);
     }
   } else {
