@@ -4610,6 +4610,7 @@ void Executor::dumpStates() {
   ::dumpStates = 0;
 }
 
+/* TODO: call addConstraint outside of this function */
 size_t Executor::getCapacity(ExecutionState &state, ref<Expr> size) {
   size_t capacity = Capacity;
   Solver::Validity result = Solver::False;
