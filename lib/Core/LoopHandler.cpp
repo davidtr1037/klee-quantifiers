@@ -27,80 +27,80 @@ cl::opt<bool> UseLoopMerge(
     "use-loop-merge",
     cl::init(false),
     cl::desc(""),
-    cl::cat(klee::LoopCat));
+    cl::cat(LoopCat));
 
 cl::opt<bool> StartLoopMergeOnBranch(
     "start-loop-merge-on-branch",
     cl::init(false),
     cl::desc(""),
-    cl::cat(klee::LoopCat));
+    cl::cat(LoopCat));
 
 cl::opt<bool> UseOptimizedMerge(
     "use-optimized-merge",
     cl::init(true),
     cl::desc(""),
-    cl::cat(klee::LoopCat));
+    cl::cat(LoopCat));
 
 cl::opt<bool> ValidateMerge(
     "validate-merge",
     cl::init(false),
     cl::desc(""),
-    cl::cat(klee::LoopCat));
+    cl::cat(LoopCat));
 
 cl::opt<unsigned> MaxStatesToMerge(
     "max-states-to-merge",
     cl::init(10000),
     cl::desc(""),
-    cl::cat(klee::LoopCat));
+    cl::cat(LoopCat));
 
 cl::opt<bool> SplitByPattern(
     "split-by-pattern",
     cl::init(false),
     cl::desc(""),
-    cl::cat(klee::LoopCat));
+    cl::cat(LoopCat));
 
 cl::opt<bool> SplitByCFG(
     "split-by-cfg",
     cl::init(false),
     cl::desc(""),
-    cl::cat(klee::LoopCat));
+    cl::cat(LoopCat));
 
 
 cl::opt<bool> UseForwardExtract(
     "use-forward-extract",
     cl::init(false),
     cl::desc(""),
-    cl::cat(klee::LoopCat));
+    cl::cat(LoopCat));
 
 cl::opt<bool> UseMergeTransformation(
     "use-merge-transformation",
     cl::init(false),
     cl::desc(""),
-    cl::cat(klee::LoopCat));
+    cl::cat(LoopCat));
 
 cl::opt<bool> UseJoinTransformation(
     "use-join-transformation",
     cl::init(false),
     cl::desc(""),
-    cl::cat(klee::LoopCat));
+    cl::cat(LoopCat));
 
 cl::opt<bool> DebugMergeTransformation(
     "debug-merge-transformation",
     cl::init(false),
     cl::desc(""),
-    cl::cat(klee::LoopCat));
+    cl::cat(LoopCat));
 
 cl::opt<bool> RestrictPatternBaseMerging(
     "restrict-pattern-based-merging",
     cl::init(false),
     cl::desc(""),
-    cl::cat(klee::LoopCat));
+    cl::cat(LoopCat));
 
 cl::opt<bool> ForcePatternBasedMerging(
     "force-pattern-based-merging",
     cl::init(false),
     cl::desc(""),
-    cl::cat(klee::LoopCat));
+    cl::cat(LoopCat));
 
 cl::list<string> ForceCFGBasedMerging("force-cfg-based-merging", cl::desc(""), cl::CommaSeparated);
 
@@ -108,14 +108,14 @@ cl::opt<unsigned> MaxPatterns(
     "max-patterns",
     cl::init(10),
     cl::desc(""),
-    cl::cat(klee::LoopCat));
+    cl::cat(LoopCat));
 
 /* TODO: free memory */
 static TimingSolver *validationSolver = nullptr;
 
 static TimingSolver *getValidationSolver() {
   if (!validationSolver) {
-    Solver *solver = klee::createCoreSolver(Z3_SOLVER);
+    Solver *solver = createCoreSolver(Z3_SOLVER);
     solver = createAssignmentValidatingSolver(solver);
     solver = createCexCachingSolver(solver);
     solver = createCachingSolver(solver);
