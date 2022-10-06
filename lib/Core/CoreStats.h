@@ -52,6 +52,7 @@ namespace stats {
   extern Statistic mergedConstraintsSize;
   extern Statistic encodedUsingQFABV;
   extern Statistic encodedUsingABV;
+  extern Statistic encodedUsingITE;
 }
 }
 

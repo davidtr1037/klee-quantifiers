@@ -4830,6 +4830,7 @@ void Executor::dumpMergeStats() {
   klee_message("Merged constraints size: %lu", (uint64_t)(stats::mergedConstraintsSize));
   klee_message("Encoded with QFABV: %lu", (uint64_t)(stats::encodedUsingQFABV));
   klee_message("Encoded with ABV: %lu", (uint64_t)(stats::encodedUsingABV));
+  klee_message("Encoded with ITE: %lu", (uint64_t)(stats::encodedUsingITE));
   uint64_t total = 0;
   for (auto i : mergeStats) {
     total += i.second;

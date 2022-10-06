@@ -290,7 +290,8 @@ public:
                          LoopHandler *loopHandler,
                          PatternMatch *pm,
                          bool dryMode,
-                         bool *usedAuxVariables);
+                         bool *usedAuxVariables,
+                         bool *usedITE);
 
   /* TODO: too many parameters */
   static void mergeHeap(ExecutionState *merged,
@@ -300,7 +301,8 @@ public:
                         LoopHandler *loopHandler,
                         PatternMatch *pm,
                         bool dryMode,
-                        bool *usedAuxVariables);
+                        bool *usedAuxVariables,
+                        bool *usedITE);
 
   static ref<Expr> mergeValues(const std::vector<ref<Expr>> &suffixes,
                                const std::vector<ref<Expr>> &values);

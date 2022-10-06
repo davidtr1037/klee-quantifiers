@@ -642,6 +642,8 @@ ExecutionState *ExecutionState::mergeStatesOptimized(std::vector<ExecutionState 
     klee_message("merged constraint size: %lu", mergedConstraint->size);
   }
 
+  bool usedITE = false;
+
   /* local vars */
   mergeStack(merged,
              states,
@@ -649,7 +651,8 @@ ExecutionState *ExecutionState::mergeStatesOptimized(std::vector<ExecutionState 
              loopHandler,
              isEncodedUsingABV ? match : nullptr,
              false,
-             nullptr);
+             nullptr,
+             &usedITE);
 
   /* heap */
   mergeHeap(merged,
@@ -659,7 +662,8 @@ ExecutionState *ExecutionState::mergeStatesOptimized(std::vector<ExecutionState 
             loopHandler,
             isEncodedUsingABV ? match : nullptr,
             false,
-            nullptr);
+            nullptr,
+            &usedITE);
 
   if (OptimizeArrayValuesUsingITERewrite) {
     merged->optimizeArrayValues(mutated, loopHandler->solver);
@@ -669,6 +673,10 @@ ExecutionState *ExecutionState::mergeStatesOptimized(std::vector<ExecutionState 
     ++stats::encodedUsingABV;
   } else {
     ++stats::encodedUsingQFABV;
+  }
+
+  if (usedITE) {
+    ++stats::encodedUsingITE;
   }
 
   return merged;
@@ -737,7 +745,8 @@ void ExecutionState::mergeStack(ExecutionState *merged,
                                 LoopHandler *loopHandler,
                                 PatternMatch *pm,
                                 bool dryMode,
-                                bool *usedAuxVariables) {
+                                bool *usedAuxVariables,
+                                bool *usedITE) {
   if (usedAuxVariables) {
     *usedAuxVariables = false;
   }
@@ -780,15 +789,26 @@ void ExecutionState::mergeStack(ExecutionState *merged,
         v = mergeValues(suffixes, values);
       }
 
-      if (pm && isa<SelectExpr>(v)) {
-        ref<Expr> e = mergeValuesUsingPattern(valuesMap,
-                                              loopHandler,
-                                              *pm,
-                                              merged->getMergeID());
-        if (!e.isNull()) {
-          v = e;
-          if (usedAuxVariables && !(*usedAuxVariables) && isLiveRegAt(result, sf.kf, merged->pc, reg)) {
-            *usedAuxVariables = true;
+      if (isa<SelectExpr>(v)) {
+        if (pm) {
+          ref<Expr> e = mergeValuesUsingPattern(valuesMap,
+                                                loopHandler,
+                                                *pm,
+                                                merged->getMergeID());
+          if (!e.isNull()) {
+            v = e;
+            if (usedAuxVariables && !(*usedAuxVariables) && isLiveRegAt(result, sf.kf, merged->pc, reg)) {
+              *usedAuxVariables = true;
+            }
+          } else {
+            if (usedITE) {
+              /* TODO: check liveness */
+              *usedITE = true;
+            }
+          }
+        } else {
+          if (usedITE) {
+            *usedITE = true;
           }
         }
       }
@@ -808,7 +828,8 @@ void ExecutionState::mergeHeap(ExecutionState *merged,
                                LoopHandler *loopHandler,
                                PatternMatch *pm,
                                bool dryMode,
-                               bool *usedAuxVariables) {
+                               bool *usedAuxVariables,
+                               bool *usedITE) {
   if (usedAuxVariables) {
     *usedAuxVariables = false;
   }
@@ -881,15 +902,25 @@ void ExecutionState::mergeHeap(ExecutionState *merged,
           v = mergeValues(neededSuffixes, values);
         }
 
-        if (pm && isa<SelectExpr>(v)) {
-          ref<Expr> e = mergeValuesUsingPattern(valuesMap,
-                                                loopHandler,
-                                                *pm,
-                                                merged->getMergeID());
-          if (!e.isNull()) {
-            v = e;
-            if (usedAuxVariables) {
-              *usedAuxVariables = true;
+        if (isa<SelectExpr>(v)) {
+          if (pm) {
+            ref<Expr> e = mergeValuesUsingPattern(valuesMap,
+                                                  loopHandler,
+                                                  *pm,
+                                                  merged->getMergeID());
+            if (!e.isNull()) {
+              v = e;
+              if (usedAuxVariables) {
+                *usedAuxVariables = true;
+              }
+            } else {
+              if (usedITE) {
+                *usedITE = true;
+              }
+            }
+          } else {
+            if (usedITE) {
+              *usedITE = true;
             }
           }
         }
@@ -1363,7 +1394,8 @@ bool ExecutionState::isUsingAuxVariablesForMemoryMerging(std::vector<ExecutionSt
              loopHandler,
              &pm,
              true,
-             &usedAuxVariables);
+             &usedAuxVariables,
+             nullptr);
   if (usedAuxVariables) {
     return true;
   }
@@ -1375,7 +1407,8 @@ bool ExecutionState::isUsingAuxVariablesForMemoryMerging(std::vector<ExecutionSt
             loopHandler,
             &pm,
             true,
-            &usedAuxVariables);
+            &usedAuxVariables,
+            nullptr);
 
   return usedAuxVariables;
 }

@@ -32,3 +32,4 @@ Statistic stats::mergedValuesSize("MergedValues", "MV");
 Statistic stats::mergedConstraintsSize("MergedConstraints", "MC");
 Statistic stats::encodedUsingQFABV("QFABV", "QFABV");
 Statistic stats::encodedUsingABV("ABV", "ABV");
+Statistic stats::encodedUsingITE("ITE", "ITE");
