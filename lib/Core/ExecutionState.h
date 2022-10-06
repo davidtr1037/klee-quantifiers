@@ -276,10 +276,9 @@ public:
   static ExecutionState *mergeStates(std::vector<ExecutionState *> &states);
 
   static ExecutionState *mergeStatesOptimized(std::vector<ExecutionState *> &states,
+                                              LoopHandler *loopHandler,
                                               bool isComplete,
-                                              bool usePattern,
-                                              std::vector<PatternMatch> &matches,
-                                              LoopHandler *loopHandler);
+                                              PatternMatch *match);
 
   static bool canMerge(std::vector<ExecutionState *> &states,
                        std::set<const MemoryObject*> &mutated);
@@ -289,10 +288,9 @@ public:
                          std::vector<ExecutionState *> &states,
                          const std::vector<ref<Expr>> &suffixes,
                          LoopHandler *loopHandler,
-                         bool isEncodedWithABV,
-                         PatternMatch &pm,
+                         PatternMatch *pm,
                          bool dryMode,
-                         bool &usedAuxVariables);
+                         bool *usedAuxVariables);
 
   /* TODO: too many parameters */
   static void mergeHeap(ExecutionState *merged,
@@ -300,10 +298,9 @@ public:
                         const std::vector<ref<Expr>> &suffixes,
                         const std::set<const MemoryObject*> &mutated,
                         LoopHandler *loopHandler,
-                        bool isEncodedWithABV,
-                        PatternMatch &pm,
+                        PatternMatch *pm,
                         bool dryMode,
-                        bool &usedAuxVariables);
+                        bool *usedAuxVariables);
 
   static ref<Expr> mergeValues(const std::vector<ref<Expr>> &suffixes,
                                const std::vector<ref<Expr>> &values);

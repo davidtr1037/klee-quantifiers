@@ -30,5 +30,5 @@ Statistic stats::trueBranches("TrueBranches", "Bt");
 Statistic stats::uncoveredInstructions("UncoveredInstructions", "Iuncov");
 Statistic stats::mergedValuesSize("MergedValues", "MV");
 Statistic stats::mergedConstraintsSize("MergedConstraints", "MC");
-Statistic stats::encodedWithQFABV("QFABV", "QFABV");
-Statistic stats::encodedWithABV("ABV", "ABV");
+Statistic stats::encodedUsingQFABV("QFABV", "QFABV");
+Statistic stats::encodedUsingABV("ABV", "ABV");

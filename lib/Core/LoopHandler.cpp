@@ -457,12 +457,11 @@ ExecutionState *LoopHandler::mergeSubGroup(MergeSubGroupInfo &info,
     return ExecutionState::mergeStates(states);
   }
 
-  bool usePattern = OptimizeUsingQuantifiers && !matches.empty();
+  PatternMatch *match = matches.empty() ? nullptr : &matches[0];
   return ExecutionState::mergeStatesOptimized(states,
+                                              this,
                                               isComplete,
-                                              usePattern,
-                                              matches,
-                                              this);
+                                              match);
 }
 
 ExecutionState *LoopHandler::mergeGroup(MergeGroupInfo &groupInfo,
