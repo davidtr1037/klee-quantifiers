@@ -90,12 +90,6 @@ cl::opt<bool> DebugMergeTransformation(
     cl::desc(""),
     cl::cat(LoopCat));
 
-cl::opt<bool> RestrictPatternBaseMerging(
-    "restrict-pattern-based-merging",
-    cl::init(false),
-    cl::desc(""),
-    cl::cat(LoopCat));
-
 cl::opt<bool> ForcePatternBasedMerging(
     "force-pattern-based-merging",
     cl::init(false),
