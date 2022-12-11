@@ -62,8 +62,8 @@ cl::opt<bool> OptimizeArrayValuesUsingSolver(
     cl::cat(MergeCat));
 }
 
-cl::opt<bool> klee::OptimizeITEUsingExecTree(
-    "optimize-ite-using-exec-tree", cl::init(false),
+cl::opt<bool> klee::OptimizeUsingExecTree(
+    "optimize-using-exec-tree", cl::init(false),
     cl::desc(""),
     cl::cat(MergeCat));
 
@@ -630,7 +630,7 @@ ExecutionState *ExecutionState::mergeStatesOptimized(std::vector<ExecutionState 
       }
     }
     if (mergedConstraint.isNull()) {
-      if (OptimizeITEUsingExecTree && loopHandler->canUseExecTree) {
+      if (OptimizeUsingExecTree && loopHandler->canUseExecTree) {
         mergedConstraint = mergeConstraintsWithExecTree(loopHandler, states);
       } else {
         mergedConstraint = mergeConstraints(states);
@@ -783,7 +783,7 @@ void ExecutionState::mergeStack(ExecutionState *merged,
       }
 
       ref<Expr> v;
-      if (OptimizeITEUsingExecTree && loopHandler->canUseExecTree) {
+      if (OptimizeUsingExecTree && loopHandler->canUseExecTree) {
         v = mergeValuesUsingExecTree(valuesMap, loopHandler);
       } else {
         v = mergeValues(suffixes, values);
@@ -896,7 +896,7 @@ void ExecutionState::mergeHeap(ExecutionState *merged,
 
       if (!values.empty()) {
         ref<Expr> v;
-        if (OptimizeITEUsingExecTree && loopHandler->canUseExecTree) {
+        if (OptimizeUsingExecTree && loopHandler->canUseExecTree) {
           v = mergeValuesUsingExecTree(valuesMap, loopHandler);
         } else {
           v = mergeValues(neededSuffixes, values);

@@ -42,7 +42,7 @@ class MemoryObject;
 class PTreeNode;
 struct InstructionInfo;
 
-extern llvm::cl::opt<bool> OptimizeITEUsingExecTree;
+extern llvm::cl::opt<bool> OptimizeUsingExecTree;
 extern llvm::cl::opt<bool> OptimizeArrayValuesByTracking;
 extern llvm::cl::opt<bool> OptimizeUsingQuantifiers;
 extern llvm::cl::opt<bool> CreateSnapshots;

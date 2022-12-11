@@ -130,31 +130,41 @@ void ExecTree::setRight(ExecTreeNode *parent,
 }
 
 void ExecTree::extend(ExecutionState &current,
-                      ExecutionState &trueState,
-                      ExecutionState *trueSnapshot,
-                      ExecutionState &falseState,
-                      ExecutionState *falseSnapshot,
+                      ExecutionState *trueState,
+                      ExecutionState *falseState,
                       ref<Expr> condition,
                       std::uint32_t salt) {
-  ExecTreeNode *left = new ExecTreeNode(falseState.getID(),
-                                        Expr::createIsZero(condition),
-                                        falseSnapshot,
-                                        falseState.ptreeNode,
-                                        salt);
-  ExecTreeNode *right = new ExecTreeNode(trueState.getID(),
-                                         condition,
-                                         trueSnapshot,
-                                         trueState.ptreeNode,
-                                         salt);
+  assert(trueState || falseState);
+  ExecTreeNode *left = nullptr, *right = nullptr;
+
+  if (falseState) {
+    left = new ExecTreeNode(falseState->getID(),
+                            Expr::createIsZero(condition),
+                            nullptr,
+                            falseState->ptreeNode,
+                            salt);
+  }
+
+  if (trueState) {
+    right = new ExecTreeNode(trueState->getID(),
+                             condition,
+                             nullptr,
+                             trueState->ptreeNode,
+                             salt);
+  }
 
   for (ExecTreeNode *node : nodes) {
     if (node->stateID == current.getID() && node->isLeaf()) {
-      node->left = left;
-      node->right = right;
-      left->parent = node;
-      right->parent = node;
-      addNode(left);
-      addNode(right);
+      if (left) {
+        node->left = left;
+        left->parent = node;
+        addNode(left);
+      }
+      if (right) {
+        node->right = right;
+        right->parent = node;
+        addNode(right);
+      }
       return;
     }
   }

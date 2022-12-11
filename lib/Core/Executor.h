@@ -526,6 +526,8 @@ private:
 
   void takeSnapshotIfNeeded(ExecutionState &state, KInstruction *ki);
 
+  bool shouldExtendExecTree(ExecutionState &state);
+
 public:
   Executor(llvm::LLVMContext &ctx, const InterpreterOptions &opts,
       InterpreterHandler *ie);

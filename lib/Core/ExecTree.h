@@ -103,10 +103,8 @@ public:
   std::uint32_t getNodeHash(ExecTreeNode *node) const;
 
   void extend(ExecutionState &current,
-              ExecutionState &trueState,
-              ExecutionState *trueSnapshot,
-              ExecutionState &falseState,
-              ExecutionState *falseSnapshot,
+              ExecutionState *trueState,
+              ExecutionState *falseState,
               ref<Expr> condition,
               std::uint32_t salt);
 

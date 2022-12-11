@@ -428,6 +428,7 @@ cl::opt<bool> PartitionLargeObjects("partition-large-objects", cl::init(false), 
 cl::opt<unsigned> MaxPartitionSize("max-partition-size", cl::init(100), cl::desc(""));
 cl::opt<unsigned> TerminateStatesOnMemoryLimit("terminate-states-on-memory-limit", cl::init(true), cl::desc(""));
 cl::opt<bool> ExtendExecTreeOnSwitch("extend-exec-tree-on-switch", cl::init(false), cl::desc(""));
+cl::opt<bool> ExtendExecTreeOnSymbolicBranch("extend-exec-tree-on-symbolic-branch", cl::init(false), cl::desc(""));
 cl::opt<bool> RewriteSwitchConditions("rewrite-switch-conditions", cl::init(true), cl::desc(""));
 
 enum SymSizeModes {
@@ -1126,20 +1127,18 @@ void Executor::branch(ExecutionState &state,
     if (result[i])
       addConstraint(*result[i], conditions[i]);
 
-  if (UseLoopMerge && !state.loopHandler.isNull()) {
-    if (OptimizeITEUsingExecTree) {
-      if (ExtendExecTreeOnSwitch && N == 2 && state.loopHandler->canUseExecTree) {
+  if (shouldExtendExecTree(state)) {
+    if (N > 2 || (N == 2 && !ExtendExecTreeOnSwitch)) {
+      klee_warning("unsupported execution tree extension: %s:%u",
+                   state.prevPC->info->file.data(),
+                   state.prevPC->info->line);
+      for (unsigned i = 0; i < N; ++i) {
+        ExecutionState *es = result[i];
+        es->loopHandler->canUseExecTree = false;
+      }
+    } else {
+      if (N > 1) {
         extendExecTree(state, conditions[0], result[0], result[1]);
-      } else {
-        if (state.loopHandler->canUseExecTree && N > 2) {
-          klee_warning("unsupported execution tree extension: %s:%u",
-                       state.prevPC->info->file.data(),
-                       state.prevPC->info->line);
-          for (unsigned i = 0; i < N; ++i) {
-            ExecutionState *es = result[i];
-            es->loopHandler->canUseExecTree = false;
-          }
-        }
       }
     }
   }
@@ -1287,12 +1286,22 @@ Executor::fork(ExecutionState &current, ref<Expr> condition, bool isInternal) {
       }
     }
 
+    if (shouldExtendExecTree(current) && \
+        ExtendExecTreeOnSymbolicBranch && !isa<ConstantExpr>(condition)) {
+      extendExecTree(current, condition, &current, nullptr);
+    }
+
     return StatePair(&current, 0);
   } else if (res==Solver::False) {
     if (!isInternal) {
       if (pathWriter) {
         current.pathOS << "0";
       }
+    }
+
+    if (shouldExtendExecTree(current) && \
+        ExtendExecTreeOnSymbolicBranch && !isa<ConstantExpr>(condition)) {
+      extendExecTree(current, condition, nullptr, &current);
     }
 
     return StatePair(0, &current);
@@ -1367,13 +1376,8 @@ Executor::fork(ExecutionState &current, ref<Expr> condition, bool isInternal) {
     addConstraint(*trueState, condition);
     addConstraint(*falseState, Expr::createIsZero(condition));
 
-    /* TODO: add a function for this check */
-    if (UseLoopMerge && !current.loopHandler.isNull()) {
-      if (OptimizeITEUsingExecTree) {
-        if (current.loopHandler->canUseExecTree) {
-          extendExecTree(current, condition, trueState, falseState);
-        }
-      }
+    if (shouldExtendExecTree(current)) {
+      extendExecTree(current, condition, trueState, falseState);
     }
 
     // Kinda gross, do we even really still want this option?
@@ -4798,19 +4802,21 @@ void Executor::extendExecTree(ExecutionState &state,
                               ref<Expr> condition,
                               ExecutionState *trueState,
                               ExecutionState *falseState) {
-  assert(trueState && falseState);
+  assert(trueState || falseState);
 
   state.loopHandler->tree.extend(state,
-                                 *trueState,
-                                 nullptr,
-                                 *falseState,
-                                 nullptr,
+                                 trueState,
+                                 falseState,
                                  condition,
                                  state.prevPC->info->id);
 
   /* TODO: add docs */
-  trueState->hasPendingSnapshot = true;
-  falseState->hasPendingSnapshot = true;
+  if (trueState) {
+    trueState->hasPendingSnapshot = true;
+  }
+  if (falseState) {
+    falseState->hasPendingSnapshot = true;
+  }
 }
 
 void Executor::collectMergeStats(ExecutionState &state) {
@@ -4963,6 +4969,13 @@ void Executor::takeSnapshotIfNeeded(ExecutionState &state,
     state.loopHandler->tree.addSnapshot(state, snapshot);
     state.loopHandler->shouldTransform = true;
   }
+}
+
+bool Executor::shouldExtendExecTree(ExecutionState &state) {
+  return UseLoopMerge && \
+         OptimizeUsingExecTree && \
+         !state.loopHandler.isNull() && \
+         state.loopHandler->canUseExecTree;
 }
 
 ///
