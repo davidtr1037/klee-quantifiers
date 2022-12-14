@@ -580,7 +580,7 @@ ExecutionState *ExecutionState::mergeStates(std::vector<ExecutionState *> &state
 /* TODO: pass the merge identifier? */
 ExecutionState *ExecutionState::mergeStatesOptimized(std::vector<ExecutionState *> &states,
                                                      LoopHandler *loopHandler,
-                                                     bool isComplete,
+                                                     bool simplifyMergedConstraint,
                                                      PatternMatch *match) {
   std::set<const MemoryObject*> mutated;
   if (!canMerge(states, mutated)) {
@@ -616,7 +616,7 @@ ExecutionState *ExecutionState::mergeStatesOptimized(std::vector<ExecutionState 
   }
 
   bool isEncodedUsingABV = false;
-  if (!isComplete) {
+  if (!simplifyMergedConstraint) {
     ref<Expr> mergedConstraint = nullptr;
     if (match) {
       mergedConstraint = generateQuantifiedConstraint(*match,

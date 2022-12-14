@@ -104,6 +104,12 @@ cl::opt<unsigned> MaxPatterns(
     cl::desc(""),
     cl::cat(LoopCat));
 
+cl::opt<bool> SimplifyMergedConstraintOnSinglePattern(
+    "simplify-merged-constraint-on-single-pattern",
+    cl::init(false),
+    cl::desc(""),
+    cl::cat(LoopCat));
+
 /* TODO: free memory */
 static TimingSolver *validationSolver = nullptr;
 
@@ -452,9 +458,15 @@ ExecutionState *LoopHandler::mergeSubGroup(MergeSubGroupInfo &info,
   }
 
   PatternMatch *match = matches.empty() ? nullptr : &matches[0];
+  /* simplify the merged constraint only when:
+   * - there is a single merging group
+   * - pattern-based state merging is not used */
+  bool simplifyMergedConstraint = \
+      isComplete && \
+      (SimplifyMergedConstraintOnSinglePattern || !match);
   return ExecutionState::mergeStatesOptimized(states,
                                               this,
-                                              isComplete,
+                                              simplifyMergedConstraint,
                                               match);
 }
 

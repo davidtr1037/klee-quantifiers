@@ -277,7 +277,7 @@ public:
 
   static ExecutionState *mergeStatesOptimized(std::vector<ExecutionState *> &states,
                                               LoopHandler *loopHandler,
-                                              bool isComplete,
+                                              bool simplifyMergedConstraint,
                                               PatternMatch *match);
 
   static bool canMerge(std::vector<ExecutionState *> &states,
