@@ -339,108 +339,109 @@ void LoopHandler::splitStatesByCFG(vector<MergeGroupInfo> &result) {
 }
 
 void LoopHandler::splitStates(vector<MergeGroupInfo> &result) {
-  if (SplitByPattern && !shouldForceCFGBasedMerging()) {
-    map<uint32_t, ExecutionState *> m;
-    for (const auto &i: mergeGroupsByExit) {
-      const StateSet &states = i.second;
-      for (ExecutionState *es : states) {
-        m[es->getID()] = es;
-      }
+  if (!SplitByPattern || shouldForceCFGBasedMerging()) {
+    splitStatesByCFG(result);
+    return;
+  }
+
+  map<uint32_t, ExecutionState *> m;
+  for (const auto &i: mergeGroupsByExit) {
+    const StateSet &states = i.second;
+    for (ExecutionState *es : states) {
+      m[es->getID()] = es;
     }
+  }
 
-    std::unordered_map<LoopExit, vector<PatternMatch>, LoopExitHash> matchesByExit;
+  std::unordered_map<LoopExit, vector<PatternMatch>, LoopExitHash> matchesByExit;
 
-    bool shouldFallback = true;
-    assert(!hashCallbacks.empty());
-    for (HashCallback hashCallback : hashCallbacks) {
-      /* set node hashing function */
-      tree.setHashCallback(hashCallback);
+  bool shouldFallback = true;
+  assert(!hashCallbacks.empty());
+  for (HashCallback hashCallback : hashCallbacks) {
+    /* set node hashing function */
+    tree.setHashCallback(hashCallback);
 
-      bool extractSucceeded = false;
-      unsigned totalMatches = 0;
-
-      for (const auto &i: mergeGroupsByExit) {
-        const LoopExit &loopExit = i.first;
-        const StateSet &states = i.second;
-
-        set<uint32_t> ids;
-        for (ExecutionState *es : states) {
-          ids.insert(es->getID());
-        }
-
-        vector<PatternMatch> matches;
-        extractSucceeded = extractPatterns(ids, matches);
-        if (!extractSucceeded) {
-          break;
-        }
-
-        /* must be non-empty */
-        assert(!matches.empty());
-        matchesByExit[loopExit] = matches;
-        totalMatches += matches.size();
-      }
-
-      if (extractSucceeded) {
-         if (totalMatches <= MaxPatterns) {
-           shouldFallback = false;
-           break;
-         }
-      } else {
-        klee_message("pattern extraction failed");
-      }
-    }
-
-    if (shouldFallback) {
-      klee_message("fallback to CFG-based state merging");
-      splitStatesByCFG(result);
-      return;
-    }
+    bool extractSucceeded = false;
+    unsigned totalMatches = 0;
 
     for (const auto &i: mergeGroupsByExit) {
       const LoopExit &loopExit = i.first;
       const StateSet &states = i.second;
 
-      assert(matchesByExit.find(loopExit) != matchesByExit.end());
-      vector<PatternMatch> &matches = matchesByExit[loopExit];
-
-      vector<StateSet> matchedStates(matches.size());
-      for (unsigned i = 0; i < matches.size(); i++) {
-        PatternMatch &pm = matches[i];
-        for (StateMatch &sm : pm.matches) {
-          auto j = m.find(sm.stateID);
-          assert(j != m.end());
-          matchedStates[i].push_back(j->second);
-        }
+      set<uint32_t> ids;
+      for (ExecutionState *es : states) {
+        ids.insert(es->getID());
       }
 
-      /* TODO: enable not only when there is one exit? */
-      if (mergeGroupsByExit.size() == 1 && !shouldUsePatternBasedMerging(matches, matchedStates)) {
-        klee_message("pattern-based merging might be inefficient");
-        MergeGroupInfo groupInfo({MergeSubGroupInfo(states)});
-        result.push_back(groupInfo);
-        return;
+      vector<PatternMatch> matches;
+      extractSucceeded = extractPatterns(ids, matches);
+      if (!extractSucceeded) {
+        break;
       }
 
-      if (SplitByCFG) {
-        std::vector<MergeSubGroupInfo> subGroups;
-        for (unsigned i = 0; i < matches.size(); i++) {
-          PatternMatch &pm = matches[i];
-          StateSet &states = matchedStates[i];
-          subGroups.push_back(MergeSubGroupInfo(states, {pm}));
-        }
-        MergeGroupInfo groupInfo(subGroups);
-        result.push_back(groupInfo);
-      } else {
-        for (unsigned i = 0; i < matches.size(); i++) {
-          PatternMatch &pm = matches[i];
-          StateSet &states = matchedStates[i];
-          MergeGroupInfo groupInfo({MergeSubGroupInfo(states, {pm})});
-          result.push_back(groupInfo);
-        }
+      /* must be non-empty */
+      assert(!matches.empty());
+      matchesByExit[loopExit] = matches;
+      totalMatches += matches.size();
+    }
+
+    if (extractSucceeded) {
+       if (totalMatches <= MaxPatterns) {
+         shouldFallback = false;
+         break;
+       }
+    } else {
+      klee_message("pattern extraction failed");
+    }
+  }
+
+  if (shouldFallback) {
+    klee_message("fallback to CFG-based state merging");
+    splitStatesByCFG(result);
+    return;
+  }
+
+  for (const auto &i: mergeGroupsByExit) {
+    const LoopExit &loopExit = i.first;
+    const StateSet &states = i.second;
+
+    assert(matchesByExit.find(loopExit) != matchesByExit.end());
+    vector<PatternMatch> &matches = matchesByExit[loopExit];
+
+    vector<StateSet> matchedStates(matches.size());
+    for (unsigned i = 0; i < matches.size(); i++) {
+      PatternMatch &pm = matches[i];
+      for (StateMatch &sm : pm.matches) {
+        auto j = m.find(sm.stateID);
+        assert(j != m.end());
+        matchedStates[i].push_back(j->second);
       }
     }
-  } else {
-    splitStatesByCFG(result);
+
+    /* TODO: enable not only when there is one exit? */
+    if (mergeGroupsByExit.size() == 1 && !shouldUsePatternBasedMerging(matches, matchedStates)) {
+      klee_message("pattern-based merging might be inefficient");
+      MergeGroupInfo groupInfo({MergeSubGroupInfo(states)});
+      result.push_back(groupInfo);
+      return;
+    }
+
+    if (SplitByCFG) {
+      std::vector<MergeSubGroupInfo> subGroups;
+      for (unsigned i = 0; i < matches.size(); i++) {
+        PatternMatch &pm = matches[i];
+        StateSet &states = matchedStates[i];
+        subGroups.push_back(MergeSubGroupInfo(states, {pm}));
+      }
+      MergeGroupInfo groupInfo(subGroups);
+      result.push_back(groupInfo);
+    } else {
+      for (unsigned i = 0; i < matches.size(); i++) {
+        PatternMatch &pm = matches[i];
+        StateSet &states = matchedStates[i];
+        MergeGroupInfo groupInfo({MergeSubGroupInfo(states, {pm})});
+        result.push_back(groupInfo);
+      }
+    }
   }
 }
 
