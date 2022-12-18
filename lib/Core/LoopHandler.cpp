@@ -59,13 +59,6 @@ cl::opt<bool> SplitByPattern(
     cl::desc(""),
     cl::cat(LoopCat));
 
-cl::opt<bool> SplitByCFG(
-    "split-by-cfg",
-    cl::init(false),
-    cl::desc(""),
-    cl::cat(LoopCat));
-
-
 cl::opt<bool> UseForwardExtract(
     "use-forward-extract",
     cl::init(false),
@@ -425,22 +418,11 @@ void LoopHandler::splitStates(vector<MergeGroupInfo> &result) {
       return;
     }
 
-    if (SplitByCFG) {
-      std::vector<MergeSubGroupInfo> subGroups;
-      for (unsigned i = 0; i < matches.size(); i++) {
-        PatternMatch &pm = matches[i];
-        StateSet &states = matchedStates[i];
-        subGroups.push_back(MergeSubGroupInfo(states, {pm}));
-      }
-      MergeGroupInfo groupInfo(subGroups);
+    for (unsigned i = 0; i < matches.size(); i++) {
+      PatternMatch &pm = matches[i];
+      StateSet &states = matchedStates[i];
+      MergeGroupInfo groupInfo({MergeSubGroupInfo(states, {pm})});
       result.push_back(groupInfo);
-    } else {
-      for (unsigned i = 0; i < matches.size(); i++) {
-        PatternMatch &pm = matches[i];
-        StateSet &states = matchedStates[i];
-        MergeGroupInfo groupInfo({MergeSubGroupInfo(states, {pm})});
-        result.push_back(groupInfo);
-      }
     }
   }
 }
