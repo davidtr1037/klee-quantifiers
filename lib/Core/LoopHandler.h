@@ -143,6 +143,8 @@ public:
 
   void splitStatesByCFG(std::vector<MergeGroupInfo> &result);
 
+  void splitStatesByPattern(std::vector<MergeGroupInfo> &result);
+
   void splitStates(std::vector<MergeGroupInfo> &result);
 
   ExecutionState *mergeSubGroup(MergeSubGroupInfo &info,

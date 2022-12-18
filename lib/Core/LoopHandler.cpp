@@ -284,12 +284,14 @@ void LoopHandler::addClosedState(ExecutionState *es,
 
 bool LoopHandler::shouldForceCFGBasedMerging() {
   if (!canUseExecTree) {
+    /* TODO: add klee_message? */
     return true;
   }
 
   Function *f = loop->getHeader()->getParent();
   for (const string &name : ForceCFGBasedMerging) {
     if (f->getName() == name) {
+      klee_message("forcing CFG-based merging: disabled %s", f->getName().data());
       return true;
     }
   }
@@ -331,12 +333,7 @@ void LoopHandler::splitStatesByCFG(vector<MergeGroupInfo> &result) {
   }
 }
 
-void LoopHandler::splitStates(vector<MergeGroupInfo> &result) {
-  if (!SplitByPattern || shouldForceCFGBasedMerging()) {
-    splitStatesByCFG(result);
-    return;
-  }
-
+void LoopHandler::splitStatesByPattern(vector<MergeGroupInfo> &result) {
   map<uint32_t, ExecutionState *> m;
   for (const auto &i: mergeGroupsByExit) {
     const StateSet &states = i.second;
@@ -388,7 +385,7 @@ void LoopHandler::splitStates(vector<MergeGroupInfo> &result) {
   }
 
   if (shouldFallback) {
-    klee_message("fallback to CFG-based state merging");
+    klee_message("forcing CFG-based merging: pattern extraction failed");
     splitStatesByCFG(result);
     return;
   }
@@ -412,7 +409,7 @@ void LoopHandler::splitStates(vector<MergeGroupInfo> &result) {
 
     /* TODO: enable not only when there is one exit? */
     if (mergeGroupsByExit.size() == 1 && !shouldUsePatternBasedMerging(matches, matchedStates)) {
-      klee_message("pattern-based merging might be inefficient");
+      klee_message("forcing CFG-based merging: pattern-based merging might be inefficient");
       MergeGroupInfo groupInfo({MergeSubGroupInfo(states)});
       result.push_back(groupInfo);
       return;
@@ -426,6 +423,15 @@ void LoopHandler::splitStates(vector<MergeGroupInfo> &result) {
     }
   }
 }
+
+void LoopHandler::splitStates(vector<MergeGroupInfo> &result) {
+  if (!SplitByPattern || shouldForceCFGBasedMerging()) {
+    splitStatesByCFG(result);
+  } else {
+    splitStatesByPattern(result);
+  }
+}
+
 
 ExecutionState *LoopHandler::mergeSubGroup(MergeSubGroupInfo &info,
                                            bool isComplete) {
