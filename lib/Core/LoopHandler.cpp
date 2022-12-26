@@ -446,7 +446,10 @@ ExecutionState *LoopHandler::mergeSubGroup(MergeSubGroupInfo &info,
     return ExecutionState::mergeStates(states);
   }
 
-  PatternMatch *match = matches.empty() ? nullptr : &matches[0];
+  PatternMatch *match = nullptr;
+  if (OptimizeUsingQuantifiers) {
+    match = matches.empty() ? nullptr : &matches[0];
+  }
   /* simplify the merged constraint only when:
    * - there is a single merging group
    * - pattern-based state merging is not used */
