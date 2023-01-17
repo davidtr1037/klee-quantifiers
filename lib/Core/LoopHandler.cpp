@@ -121,7 +121,6 @@ static TimingSolver *getValidationSolver() {
 /* TODO: add option for non-default hashing functions */
 static vector<HashCallback> hashCallbacks = {
     shapeHashCallback,
-    customHashCallback,
 };
 
 static inline bool hasPHI(BasicBlock *bb) {
