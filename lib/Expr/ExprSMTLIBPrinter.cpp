@@ -263,6 +263,10 @@ void ExprSMTLIBPrinter::printFullExpression(
     printAShrExpr(cast<AShrExpr>(e));
     return;
 
+  case Expr::Forall:
+    printForall(cast<ForallExpr>(e));
+    return;
+
   default:
     /* The remaining operators (Add,Sub...,Ult,Ule,..)
      * Expect SORT_BITVECTOR arguments
@@ -273,21 +277,30 @@ void ExprSMTLIBPrinter::printFullExpression(
 }
 
 void ExprSMTLIBPrinter::printReadExpr(const ref<ReadExpr> &e) {
-  *p << "(" << getSMTLIBKeyword(e) << " ";
-  p->pushIndent();
+  if (e->updates.root->isBoundVariable) {
+    assert(isa<ConstantExpr>(e->index));
+    unsigned index = dyn_cast<ConstantExpr>(e->index)->getZExtValue();
+    *p << "(";
+    *p << "(_ extract " << index * 8 + 7 << " " << index * 8 << ")";
+    *p << e->updates.root->getName();
+    *p << ")";
+  } else {
+    *p << "(" << getSMTLIBKeyword(e) << " ";
+    p->pushIndent();
 
-  printSeperator();
+    printSeperator();
 
-  // print array with updates recursively
-  printUpdatesAndArray(e->updates.head.get(), e->updates.root);
+    // print array with updates recursively
+    printUpdatesAndArray(e->updates.head.get(), e->updates.root);
 
-  // print index
-  printSeperator();
-  printExpression(e->index, SORT_BITVECTOR);
+    // print index
+    printSeperator();
+    printExpression(e->index, SORT_BITVECTOR);
 
-  p->popIndent();
-  printSeperator();
-  *p << ")";
+    p->popIndent();
+    printSeperator();
+    *p << ")";
+  }
 }
 
 void ExprSMTLIBPrinter::printExtractExpr(const ref<ExtractExpr> &e) {
@@ -406,6 +419,16 @@ void ExprSMTLIBPrinter::printAShrExpr(const ref<AShrExpr> &e) {
   *p << ")";
 }
 
+void ExprSMTLIBPrinter::printForall(const ref<ForallExpr> &e) {
+  *p << "(forall ((" << e->boundArray->getName() << " (_ BitVec " << e->bound->getWidth() << ")))";
+  printSeperator();
+  p->pushIndent();
+  ref<Expr> body = OrExpr::create(NotExpr::create(e->pre), e->post);
+  printExpression(body, SORT_BOOL);
+  p->popIndent();
+  *p << ")";
+}
+
 const char *ExprSMTLIBPrinter::getSMTLIBKeyword(const ref<Expr> &e) {
 
   switch (e->getKind()) {
@@ -469,6 +492,8 @@ const char *ExprSMTLIBPrinter::getSMTLIBKeyword(const ref<Expr> &e) {
     return "bvsgt";
   case Expr::Sge:
     return "bvsge";
+  case Expr::Forall:
+    return "forall";
 
   default:
     llvm_unreachable("Conversion from Expr to SMTLIB keyword failed");
@@ -955,6 +980,9 @@ ExprSMTLIBPrinter::SMTLIB_SORT ExprSMTLIBPrinter::getSort(const ref<Expr> &e) {
   case Expr::Or:
   case Expr::Xor:
     return e->getWidth() == Expr::Bool ? SORT_BOOL : SORT_BITVECTOR;
+
+  case Expr::Forall:
+    return SORT_BOOL;
 
   // Everything else is a bitvector.
   default:

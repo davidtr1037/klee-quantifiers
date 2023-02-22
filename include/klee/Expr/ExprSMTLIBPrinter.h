@@ -321,6 +321,7 @@ protected:
   void printSelectExpr(const ref<SelectExpr> &e,
                                ExprSMTLIBPrinter::SMTLIB_SORT s);
   void printAShrExpr(const ref<AShrExpr> &e);
+  void printForall(const ref<ForallExpr> &e);
 
   // For the set of operators that take sort "s" arguments
   void printSortArgsExpr(const ref<Expr> &e,
