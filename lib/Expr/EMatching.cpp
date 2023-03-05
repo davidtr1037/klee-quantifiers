@@ -312,9 +312,9 @@ void klee::generateLemmaFromForall(ref<ForallExpr> f,
   std::vector<ref<Expr>> terms;
   for (ref<BaseAssertion> a : assertions) {
     a->findNegatingTerms(constraints,
-                        checkImplied,
-                        checkConstraints,
-                        terms);
+                         checkImplied,
+                         checkConstraints,
+                         terms);
   }
 
   ref<Expr> aux = f->auxExpr;
