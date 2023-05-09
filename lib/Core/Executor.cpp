@@ -1134,7 +1134,9 @@ void Executor::branch(ExecutionState &state,
                    state.prevPC->info->line);
       for (unsigned i = 0; i < N; ++i) {
         ExecutionState *es = result[i];
-        es->loopHandler->canUseExecTree = false;
+        if (es) {
+          es->loopHandler->canUseExecTree = false;
+        }
       }
     } else {
       if (N > 1) {
