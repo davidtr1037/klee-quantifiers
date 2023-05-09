@@ -129,7 +129,7 @@ void ExecTree::setRight(ExecTreeNode *parent,
   addNode(node);
 }
 
-void ExecTree::extend(ExecutionState &current,
+bool ExecTree::extend(ExecutionState &current,
                       ExecutionState *trueState,
                       ExecutionState *falseState,
                       ref<Expr> condition,
@@ -165,11 +165,14 @@ void ExecTree::extend(ExecutionState &current,
         right->parent = node;
         addNode(right);
       }
-      return;
+
+      /* TODO: check validity when merging nodes */
+      return !left || !right || left->getHash() != right->getHash();
     }
   }
 
   assert(false);
+  return false;
 }
 
 void ExecTree::addSnapshot(ExecutionState &state,

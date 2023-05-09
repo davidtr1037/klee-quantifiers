@@ -4804,11 +4804,16 @@ void Executor::extendExecTree(ExecutionState &state,
                               ExecutionState *falseState) {
   assert(trueState || falseState);
 
-  state.loopHandler->tree.extend(state,
-                                 trueState,
-                                 falseState,
-                                 condition,
-                                 state.prevPC->info->id);
+  bool isValid = state.loopHandler->tree.extend(state,
+                                                trueState,
+                                                falseState,
+                                                condition,
+                                                state.prevPC->info->id);
+  if (!isValid) {
+    klee_warning("invalid execution tree");
+    state.loopHandler->canUseExecTree = false;
+    return;
+  }
 
   /* TODO: add docs */
   if (trueState) {
