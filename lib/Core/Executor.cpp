@@ -430,6 +430,7 @@ cl::opt<unsigned> TerminateStatesOnMemoryLimit("terminate-states-on-memory-limit
 cl::opt<bool> ExtendExecTreeOnSwitch("extend-exec-tree-on-switch", cl::init(false), cl::desc(""));
 cl::opt<bool> ExtendExecTreeOnSymbolicBranch("extend-exec-tree-on-symbolic-branch", cl::init(false), cl::desc(""));
 cl::opt<bool> RewriteSwitchConditions("rewrite-switch-conditions", cl::init(true), cl::desc(""));
+cl::opt<bool> AlwaysSetTaintOnSymbolicSize("always-set-taint-on-symbolic-size", cl::init(false), cl::desc(""));
 
 enum SymSizeModes {
   Max,
@@ -3693,6 +3694,10 @@ void Executor::executeAlloc(ExecutionState &state,
                             bool zeroMemory,
                             const ObjectState *reallocFrom,
                             size_t allocationAlignment) {
+  if (AlwaysSetTaintOnSymbolicSize && !isa<ConstantExpr>(size)) {
+    setTaint(state, size);
+  }
+
   size = toUnique(state, size);
   if (isa<ConstantExpr>(size) || AllocateSymSize) {
     const llvm::Value *allocSite = state.prevPC->inst;
