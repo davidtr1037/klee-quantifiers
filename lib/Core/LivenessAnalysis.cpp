@@ -87,8 +87,9 @@ bool LivenessAnalysis::runIteration(Function *f,
     }
 
     /* live-in */
+    set<GuardedValue> &liveInValues = liveIn[inst];
     for (const GuardedValue &v : toGen) {
-      auto r = liveIn[inst].insert(v);
+      auto r = liveInValues.insert(v);
       if (r.second) {
         changed = true;
       }
@@ -103,7 +104,7 @@ bool LivenessAnalysis::runIteration(Function *f,
       }
 
       if (!found) {
-        auto r = liveIn[inst].insert(v);
+        auto r = liveInValues.insert(v);
         if (r.second) {
           changed = true;
         }
