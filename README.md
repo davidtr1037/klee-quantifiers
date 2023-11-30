@@ -1,5 +1,7 @@
 # State Merging with Quantifiers
 This is an extension of KLEE which enables to perform state mering using quantified constraints.
+It is based on the paper: *State Merging with Quantifiers in Symbolic Execution*,
+which is available [here](https://doi.org/10.1145/3611643.3616287).
 
 ## Usage
 Consider the following example:
