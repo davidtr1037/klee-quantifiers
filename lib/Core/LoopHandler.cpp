@@ -161,7 +161,6 @@ LoopHandler::LoopHandler(Executor *executor,
       useIncrementalMergingSearch(useIncrementalMergingSearch),
       mergeCount(0),
       joinCount(0) {
-  //assert(loop);
   addInitialState(es);
 }
 
