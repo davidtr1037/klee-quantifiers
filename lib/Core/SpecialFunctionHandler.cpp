@@ -16,6 +16,7 @@
 #include "MergeHandler.h"
 #include "Searcher.h"
 #include "TimingSolver.h"
+#include "LoopHandler.h"
 
 #include "klee/Module/KInstruction.h"
 #include "klee/Module/KModule.h"
@@ -101,6 +102,8 @@ static SpecialFunctionHandler::HandlerInfo handlerInfo[] = {
   add("klee_mark_global", handleMarkGlobal, false),
   add("klee_open_merge", handleOpenMerge, false),
   add("klee_close_merge", handleCloseMerge, false),
+  add("klee_open_qmerge", handleOpenMergeWithQuantifiers, false),
+  add("klee_close_qmerge", handleCloseMergeWithQuantifiers, false),
   add("klee_prefer_cex", handlePreferCex, false),
   add("klee_posix_prefer_cex", handlePosixPreferCex, false),
   add("klee_print_expr", handlePrintExpr, false),
@@ -375,6 +378,39 @@ void SpecialFunctionHandler::handleCloseMerge(ExecutionState &state,
     state.openMergeStack.back()->addClosedState(&state, i);
     state.openMergeStack.pop_back();
   }
+}
+
+void SpecialFunctionHandler::handleOpenMergeWithQuantifiers(ExecutionState &state,
+                                                            KInstruction *target,
+                                                            std::vector<ref<Expr> > &arguments) {
+  if (!UseLoopMerge) {
+    /* TODO: update the log message */
+    klee_warning("klee_open_qmerge ignored, use ...");
+  }
+
+  if (state.loopHandler.isNull()) {
+    /* TODO: use UseIncrementalMergingSearch */
+    state.loopHandler = new LoopHandler(&executor, &state, nullptr, false);
+  }
+}
+
+/* TODO: onLoopExit does something with 'paused`, check if needed */
+void SpecialFunctionHandler::handleCloseMergeWithQuantifiers(ExecutionState &state,
+                                                             KInstruction *target,
+                                                             std::vector<ref<Expr> > &arguments) {
+  if (!UseLoopMerge) {
+    /* TODO: update the log message */
+    klee_warning("klee_close_qmerge ignored, use ...");
+    return;
+  }
+
+  if (state.loopHandler.isNull()) {
+    /* this should not happen... */
+    assert(false);
+  }
+
+  state.loopHandler->addClosedState(&state, target->inst);
+  state.loopHandler = nullptr;
 }
 
 void SpecialFunctionHandler::handleNew(ExecutionState &state,

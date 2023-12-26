@@ -157,8 +157,10 @@ extern "C" {
   /* Merge all paths of the state that went through klee_open_merge */
   void klee_close_merge();
 
-  void klee_open_loop_merge();
-  void klee_close_loop_merge();
+  void klee_open_qmerge();
+
+  void klee_close_qmerge();
+
   bool klee_or(size_t n, bool cond[]);
 
   /* Get errno value of the current state */

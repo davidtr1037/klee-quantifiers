@@ -161,7 +161,7 @@ LoopHandler::LoopHandler(Executor *executor,
       useIncrementalMergingSearch(useIncrementalMergingSearch),
       mergeCount(0),
       joinCount(0) {
-  assert(loop);
+  //assert(loop);
   addInitialState(es);
 }
 
@@ -287,11 +287,13 @@ bool LoopHandler::shouldForceCFGBasedMerging() {
     return true;
   }
 
-  Function *f = loop->getHeader()->getParent();
-  for (const string &name : ForceCFGBasedMerging) {
-    if (f->getName() == name) {
-      klee_message("forcing CFG-based merging: disabled %s", f->getName().data());
-      return true;
+  if (loop) {
+    Function *f = loop->getHeader()->getParent();
+    for (const string &name : ForceCFGBasedMerging) {
+      if (f->getName() == name) {
+        klee_message("forcing CFG-based merging: disabled %s", f->getName().data());
+        return true;
+      }
     }
   }
 
