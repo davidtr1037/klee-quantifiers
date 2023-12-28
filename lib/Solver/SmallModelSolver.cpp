@@ -25,28 +25,28 @@ cl::opt<bool> ValidateModel(
 
 cl::opt<bool> AddBoundConstraints(
   "add-bound-constraints",
-  cl::init(false),
+  cl::init(true),
   cl::desc(""),
   cl::cat(SolvingCat)
 );
 
 cl::opt<bool> GenerateEMatchingConstraints(
   "generate-ematching-constraints",
-  cl::init(false),
+  cl::init(true),
   cl::desc(""),
   cl::cat(SolvingCat)
 );
 
 cl::opt<bool> DuplicateModel(
   "duplicate-model",
-  cl::init(false),
+  cl::init(true),
   cl::desc(""),
   cl::cat(SolvingCat)
 );
 
 cl::opt<bool> RepairModel(
   "repair-model",
-  cl::init(false),
+  cl::init(true),
   cl::desc(""),
   cl::cat(SolvingCat)
 );
