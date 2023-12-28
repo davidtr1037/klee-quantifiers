@@ -37,9 +37,9 @@ cl::opt<bool> StartLoopMergeOnBranch(
     cl::desc(""),
     cl::cat(LoopCat));
 
-cl::opt<bool> UseOptimizedMerge(
-    "use-optimized-merge",
-    cl::init(true),
+cl::opt<bool> UseStandardMerging(
+    "use-standard-merging",
+    cl::init(false),
     cl::desc(""),
     cl::cat(LoopCat));
 
@@ -427,7 +427,7 @@ ExecutionState *LoopHandler::mergeSubGroup(MergeSubGroupInfo &info,
     return nullptr;
   }
 
-  if (!UseOptimizedMerge) {
+  if (UseStandardMerging) {
     return ExecutionState::mergeStates(states);
   }
 
