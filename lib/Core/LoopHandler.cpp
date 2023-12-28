@@ -89,7 +89,7 @@ cl::opt<unsigned> MaxPatterns(
 
 cl::opt<bool> SimplifyMergedConstraintOnSinglePattern(
     "simplify-merged-constraint-on-single-pattern",
-    cl::init(true),
+    cl::init(false),
     cl::desc(""),
     cl::cat(LoopCat));
 

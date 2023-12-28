@@ -427,8 +427,8 @@ cl::opt<bool> PartitionLargeObjects("partition-large-objects", cl::init(false), 
 /* TODO: remove */
 cl::opt<unsigned> MaxPartitionSize("max-partition-size", cl::init(100), cl::desc(""));
 cl::opt<unsigned> TerminateStatesOnMemoryLimit("terminate-states-on-memory-limit", cl::init(true), cl::desc(""));
-cl::opt<bool> ExtendExecTreeOnSwitch("extend-exec-tree-on-switch", cl::init(false), cl::desc(""));
-cl::opt<bool> ExtendExecTreeOnSymbolicBranch("extend-exec-tree-on-symbolic-branch", cl::init(false), cl::desc(""));
+cl::opt<bool> ExtendExecTreeOnSwitch("extend-exec-tree-on-switch", cl::init(true), cl::desc(""));
+cl::opt<bool> ExtendExecTreeOnSymbolicBranch("extend-exec-tree-on-symbolic-branch", cl::init(true), cl::desc(""));
 cl::opt<bool> RewriteSwitchConditions("rewrite-switch-conditions", cl::init(true), cl::desc(""));
 cl::opt<bool> AlwaysSetTaintOnSymbolicSize("always-set-taint-on-symbolic-size", cl::init(false), cl::desc(""));
 
