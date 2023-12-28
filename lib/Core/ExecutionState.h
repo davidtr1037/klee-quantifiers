@@ -44,7 +44,7 @@ struct InstructionInfo;
 
 extern llvm::cl::opt<bool> OptimizeUsingExecTree;
 extern llvm::cl::opt<bool> OptimizeArrayValuesByTracking;
-extern llvm::cl::opt<bool> OptimizeUsingQuantifiers;
+extern llvm::cl::opt<bool> UseQuantifiers;
 extern llvm::cl::opt<bool> CreateSnapshots;
 
 llvm::raw_ostream &operator<<(llvm::raw_ostream &os, const MemoryMap &mm);

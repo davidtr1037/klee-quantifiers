@@ -153,7 +153,7 @@ Searcher *klee::constructUserSearcher(Executor &executor) {
     searcher = new IterativeDeepeningTimeSearcher(searcher);
   }
 
-  if (UseMerge || UseLoopMerge) {
+  if (UseMerge || UseLoopMerge || UseQuantifiers) {
     if (std::find(CoreSearch.begin(), CoreSearch.end(), Searcher::RandomPath) !=
         CoreSearch.end()) {
       klee_error("use-merge/use-loop-merge currently does not support random-path, please use "

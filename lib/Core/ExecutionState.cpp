@@ -78,9 +78,9 @@ cl::opt<bool> DumpExecutionTree(
     cl::desc(""),
     cl::cat(MergeCat));
 
-/* TODO: rename to UseQuantifiers? */
-cl::opt<bool> klee::OptimizeUsingQuantifiers(
-    "optimize-using-quantifiers", cl::init(false),
+cl::opt<bool> klee::UseQuantifiers(
+    "use-quantifiers",
+    cl::init(false),
     cl::desc(""),
     cl::cat(MergeCat));
 

@@ -383,9 +383,8 @@ void SpecialFunctionHandler::handleCloseMerge(ExecutionState &state,
 void SpecialFunctionHandler::handleOpenMergeWithQuantifiers(ExecutionState &state,
                                                             KInstruction *target,
                                                             std::vector<ref<Expr> > &arguments) {
-  if (!UseLoopMerge) {
-    /* TODO: update the log message */
-    klee_warning("klee_open_qmerge ignored, use ...");
+  if (!UseQuantifiers) {
+    klee_warning("klee_open_qmerge ignored, use '-use-quantifiers'");
   }
 
   if (state.loopHandler.isNull()) {
@@ -397,9 +396,8 @@ void SpecialFunctionHandler::handleOpenMergeWithQuantifiers(ExecutionState &stat
 void SpecialFunctionHandler::handleCloseMergeWithQuantifiers(ExecutionState &state,
                                                              KInstruction *target,
                                                              std::vector<ref<Expr> > &arguments) {
-  if (!UseLoopMerge) {
-    /* TODO: update the log message */
-    klee_warning("klee_close_qmerge ignored, use ...");
+  if (!UseQuantifiers) {
+    klee_warning("klee_close_qmerge ignored, use '-use-quantifiers'");
     return;
   }
 

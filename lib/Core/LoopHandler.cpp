@@ -432,7 +432,7 @@ ExecutionState *LoopHandler::mergeSubGroup(MergeSubGroupInfo &info,
   }
 
   PatternMatch *match = nullptr;
-  if (OptimizeUsingQuantifiers) {
+  if (UseQuantifiers) {
     match = matches.empty() ? nullptr : &matches[0];
   }
   /* simplify the merged constraint only when:
@@ -832,7 +832,7 @@ bool LoopHandler::validateMerge(vector<ExecutionState *> &snapshots,
   return ExecutionState::areEquiv(getValidationSolver(),
                                   merged,
                                   expected,
-                                  !OptimizeUsingQuantifiers);
+                                  !UseQuantifiers);
 }
 
 void LoopHandler::dumpStats() const {

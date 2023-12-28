@@ -4987,10 +4987,8 @@ void Executor::takeSnapshotIfNeeded(ExecutionState &state,
 }
 
 bool Executor::shouldExtendExecTree(ExecutionState &state) {
-  return UseLoopMerge && \
-         OptimizeUsingExecTree && \
-         !state.loopHandler.isNull() && \
-         state.loopHandler->canUseExecTree;
+  return (OptimizeUsingExecTree || UseQuantifiers) && \
+         (!state.loopHandler.isNull() && state.loopHandler->canUseExecTree);
 }
 
 ///
