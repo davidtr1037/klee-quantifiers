@@ -180,8 +180,6 @@ public:
 
   bool mergeIntermediateState(ExecTreeNode *target);
 
-  bool runMergeTransformationNaive();
-
   bool runMergeTransformation();
 
   bool runJoinTransformation();

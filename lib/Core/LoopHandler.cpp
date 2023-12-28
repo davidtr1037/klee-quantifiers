@@ -786,33 +786,6 @@ bool LoopHandler::mergeIntermediateState(ExecTreeNode *target) {
   return false;
 }
 
-bool LoopHandler::runMergeTransformationNaive() {
-  if (!UseMergeTransformation) {
-    return false;
-  }
-
-  bool changed = false;
-  bool retry;
-
-  do {
-    retry = false;
-    ExecTreeBFSIterator iter(tree);
-    while (iter.hasNext()) {
-      ExecTreeNode *n = iter.next();
-      if (n != tree.root) {
-        if (mergeIntermediateState(n)) {
-          mergeCount++;
-          retry = true;
-          changed = true;
-          break;
-        }
-      }
-    }
-  } while (retry);
-
-  return changed;
-}
-
 bool LoopHandler::runMergeTransformation() {
   if (!UseMergeTransformation) {
     return false;
