@@ -150,7 +150,6 @@ LoopHandler::LoopHandler(Executor *executor,
                          Loop *loop,
                          bool useIncrementalMergingSearch)
     : closedStateCount(0),
-      activeStates(0),
       earlyTerminated(0),
       executor(executor),
       solver(executor->solver),
@@ -170,7 +169,7 @@ LoopHandler::~LoopHandler() {
     return;
   }
 
-  assert(activeStates == 0);
+  assert(openStates.empty());
   for (const auto &i: mergeGroupsByExit) {
     const vector<ExecutionState *> &states = i.second;
     assert(states.empty());
@@ -190,7 +189,6 @@ void LoopHandler::addInitialState(ExecutionState *es) {
 
 void LoopHandler::addOpenState(ExecutionState *es) {
   openStates.push_back(es);
-  activeStates++;
 }
 
 void LoopHandler::removeOpenState(ExecutionState *es) {
@@ -272,10 +270,7 @@ void LoopHandler::addClosedState(ExecutionState *es,
     states.push_back(es);
   }
 
-  /* otherwise, a state sneaked out somehow */
-  assert(activeStates > 0);
-  activeStates--;
-  if (activeStates == 0) {
+  if (openStates.empty()) {
     releaseStates();
   }
 }
@@ -588,12 +583,10 @@ void LoopHandler::releaseStates() {
   }
 }
 
-/* TODO: update openStates? */
 void LoopHandler::markEarlyTerminated(ExecutionState &state) {
   earlyTerminated++;
-  assert(activeStates > 0);
-  activeStates--;
-  if (activeStates == 0) {
+  assert(!openStates.empty());
+  if (openStates.empty()) {
     releaseStates();
   }
 }

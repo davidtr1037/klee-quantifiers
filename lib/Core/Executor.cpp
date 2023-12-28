@@ -4782,7 +4782,7 @@ void Executor::onLoopExit(ExecutionState &state, KInstruction *ki, bool &paused)
     return;
   }
 
-  if (!ki->isExitOf(state.loopHandler->loop)) {
+  if (!state.loopHandler->loop || !ki->isExitOf(state.loopHandler->loop)) {
     /* TODO: supposed to be exit of inner loop, validate? */
     return;
   }

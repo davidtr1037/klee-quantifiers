@@ -99,9 +99,6 @@ private:
 
   std::unordered_map<LoopExit, StateSet, LoopExitHash> mergeGroupsByExit;
 
-  /* TODO: signed or unsigned? */
-  int activeStates;
-
   unsigned earlyTerminated;
 
 public:
