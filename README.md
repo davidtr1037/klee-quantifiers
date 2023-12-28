@@ -3,7 +3,10 @@ This is an extension of KLEE which enables to perform state mering using quantif
 It is based on the paper: *State Merging with Quantifiers in Symbolic Execution*,
 which is available [here](https://doi.org/10.1145/3611643.3616287).
 
-## Usage (Manual State Merging)
+## Usage
+
+### Manual State Merging
+
 Consider the following example:
 ```
 #include <stdlib.h>
@@ -54,7 +57,7 @@ klee \
     <bitcode_file>
 ```
 
-## Usage (Automatic State Merging)
+### Automatic State Merging
 In the previous example, state merging is applied manually.
 Our implementation supports automatic application of state merging in size-dependent loops.
 Consider the following example:
