@@ -11,7 +11,7 @@ using namespace llvm;
 
 cl::opt<unsigned> MinStatesForABV(
     "min-states-for-abv",
-    cl::init(1),
+    cl::init(2),
     cl::desc(""));
 
 bool getParametricExpressions(std::vector<SMTEquationSystem> systems,
