@@ -19,6 +19,8 @@ namespace klee {
 
 #define REASON_MERGE "Merge"
 #define REASON_INCREMENTAL_MERGE "Incremental Merge"
+#define USE_MERGE_TRANSFORMATION (true)
+#define USE_JOIN_TRANSFORMATION (true)
 
 cl::OptionCategory LoopCat("Loop merging options",
                            "These options control path merging.");
@@ -61,18 +63,6 @@ cl::opt<bool> SplitByPattern(
 
 cl::opt<bool> UseForwardExtract(
     "use-forward-extract",
-    cl::init(false),
-    cl::desc(""),
-    cl::cat(LoopCat));
-
-cl::opt<bool> UseMergeTransformation(
-    "use-merge-transformation",
-    cl::init(false),
-    cl::desc(""),
-    cl::cat(LoopCat));
-
-cl::opt<bool> UseJoinTransformation(
-    "use-join-transformation",
     cl::init(false),
     cl::desc(""),
     cl::cat(LoopCat));
@@ -545,7 +535,7 @@ void LoopHandler::releaseStates() {
                total,
                groups.size());
 
-  if (UseMergeTransformation || UseJoinTransformation) {
+  if (useIncrementalMergingSearch) {
     dumpStats();
   }
 
@@ -780,7 +770,7 @@ bool LoopHandler::mergeIntermediateState(ExecTreeNode *target) {
 }
 
 bool LoopHandler::runMergeTransformation() {
-  if (!UseMergeTransformation) {
+  if (!USE_MERGE_TRANSFORMATION) {
     return false;
   }
 
@@ -798,7 +788,7 @@ bool LoopHandler::runMergeTransformation() {
 }
 
 bool LoopHandler::runJoinTransformation() {
-  if (!UseJoinTransformation) {
+  if (!USE_JOIN_TRANSFORMATION) {
     return false;
   }
 
@@ -820,6 +810,10 @@ bool LoopHandler::runJoinTransformation() {
 }
 
 bool LoopHandler::transform() {
+  if (!useIncrementalMergingSearch) {
+    return false;
+  }
+
   TimerStatIncrementer timer(stats::mergeTime);
   bool changed = false;
 
