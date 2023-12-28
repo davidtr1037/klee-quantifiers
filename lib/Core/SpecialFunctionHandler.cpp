@@ -389,8 +389,7 @@ void SpecialFunctionHandler::handleOpenMergeWithQuantifiers(ExecutionState &stat
   }
 
   if (state.loopHandler.isNull()) {
-    /* TODO: use UseIncrementalMergingSearch */
-    state.loopHandler = new LoopHandler(&executor, &state, nullptr, false);
+    state.loopHandler = new LoopHandler(&executor, &state, nullptr, UseIncrementalMergingSearch);
   }
 }
 
