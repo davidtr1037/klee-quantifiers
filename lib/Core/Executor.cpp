@@ -4764,9 +4764,12 @@ void Executor::onLoopEntry(ExecutionState &state, KInstruction *ki) {
     top.loop = kloop;
   } else {
     if (WarnUnsupportedLoops) {
-      /* TODO: fix warning */
       char msg[1000];
-      snprintf(msg, sizeof(msg), "unsupported loop: %s:%u", ki->info->file.data(), ki->info->line);
+      snprintf(msg,
+               sizeof(msg),
+               "unsupported loop: %s:%u",
+               ki->info->file.data(),
+               ki->info->line);
       klee_warning_once(kloop.loop, "%s", msg);
     }
   }
