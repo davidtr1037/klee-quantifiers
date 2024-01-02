@@ -69,7 +69,7 @@ llvm::cl::opt<unsigned> Z3SMTRandomSeed("z3-smt-random-seed",
                                         llvm::cl::cat(klee::SolvingCat));
 
 llvm::cl::opt<unsigned> Z3SMTRelevancy("z3-smt-relevancy",
-                                       llvm::cl::init(2),
+                                       llvm::cl::init(1),
                                        llvm::cl::desc(""),
                                        llvm::cl::cat(klee::SolvingCat));
 
